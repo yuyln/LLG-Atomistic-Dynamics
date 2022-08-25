@@ -14,6 +14,7 @@
 #include <grid.h>
 #include <parserL.h>
 #include <funcs.h>
+#include <time.h>
 
 double myrandom()
 {
@@ -56,6 +57,11 @@ void CopyToExistingGrid(Grid *to, Grid *from)
     memcpy(to->grid, from->grid, from->param.total * sizeof(Vec));
     memcpy(to->ani, from->ani, from->param.total * sizeof(Anisotropy));
     memcpy(to->pinning, from->pinning, from->param.total * sizeof(Pinning));
+}
+
+void CopySpinsToExistingGrid(Grid *to, Grid *from)
+{
+    memcpy(to->grid, from->grid, from->param.total * sizeof(Vec));
 }
 
 Grid InitNullGrid()
@@ -184,5 +190,35 @@ void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
     int col = cols - 1;
     fprintf(f, "%.15f\t%.15f\t%.15f", v[row * cols + col].x, v[row * cols + col].y, v[row * cols + col].z);
     fclose(f);
+}
+
+void GetGridParam(const char* path, GridParam* g)
+{
+    StartParse(path);
+
+    g->exchange = GetValueDouble("EXCHANGE");
+    g->dm = GetValueDouble("DMI");
+    g->lattice = GetValueDouble("LATTICE");
+    g->cubic_ani = GetValueDouble("CUBIC");
+    g->lande = GetValueDouble("LANDE");
+    g->avg_spin = GetValueDouble("SPIN");
+    g->mu_s = g->lande * MU_B * g->avg_spin;
+    g->dm_type = GetValueInt("DM_TYPE", 10);
+    g->pbc.pbc_type = GetValueInt("PBC_TYPE", 10);
+    g->pbc.dir.x = GetValueDouble("PBC_X");
+    g->pbc.dir.y = GetValueDouble("PBC_Y");
+    g->pbc.dir.z = GetValueDouble("PBC_Z");
+
+    EndParse();
+}
+
+Vec FieldJouleToTesla(Vec field, double mu_s)
+{
+    return VecScalar(field, 1.0 / mu_s);
+}
+
+Vec FieldTeslaToJoule(Vec field, double mu_s)
+{
+    return VecScalar(field, mu_s);
 }
 #endif

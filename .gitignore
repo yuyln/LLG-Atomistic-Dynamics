@@ -2,3 +2,6 @@
 output
 build.bat
 build.sh
+imgs
+*.exe
+*.stackdump

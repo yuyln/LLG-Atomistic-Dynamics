@@ -123,7 +123,7 @@ double Hamiltoninij(int row, int col, Grid *g, Vec field)
                    VecDot(DMU, VecCross(C, U))+
                    VecDot(DMD, VecCross(C, D)));
 
-    out += -g->ani[I].K_1 * (VecDot(C, g->ani[I].dir)) * (VecDot(C, g->ani[I].dir));
+    out += -g->ani[I].K_1 * VecDot(C, g->ani[I].dir) * VecDot(C, g->ani[I].dir);
 
     out += -g->param.cubic_ani * (C.x * C.x * C.x * C.x+
                                   C.y * C.y * C.y * C.y+
@@ -138,5 +138,13 @@ double Hamiltonian(Grid *g, Vec field)
     for (size_t I = 0; I < g->param.total; ++I)
         ret += HamiltonianI(I, g, field);
     return ret;
+}
+
+void GridNormalizeI(size_t I, Grid *g)
+{
+    if (g->pinning[I].fixed)
+        g->grid[I] = g->pinning[I].dir;
+    else
+        g->grid[I] = VecNormalize(g->grid[I]);
 }
 #endif

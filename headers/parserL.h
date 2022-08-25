@@ -23,7 +23,9 @@ size_t parser_global_file_size = 0;
 void EndParse()
 {
     free(parser_global_file_str);
+    parser_global_file_str = NULL;
     free(parser_global_state);
+    parser_global_state = NULL;
     parser_global_n = 0;
     parser_global_file_size = 0;
 }
