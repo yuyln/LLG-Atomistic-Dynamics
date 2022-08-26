@@ -43,9 +43,15 @@ typedef struct
 typedef struct
 {
     GridParam param;
+    #ifndef OPENCLCOMP
     Vec *grid;
     Anisotropy *ani;
     Pinning *pinning;
+    #else
+    Vec grid[TOTAL];
+    Anisotropy ani[TOTAL];
+    Pinning pinning[TOTAL];
+    #endif
 } Grid;
 
 #endif

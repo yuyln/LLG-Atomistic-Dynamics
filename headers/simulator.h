@@ -4,7 +4,7 @@
 #include <helpers.h>
 
 #define kernels_n sizeof(kernels) / sizeof(char*)
-static const char* kernels[] = {"Add"};
+static const char* kernels[] = {"TermalStep", "HamiltonianGPU"};
 
 typedef struct GPU
 {
@@ -85,16 +85,12 @@ Simulator InitSimulator(const char* path)
     
     free(local_file_dir);
 
-    char *ptr_grid = (char*)&ret.g_old.param;
-    ptr_grid += sizeof(int) * 2 + sizeof(size_t);
-
-    char *ptr_tmp = (char*)&param_tmp;
-    ptr_tmp += sizeof(int) * 2 + sizeof(size_t);
-    memcpy(ptr_grid, ptr_tmp, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
+    memcpy(&ret.g_old.param.exchange, &param_tmp.exchange, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
 
     /*
         Add start to anisotropy and pinning
     */
+    CopyGrid(&ret.g_new, &ret.g_old);
 
     StartParse(path);
     ret.use_gpu = (bool)GetValueInt("GPU", 10);
@@ -115,16 +111,25 @@ Simulator InitSimulator(const char* path)
         ret.gpu.ctx = InitContext(ret.gpu.devs, ret.gpu.n_devs);
         ret.gpu.queue = InitQueue(ret.gpu.ctx, ret.gpu.devs[ret.gpu.i_dev]);
         ret.gpu.program = InitProgramSource(ret.gpu.ctx, kernel_data);
-        cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, NULL);
+
+        char* comp_opt;
+        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total) + 1;
+        comp_opt = (char*)calloc(comp_opt_size, 1);
+        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total);
+        printf("Compile OpenCL: %s\n", comp_opt);
+
+        cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
         BuildProgramInfo(stdout, ret.gpu.program, ret.gpu.devs[ret.gpu.i_dev], err);
 
+        free(comp_opt);
         ret.g_old_buffer = CreateBuffer(FindGridSize(&ret.g_old), ret.gpu.ctx, CL_MEM_READ_WRITE);
         ret.g_new_buffer = CreateBuffer(FindGridSize(&ret.g_new), ret.gpu.ctx, CL_MEM_READ_WRITE);
+        WriteFullGridBuffer(ret.gpu.queue, ret.g_old_buffer, &ret.g_old);
+        WriteFullGridBuffer(ret.gpu.queue, ret.g_new_buffer, &ret.g_new);
         ret.gpu.kernels = InitKernels(ret.gpu.program, kernels, kernels_n);
     }
 
     EndParse();
-    CopyGrid(&ret.g_new, &ret.g_old);
     return ret;
 }
 

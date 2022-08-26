@@ -234,4 +234,39 @@ Vec FieldTeslaToJoule(Vec field, double mu_s)
     return VecScalar(field, mu_s);
 }
 
+void WriteFullGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
+{
+    size_t off = 0;
+    WriteBuffer(buffer, &g->param, sizeof(GridParam), off, q);
+    off += sizeof(GridParam);
+    WriteBuffer(buffer, g->grid, sizeof(Vec) * g->param.total, off, q);
+    off += sizeof(Vec) * g->param.total;
+    WriteBuffer(buffer, g->ani, sizeof(Anisotropy) * g->param.total, off, q);
+    off += sizeof(Anisotropy) * g->param.total;
+    WriteBuffer(buffer, g->pinning, sizeof(Pinning) * g->param.total, off, q);
+    off += sizeof(Pinning) * g->param.total;
+}
+
+void WriteVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
+{
+    WriteBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
+}
+
+void ReadFullGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
+{
+    size_t off = 0;
+    ReadBuffer(buffer, &g->param, sizeof(GridParam), off, q);
+    off += sizeof(GridParam);
+    ReadBuffer(buffer, g->grid, sizeof(Vec) * g->param.total, off, q);
+    off += sizeof(Vec) * g->param.total;
+    ReadBuffer(buffer, g->ani, sizeof(Anisotropy) * g->param.total, off, q);
+    off += sizeof(Anisotropy) * g->param.total;
+    ReadBuffer(buffer, g->pinning, sizeof(Pinning) * g->param.total, off, q);
+    off += sizeof(Pinning) * g->param.total;
+}
+
+void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
+{
+    ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
+}
 #endif
