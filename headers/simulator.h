@@ -4,7 +4,7 @@
 #include <helpers.h>
 
 #define kernels_n sizeof(kernels) / sizeof(char*)
-static const char* kernels[] = {"TermalStep", "HamiltonianGPU"};
+static const char* kernels[] = {"TermalStep", "HamiltonianGPU", "Reset"};
 
 typedef struct GPU
 {
@@ -76,7 +76,7 @@ Simulator InitSimulator(const char* path)
 
     bool start_random = (bool)GetValueInt("RSG", 10);
     char* local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE") + 1]);
-    EndParse();
+    // EndParse();
 
     if (start_random)
         ret.g_old = InitGridRandom(GetValueInt("ROWS", 10), GetValueInt("COLS", 10));

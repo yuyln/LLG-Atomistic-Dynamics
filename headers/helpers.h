@@ -18,6 +18,8 @@
 #include <opencl_kernel.h>
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include <opencl_wrapper.h>
+#define PROFILER_IMPLEMENTATION
+#include <profiler.h>
 
 double myrandom()
 {

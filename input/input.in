@@ -1,5 +1,5 @@
 CPU: 1
-GPU: 1
+GPU: 0
 PLAT: 0
 DEV: 0
 
@@ -9,7 +9,7 @@ WRITE: 0
 CUT: 1
 
 FILE: ./input/teste.vec
-RSG: 0
+RSG: 1
 ROWS: 10
 COLS: 10
 
@@ -26,10 +26,10 @@ DM_TYPE: 1
 R_ij -> 0
 Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 0
+PBC_TYPE: 2
 PBC_X: 0.0
 PBC_Y: 0.0
-PBC_Z: 1.0
+PBC_Z: 0.0
 XY -> 0
 X -> 1
 Y -> 2

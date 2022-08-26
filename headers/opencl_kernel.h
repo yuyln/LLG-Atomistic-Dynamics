@@ -135,12 +135,18 @@ kernel void TermalStep(global Grid* g_out, const global Grid* g_old, const doubl
     \n\
     g_out->grid[I].z = g_old->grid[I].z + delta;\n\
 \n\
-    GridNormalizeI(g_out, I);\n\
+    GridNormalizeI(I, g_out);\n\
 }\n\
 \n\
-kernel void HamiltonianGPU(global const Grid* g, global double* ham_buffer, const Vec field)\n\
+kernel void HamiltonianGPU(global Grid* g, global double* ham_buffer, const Vec field)\n\
 {\n\
     size_t I = get_global_id(0);\n\
     ham_buffer[I] = HamiltonianI(I, g, field);\n\
+}\n\
+\n\
+kernel void Reset(global Grid* g_old, global const Grid* g_new)\n\
+{\n\
+    size_t I = get_global_id(0);\n\
+    g_old->grid[I] = g_new->grid[I];\n\
 }";
 #endif
