@@ -15,6 +15,9 @@
 #include <parserL.h>
 #include <funcs.h>
 #include <time.h>
+#include <opencl_kernel.h>
+#define OPENCLWRAPPER_IMPLEMENTATION
+#include <opencl_wrapper.h>
 
 double myrandom()
 {
@@ -73,7 +76,7 @@ Grid InitNullGrid()
 
 int FindRowsFile(const char *path)
 {
-    FILE* f = fopen(path, "r");
+    FILE* f = fopen(path, "rb");
 
     if (!f)
     {
@@ -102,8 +105,8 @@ int FindRowsFile(const char *path)
     if (*--ptr != '\n')
         rows++;
 
-    fclose(f);
     free(file_data);
+    fclose(f);
     return rows;
 }
 
@@ -159,6 +162,15 @@ Grid InitGridRandom(int rows, int cols)
     ret.ani = (Anisotropy*)calloc(ret.param.total, sizeof(Anisotropy));
     ret.pinning = (Pinning*)calloc(ret.param.total, sizeof(Pinning));
     return ret;
+}
+
+size_t FindGridSize(const Grid* g)
+{
+    size_t param = sizeof(GridParam);
+    size_t grid_vec = g->param.total * sizeof(Vec);
+    size_t grid_pinning = g->param.total * sizeof(Pinning);
+    size_t grid_ani = g->param.total * sizeof(Anisotropy);
+    return param + grid_vec + grid_pinning + grid_ani;
 }
 
 void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
@@ -221,4 +233,5 @@ Vec FieldTeslaToJoule(Vec field, double mu_s)
 {
     return VecScalar(field, mu_s);
 }
+
 #endif

@@ -27,9 +27,11 @@ void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
     CopyGrid(&g_old, g_in);
     CopyGrid(g_out, g_in);
 
-    double H_old = Hamiltonian(&g_old, field) / g_in->param.exchange,
-           H_new = Hamiltonian(g_out, field) / g_in->param.exchange,
-           H_min = Hamiltonian(&g_min, field) / g_in->param.exchange;
+    double norm_factor = g_in->param.exchange * (g_in->param.exchange > 0? 1.0: -1.0);
+
+    double H_old = Hamiltonian(&g_old, field),
+           H_new = Hamiltonian(g_out, field),
+           H_min = Hamiltonian(&g_min, field);
 
     double qA1 = param.qA - 1.0,
            qV1 = param.qV - 1.0,
@@ -48,7 +50,7 @@ void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
             t += 1.0;
             double T = Tqt / (pow(t + 1.0, qT1) - 1.0);
             if (inner % (param.inner_loop / param.print_param) == 0)
-                printf("outer: %zu inner: %zu H_min: %e T: %e\n", outer, inner, H_min * g_in->param.exchange, T);
+                printf("outer: %zu inner: %zu H_min: %e T: %e\n", outer, inner, H_min, T);
             
             for (size_t I = 0; I < g_in->param.total; ++I)
             {
@@ -77,7 +79,7 @@ void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
                 GridNormalizeI(I, g_out);
             }
             
-            H_new = Hamiltonian(g_out, field) / g_in->param.exchange;
+            H_new = Hamiltonian(g_out, field);
 
             if (H_new <= H_min)
             {
@@ -92,8 +94,8 @@ void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
             }
             else
             {
-                double df = H_new - H_old;
-                double pqa = 1.0 / pow(1.0 + qA1 * df / T, oneqA1);
+                double df_norm = (H_new - H_old) / norm_factor;
+                double pqa = 1.0 / pow(1.0 + qA1 * df_norm / T, oneqA1);
                 if (myrandom() < pqa)
                 {
                     H_old = H_new;

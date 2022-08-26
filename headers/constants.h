@@ -9,4 +9,5 @@
 #define QE 1.602176634e-19 // C
 #define MU_B 9.2740100783e-24 // J/T
 #define MU_0 1.25663706212e-6 // N/A^2
+#define KB 1.380649e-23 // J/K
 #endif

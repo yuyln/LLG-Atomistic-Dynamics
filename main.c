@@ -1,10 +1,36 @@
 #include <helpers.h>
 #include <gsa.h>
+#include <simulator.h>
 
 int main()
 {
+    Simulator s = InitSimulator("./input/input.in");
+
+    Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
+
+    printf("%e\n", field_tesla.z);
+    PrintVecGridToFile("./output/old.vec", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    
+    printf("Before GSA %e J\n", Hamiltonian(&s.g_old, field_tesla));
+
+    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 7, 1, 1};
+
+    GSA(gsap, &s.g_old, &s.g_new, field_tesla);
+
+    CopyGrid(&s.g_old, &s.g_new);
+    printf("After GSA %e J\n", Hamiltonian(&s.g_old, field_tesla));
+    PrintVecGridToFile("./output/new.vec", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+
+    ExportSimulatorFile(&s, "./output/export_sim.out");
+    FreeSimulator(&s);
+    return 0;
+}
+
+int main2()
+{
     Grid g_old = InitGridFromFile("./input/teste.vec");
-    GetGridParam("./input/gridparam.in", &g_old.param);
+    GetGridParam("./input/input.in", &g_old.param);
     Grid g_new = InitNullGrid();
     CopyGrid(&g_new, &g_old);
 
@@ -16,7 +42,7 @@ int main()
     
     printf("Before GSA %e J\n", Hamiltonian(&g_old, field_tesla));
 
-    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 700000, 10, 1};
+    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 7, 1, 1};
 
     GSA(gsap, &g_old, &g_new, field_tesla);
 
