@@ -9,8 +9,20 @@ typedef enum
 
 typedef enum
 {
-    XY, X, Y, NONE
+    PBC_XY, PBC_X, PBC_Y, PBC_NONE
 } PBC_TYPE;
+
+typedef enum
+{
+    CUR_CPP, CUR_STT, CUR_BOTH, CUR_NONE
+} CUR_TYPE;
+
+typedef struct
+{
+    Vec j;
+    double p, beta, thick;
+    CUR_TYPE type;
+} Current;
 
 typedef struct
 {
@@ -29,6 +41,7 @@ typedef struct
     char fixed;
     Vec dir;
 } Pinning;
+
 
 typedef struct
 {

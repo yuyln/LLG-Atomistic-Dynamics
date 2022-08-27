@@ -320,7 +320,7 @@ void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
 }
 
-void IntegrateSimulatorCPU(Simulator* s, Vec field) //add current
+void IntegrateSimulatorCPU(Simulator* s, Vec field, Current cur)
 {
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -330,7 +330,7 @@ void IntegrateSimulatorCPU(Simulator* s, Vec field) //add current
         #pragma omp parallel for num_threads(s->n_cpu)
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
-            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, s->dt));
+            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt));
             GridNormalizeI(I, &s->g_new);
         }
         
@@ -357,5 +357,15 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     }
 
     fclose(grid_anim);
+}
+
+double NormCurToReal(double density, GridParam params)
+{
+    return 2.0 * QE * params.avg_spin * fabs(params.exchange) * density / (params.lattice * params.lattice * HBAR);
+}
+
+double RealCurToNorm(double density, GridParam params)
+{
+    return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
 }
 #endif

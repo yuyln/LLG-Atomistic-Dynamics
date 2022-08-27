@@ -11,7 +11,20 @@ int main()
     Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
 
-    IntegrateSimulatorCPU(&s, field_tesla);
+    double J = 0.0;
+    J = RealCurToNorm(J, s.g_old.param);
+    printf("%e\n", J);
+    Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
+
+    IntegrateSimulatorCPU(&s, field_tesla, cur);
+
+
+    J = 3.0e12;
+    J = RealCurToNorm(J, s.g_old.param);
+    printf("%e\n", J);
+    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_CPP};
+
+    IntegrateSimulatorCPU(&s, field_tesla, cur);
 
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim.out", &s);
