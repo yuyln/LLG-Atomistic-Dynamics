@@ -5,9 +5,9 @@
 int main()
 {
     Simulator s = InitSimulator("./input/input.in");
-    Vec field_joule = VecFrom(0.0, 0.0, 0. * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
-    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 5, 1};
+    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 10, 1};
     printf("Before GSA: %e\n", Hamiltonian(&s.g_old, field_tesla));
     if (s.use_gpu)
         GSAGPU(gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);

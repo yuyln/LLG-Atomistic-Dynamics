@@ -10,8 +10,11 @@ CUT: 1
 
 FILE: ./input/teste.vec
 RSG: 1
-ROWS: 10
-COLS: 10
+ROWS: 20
+COLS: 20
+
+FILE_PINNING: ./input/pinning.in
+FILE_ANISOTROPY: ./input/anisotropy.in
 
 
 EXCHANGE: 1.0e-21
@@ -22,11 +25,11 @@ LANDE: 2.0
 SPIN: 0.5
 
 
-DM_TYPE: 1
+DM_TYPE: 0
 R_ij -> 0
 Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 2
+PBC_TYPE: 0
 PBC_X: 0.0
 PBC_Y: 0.0
 PBC_Z: 0.0

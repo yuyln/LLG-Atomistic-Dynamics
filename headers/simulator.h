@@ -76,6 +76,21 @@ Simulator InitSimulator(const char* path)
 
     bool start_random = (bool)GetValueInt("RSG", 10);
     char* local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE") + 1]);
+
+    if (FindIndexOfTag("FILE_ANISOTROPY") < 0)
+    {
+        fprintf(stderr, "Must provide path do anisotropy file, even if its empty");
+        exit(1);
+    }
+
+    if (FindIndexOfTag("FILE_PINNING") < 0)
+    {
+        fprintf(stderr, "Must provide path do pinning file, even if its empty");
+        exit(1);
+    }
+
+    char* local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
+    char* local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
     // EndParse();
 
     if (start_random)
@@ -83,14 +98,54 @@ Simulator InitSimulator(const char* path)
     else
         ret.g_old = InitGridFromFile(local_file_dir);
     
-    free(local_file_dir);
 
     memcpy(&ret.g_old.param.exchange, &param_tmp.exchange, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
 
-    /*
-        Add start to anisotropy and pinning
-    */
+    StartParse(local_file_ani_dir);
+
+    int index_data = FindIndexOfTag("Data");
+    if (index_data < 0)
+    {
+        fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_ani_dir);
+        exit(1);
+    }
+    for (size_t I = index_data + 1; I < parser_global_n; I += 6)
+    {
+        int row = strtol(parser_global_state[I], NULL, 10) % ret.g_old.param.rows;
+        int col = strtol(parser_global_state[I + 1], NULL, 10) % ret.g_old.param.cols;
+        double dir_x = strtod(parser_global_state[I + 2], NULL);
+        double dir_y = strtod(parser_global_state[I + 3], NULL);
+        double dir_z = strtod(parser_global_state[I + 4], NULL);
+        double K_1 = strtod(parser_global_state[I + 5], NULL);
+        ret.g_old.ani[row * ret.g_old.param.cols + col] = (Anisotropy){K_1, VecFrom(dir_x, dir_y, dir_z)};
+    }
+
+    EndParse();
+
+    StartParse(local_file_pin_dir);
+
+    index_data = FindIndexOfTag("Data");
+    if (index_data < 0)
+    {
+        fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_pin_dir);
+        exit(1);
+    }
+    for (size_t I = index_data + 1; I < parser_global_n; I += 5)
+    {
+        int row = strtol(parser_global_state[I], NULL, 10) % ret.g_old.param.rows;
+        int col = strtol(parser_global_state[I + 1], NULL, 10) % ret.g_old.param.cols;
+        double dir_x = strtod(parser_global_state[I + 2], NULL);
+        double dir_y = strtod(parser_global_state[I + 3], NULL);
+        double dir_z = strtod(parser_global_state[I + 4], NULL);
+        ret.g_old.pinning[row * ret.g_old.param.cols + col] = (Pinning){1, VecFrom(dir_x, dir_y, dir_z)};
+    }
+
+    EndParse();
+
     CopyGrid(&ret.g_new, &ret.g_old);
+    free(local_file_dir);
+    free(local_file_ani_dir);
+    free(local_file_pin_dir);
 
     StartParse(path);
     ret.use_gpu = (bool)GetValueInt("GPU", 10);
