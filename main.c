@@ -1,10 +1,30 @@
 #include <helpers.h>
 #include <gsa.h>
-#include <simulator.h>
+#include <helpers_simulator.h>
 
 int main()
 {
     Simulator s = InitSimulator("./input/input.in");
+    ExportSimulatorFile(&s, "./output/export_sim.out");
+
+    
+    Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
+
+    IntegrateSimulatorCPU(&s, field_tesla);
+
+    PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    WriteSimulatorSimulation("./output/anim.out", &s);
+
+    FreeSimulator(&s);
+    return 0;
+}
+
+int main3()
+{
+    Simulator s = InitSimulator("./input/input.in");
+    ExportSimulatorFile(&s, "./output/export_sim.out");
+
     Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
     GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 10, 1};
@@ -18,7 +38,6 @@ int main()
     printf("After GSA: %e\n", Hamiltonian(&s.g_old, field_tesla));
 
     PrintVecGridToFile("./output/new.vec", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
-    ExportSimulatorFile(&s, "./output/export_sim.out");
     
     FreeSimulator(&s);
     return 0;

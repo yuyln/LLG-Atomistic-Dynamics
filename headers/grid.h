@@ -35,7 +35,7 @@ typedef struct
     int rows, cols;
     size_t total;
     double exchange, dm, lattice, cubic_ani;
-    double mu_s, lande, avg_spin;
+    double mu_s, lande, avg_spin, alpha, gamma;
     DM_TYPE dm_type;
     PBC pbc;
 } GridParam;

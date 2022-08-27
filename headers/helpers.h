@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <omp.h>
 
 #include <vec.h>
 #include <constants.h>
@@ -20,6 +21,31 @@
 #include <opencl_wrapper.h>
 #define PROFILER_IMPLEMENTATION
 #include <profiler.h>
+
+typedef struct GPU
+{
+    cl_platform_id *plats; size_t n_plats; int i_plat;
+    cl_device_id *devs; size_t n_devs; int i_dev;
+    cl_context ctx;
+    cl_command_queue queue;
+    cl_program program;
+    Kernel *kernels; size_t n_kernels;
+} GPU;
+
+typedef struct Simulator
+{
+    size_t n_steps;
+    double dt;
+    size_t n_cpu;
+    size_t write_cut;
+    bool write_to_file;
+    bool use_gpu;
+    GPU gpu;
+    Grid g_old;
+    Grid g_new;
+    cl_mem g_old_buffer, g_new_buffer;
+    Vec* grid_out_file;
+} Simulator;
 
 double myrandom()
 {
@@ -175,16 +201,8 @@ size_t FindGridSize(const Grid* g)
     return param + grid_vec + grid_pinning + grid_ani;
 }
 
-void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
+void PrintVecGrid(FILE* f, Vec* v, int rows, int cols)
 {
-    FILE *f = fopen(path, "wb");
-
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
-        exit(1);
-    }
-
     for (int row = rows - 1; row >= 1; --row)
     {
         for (int col = 0; col < cols - 1; ++col)
@@ -203,6 +221,20 @@ void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
     }
     int col = cols - 1;
     fprintf(f, "%.15f\t%.15f\t%.15f", v[row * cols + col].x, v[row * cols + col].y, v[row * cols + col].z);
+}
+
+void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
+{
+    FILE *f = fopen(path, "wb");
+
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    PrintVecGrid(f, v, rows, cols);
+
     fclose(f);
 }
 
@@ -217,11 +249,27 @@ void GetGridParam(const char* path, GridParam* g)
     g->lande = GetValueDouble("LANDE");
     g->avg_spin = GetValueDouble("SPIN");
     g->mu_s = g->lande * MU_B * g->avg_spin;
+    g->alpha = GetValueDouble("ALPHA");
+    g->gamma = GetValueDouble("GAMMA");
+
+    if (GetValueInt("DM_TYPE", 10) > 1 || GetValueInt("DM_TYPE", 10) < 0)
+    {
+        fprintf(stderr, "Invalid DM\n");
+        exit(1);
+    }
     g->dm_type = GetValueInt("DM_TYPE", 10);
+
+
+    if (GetValueInt("PBC_TYPE", 10) > 3 || GetValueInt("PBC_TYPE", 10) < 0)
+    {
+        fprintf(stderr, "Invalid PBC\n");
+        exit(1);
+    }
     g->pbc.pbc_type = GetValueInt("PBC_TYPE", 10);
     g->pbc.dir.x = GetValueDouble("PBC_X");
     g->pbc.dir.y = GetValueDouble("PBC_Y");
     g->pbc.dir.z = GetValueDouble("PBC_Z");
+
 
     EndParse();
 }
@@ -270,5 +318,44 @@ void ReadFullGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
 void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
 {
     ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
+}
+
+void IntegrateSimulatorCPU(Simulator* s, Vec field) //add current
+{
+    for (size_t i = 0; i < s->n_steps; ++i)
+    {
+        if (i % (s->n_steps / 10) == 0)
+            printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+        
+        #pragma omp parallel for num_threads(s->n_cpu)
+        for (size_t I = 0; I < s->g_old.param.total; ++I)
+        {
+            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, s->dt));
+            GridNormalizeI(I, &s->g_new);
+        }
+        
+        memcpy(s->g_old.grid, s->g_new.grid, sizeof(Vec) * s->g_old.param.total);
+        if (s->write_to_file && (i % s->write_cut == 0))
+        {
+            size_t t = i / s->write_cut;
+            memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
+        }
+    }
+}
+
+void WriteSimulatorSimulation(const char* root_path, Simulator* s)
+{
+    FILE* grid_anim = fopen(root_path, "w");
+
+    for (size_t i = 0; i < s->n_steps && s->write_to_file; ++i)
+    {
+        if (i % s->write_cut)
+            continue;
+        size_t t = i / s->write_cut;
+        PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
+        fprintf(grid_anim, "\n");
+    }
+
+    fclose(grid_anim);
 }
 #endif

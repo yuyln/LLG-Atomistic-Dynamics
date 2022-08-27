@@ -2,19 +2,19 @@
 #define __SIM
 
 #include <helpers.h>
+#if defined(RK4)
+static const char* integration_method = "RK4";
+#elif defined(RK2)
+static const char* integration_method = "RK2";
+#elif defined(EULER)
+static const char* integration_method = "EULER";
+#else
+static const char* integration_method = "???";
+#endif
+
 
 #define kernels_n sizeof(kernels) / sizeof(char*)
 static const char* kernels[] = {"TermalStep", "HamiltonianGPU", "Reset"};
-
-typedef struct GPU
-{
-    cl_platform_id *plats; size_t n_plats; int i_plat;
-    cl_device_id *devs; size_t n_devs; int i_dev;
-    cl_context ctx;
-    cl_command_queue queue;
-    cl_program program;
-    Kernel *kernels; size_t n_kernels;
-} GPU;
 
 void FreeGPU(GPU *g)
 {
@@ -42,21 +42,6 @@ void FreeGPU(GPU *g)
 
 }
 
-typedef struct Simulator
-{
-    size_t n_steps;
-    double dt;
-    size_t n_cpu;
-    size_t write_cut;
-    bool write_to_file;
-    bool use_gpu;
-    GPU gpu;
-    Grid g_old;
-    Grid g_new;
-    cl_mem g_old_buffer, g_new_buffer;
-    Vec* grid_out_file;
-} Simulator;
-
 Simulator InitSimulator(const char* path)
 {
     Simulator ret = {0};
@@ -70,7 +55,6 @@ Simulator InitSimulator(const char* path)
 
     ret.write_to_file = (bool)GetValueInt("WRITE", 10);
     ret.write_cut = (size_t)GetValueULLInt("CUT", 10);
-    ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps / ret.write_cut, sizeof(Vec));
 
     ret.n_cpu = (size_t)GetValueULLInt("CPU", 10);
 
@@ -143,6 +127,7 @@ Simulator InitSimulator(const char* path)
     EndParse();
 
     CopyGrid(&ret.g_new, &ret.g_old);
+    ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
     free(local_file_dir);
     free(local_file_ani_dir);
     free(local_file_pin_dir);
@@ -168,9 +153,9 @@ Simulator InitSimulator(const char* path)
         ret.gpu.program = InitProgramSource(ret.gpu.ctx, kernel_data);
 
         char* comp_opt;
-        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total) + 1;
+        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
         comp_opt = (char*)calloc(comp_opt_size, 1);
-        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total);
+        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
         printf("Compile OpenCL: %s\n", comp_opt);
 
         cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
@@ -185,6 +170,12 @@ Simulator InitSimulator(const char* path)
     }
 
     EndParse();
+
+    #if !(defined(RK4) || defined(RK2) || defined(EULER))
+    fprintf(stderr, "Invalid integration\n");
+    exit(1);
+    #endif
+
     return ret;
 }
 
@@ -206,10 +197,25 @@ void FreeSimulator(Simulator *s)
 
 void ExportSimulator(Simulator* s, FILE* file)
 {
+    // double J_abs = s->g_old.param.exchange * (s->g_old.param.exchange < 0? -1.0: 1.0);
+    double J_abs = fabs(s->g_old.param.exchange);
     fprintf(file, "Times Steps: %zu\n", s->n_steps);
     fprintf(file, "Time Step: %e\n", s->dt);
-    fprintf(file, "Exchange: %e\n", s->g_old.param.exchange);
-    fprintf(file, "DMI: %e\n", s->g_old.param.dm);
+    fprintf(file, "Total Time Real: %e\n\n\n", s->dt * s->n_steps * HBAR / J_abs);
+
+    fprintf(file, "Exchange: %e J\n", s->g_old.param.exchange);
+    fprintf(file, "DMI: %e J\n", s->g_old.param.dm);
+    fprintf(file, "Cubic Anisotropy: %e J\n\n", s->g_old.param.cubic_ani);
+    fprintf(file, "MU_S: %e J/T\n", s->g_old.param.mu_s);
+    fprintf(file, "Average Spin: %e \n", s->g_old.param.avg_spin);
+    fprintf(file, "Lande: %e \n\n", s->g_old.param.lande);
+
+    fprintf(file, "Alpha: %e \n", s->g_old.param.alpha);
+    fprintf(file, "Gamma: %e \n\n", s->g_old.param.gamma);
+
+    fprintf(file, "Integration: %s\n", integration_method);
+    fprintf(file, "Write to File: %d\n", s->write_to_file);
+    fprintf(file, "Write to File Cut: %zu\n", s->write_cut);
 }
 
 void ExportSimulatorFile(Simulator* s, const char* path)
@@ -220,10 +226,7 @@ void ExportSimulatorFile(Simulator* s, const char* path)
         fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
         exit(1);
     }
-    fprintf(file, "Times Steps: %zu\n", s->n_steps);
-    fprintf(file, "Time Step: %e\n", s->dt);
-    fprintf(file, "Exchange: %e\n", s->g_old.param.exchange);
-    fprintf(file, "DMI: %e\n", s->g_old.param.dm);
+    ExportSimulator(s, file);
     fclose(file);
 }
 #endif

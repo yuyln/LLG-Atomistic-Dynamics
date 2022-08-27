@@ -2,7 +2,6 @@
 #define __GSA
 
 #include <helpers.h>
-#include <simulator.h>
 
 typedef struct
 {
