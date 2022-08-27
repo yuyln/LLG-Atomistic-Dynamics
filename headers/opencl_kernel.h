@@ -1,19 +1,14 @@
 #ifndef __OPEN_CL_KERNEL
 #define __OPEN_CL_KERNEL
-static const char kernel_data[] = "\
+/*static*/ const char kernel_data[] = "\
 /**\n\
 @file\n\
-\n\
 Implements a 512-bit tyche (Well-Equidistributed Long-period Linear) RNG.\n\
-\n\
 S. Neves, F. Araujo, Fast and small nonlinear pseudorandom number generators for computer simulation, in: International Conference on Parallel Processing and Applied Mathematics, Springer, 2011, pp. 92–101.\n\
 */\n\
 #define TYCHE_FLOAT_MULTI 5.4210108624275221700372640e-20f\n\
 #define TYCHE_DOUBLE_MULTI 5.4210108624275221700372640e-20\n\
 \n\
-/**\n\
-State of tyche RNG.\n\
-*/\n\
 typedef union{\n\
 	struct{\n\
 		uint a,b,c,d;\n\
@@ -23,13 +18,6 @@ typedef union{\n\
 \n\
 #define TYCHE_ROT(a,b) (((a) << (b)) | ((a) >> (32 - (b))))\n\
 \n\
-/**\n\
-Generates a random 64-bit unsigned integer using tyche RNG.\n\
-\n\
-This is alternative, macro implementation of tyche RNG.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_macro_ulong(state) (tyche_macro_advance(state), state.res)\n\
 #define tyche_macro_advance(state) ( \\n\
 	state.a += state.b, \\n\
@@ -42,11 +30,6 @@ This is alternative, macro implementation of tyche RNG.\n\
 	state.b = TYCHE_ROT(state.b ^ state.c, 7) \\n\
 )\n\
 \n\
-/**\n\
-Generates a random 64-bit unsigned integer using tyche RNG.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_ulong(state) (tyche_advance(&state), state.res)\n\
 void tyche_advance(tyche_state* state){\n\
 	state->a += state->b;\n\
@@ -58,13 +41,6 @@ void tyche_advance(tyche_state* state){\n\
 	state->c += state->d;\n\
 	state->b = TYCHE_ROT(state->b ^ state->c, 7);\n\
 }\n\
-\n\
-/**\n\
-Seeds tyche RNG.\n\
-\n\
-@param state Variable, that holds state of the generator to be seeded.\n\
-@param seed Value used for seeding. Should be randomly generated for each instance of generator (thread).\n\
-*/\n\
 void tyche_seed(tyche_state* state, ulong seed){\n\
 	state->a = seed >> 32;\n\
 	state->b = seed;\n\
@@ -75,35 +51,10 @@ void tyche_seed(tyche_state* state, ulong seed){\n\
 	}\n\
 }\n\
 \n\
-/**\n\
-Generates a random 32-bit unsigned integer using tyche RNG.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_uint(state) ((uint)tyche_ulong(state))\n\
-\n\
-/**\n\
-Generates a random float using tyche RNG.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_float(state) (tyche_ulong(state)*TYCHE_FLOAT_MULTI)\n\
-\n\
-/**\n\
-Generates a random double using tyche RNG.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_double(state) (tyche_ulong(state)*TYCHE_DOUBLE_MULTI)\n\
-\n\
-/**\n\
-Generates a random double using tyche RNG. Since tyche returns 64-bit numbers this is equivalent to tyche_double.\n\
-\n\
-@param state State of the RNG to use.\n\
-*/\n\
 #define tyche_double2(state) tyche_double(state)\n\
-\n\
-\n\
 #include <grid.h>\n\
 #include <funcs.h>\n\
 \n\
@@ -148,5 +99,12 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)\n\
 {\n\
     size_t I = get_global_id(0);\n\
     g_old->grid[I] = g_new->grid[I];\n\
+}\n\
+\n\
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur)\n\
+{\n\
+	size_t I = get_global_id(0);\n\
+	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt));\n\
+    GridNormalizeI(I, g_new);\n\
 }";
 #endif

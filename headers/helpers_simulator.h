@@ -14,7 +14,7 @@ static const char* integration_method = "???";
 
 
 #define kernels_n sizeof(kernels) / sizeof(char*)
-static const char* kernels[] = {"TermalStep", "HamiltonianGPU", "Reset"};
+static const char* kernels[] = {"TermalStep", "HamiltonianGPU", "Reset", "StepGPU"};
 
 void FreeGPU(GPU *g)
 {

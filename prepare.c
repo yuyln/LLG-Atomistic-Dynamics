@@ -34,7 +34,7 @@ int main()
     
     fprintf(kernel, "#ifndef __OPEN_CL_KERNEL\n");
     fprintf(kernel, "#define __OPEN_CL_KERNEL\n");
-    fprintf(kernel, "static const char kernel_data[] = \"\\\n");
+    fprintf(kernel, "/*static*/ const char kernel_data[] = \"\\\n");
 
     char *ptr = kernel_data;
     for (; *ptr; ++ptr)

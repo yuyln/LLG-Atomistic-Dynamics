@@ -16,15 +16,15 @@ int main()
     printf("%e\n", J);
     Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
 
-    IntegrateSimulatorCPU(&s, field_tesla, cur);
+    IntegrateSimulator(&s, field_tesla, cur);
 
 
     J = 3.0e12;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
-    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_CPP};
+    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
 
-    IntegrateSimulatorCPU(&s, field_tesla, cur);
+    IntegrateSimulator(&s, field_tesla, cur);
 
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim.out", &s);

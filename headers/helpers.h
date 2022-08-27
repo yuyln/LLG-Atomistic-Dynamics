@@ -320,7 +320,29 @@ void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
 }
 
-void IntegrateSimulatorCPU(Simulator* s, Vec field, Current cur)
+void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur)
+{
+    for (size_t i = 0; i < s->n_steps; ++i)
+    {
+        if (i % (s->n_steps / 10) == 0)
+            printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+        
+        for (size_t I = 0; I < s->g_old.param.total; ++I)
+        {
+            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt));
+            GridNormalizeI(I, &s->g_new);
+        }
+        
+        memcpy(s->g_old.grid, s->g_new.grid, sizeof(Vec) * s->g_old.param.total);
+        if (s->write_to_file && (i % s->write_cut == 0))
+        {
+            size_t t = i / s->write_cut;
+            memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
+        }
+    }
+}
+
+void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur)
 {
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -341,6 +363,47 @@ void IntegrateSimulatorCPU(Simulator* s, Vec field, Current cur)
             memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
         }
     }
+}
+
+void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
+{
+    SetKernelArg(s->gpu.kernels[2], 0, sizeof(cl_mem), &s->g_old_buffer);
+    SetKernelArg(s->gpu.kernels[2], 1, sizeof(cl_mem), &s->g_new_buffer);
+
+    SetKernelArg(s->gpu.kernels[3], 0, sizeof(cl_mem), &s->g_old_buffer);
+    SetKernelArg(s->gpu.kernels[3], 1, sizeof(cl_mem), &s->g_new_buffer);
+    SetKernelArg(s->gpu.kernels[3], 2, sizeof(Vec), &field);
+    SetKernelArg(s->gpu.kernels[3], 3, sizeof(double), &s->dt);
+    SetKernelArg(s->gpu.kernels[3], 4, sizeof(Current), &cur);
+
+    size_t global = s->g_old.param.total;
+    size_t local = gcd(global, 512);
+
+    for (size_t i = 0; i < s->n_steps; ++i)
+    {
+        if (i % (s->n_steps / 10) == 0)
+            printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+        
+        EnqueueND(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
+        EnqueueND(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
+        
+        if (s->write_to_file && (i % s->write_cut == 0))
+        {
+            size_t t = i / s->write_cut;
+            ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
+            memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
+        }
+    }
+}
+
+void IntegrateSimulator(Simulator *s, Vec field, Current cur)
+{
+    if (s->use_gpu)
+        IntegrateSimulatorGPU(s, field, cur);
+    else if (s->n_cpu > 1)
+        IntegrateSimulatorMulti(s, field, cur);
+    else
+        IntegrateSimulatorSingle(s, field, cur);
 }
 
 void WriteSimulatorSimulation(const char* root_path, Simulator* s)
@@ -367,5 +430,13 @@ double NormCurToReal(double density, GridParam params)
 double RealCurToNorm(double density, GridParam params)
 {
     return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
+}
+
+double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+{
+    double ret = 0.0;
+    for (size_t i = 0; i < (size_t)rows * cols; ++i)
+        ret += ChargeI(i, g, rows, cols, dx, dy, pbc);
+    return ret;
 }
 #endif
