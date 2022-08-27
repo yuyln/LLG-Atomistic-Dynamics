@@ -3,32 +3,32 @@ GPU: 1
 PLAT: 0
 DEV: 0
 
-DT: 0.001
-STEPS: 10000
+DT: 0.05
+STEPS: 500000
 WRITE: 1
-CUT: 20
+CUT: 250
 
 FILE: ./input/teste.vec
 RSG: 1
-ROWS: 20
-COLS: 20
+ROWS: 32
+COLS: 72
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
 
 
 EXCHANGE: 1.0e-21
-DMI: 0.5e-21
+DMI: 1.5e-21
 LATTICE: 5.0e-10
 CUBIC: 0.0
-SPIN: 0.5
+SPIN: 1.0
 
 ALPHA: 0.3
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 
 
-DM_TYPE: 1
+DM_TYPE: 0
 R_ij -> 0
 Z_CROSS_R_ij -> 1
 

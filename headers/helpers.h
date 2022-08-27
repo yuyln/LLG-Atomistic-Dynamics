@@ -385,7 +385,9 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
         
         EnqueueND(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
+        //Finish(s->gpu.queue);
         EnqueueND(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
+        //Finish(s->gpu.queue);
         
         if (s->write_to_file && (i % s->write_cut == 0))
         {
@@ -394,6 +396,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
             memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
         }
     }
+    ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
 }
 
 void IntegrateSimulator(Simulator *s, Vec field, Current cur)
@@ -438,5 +441,65 @@ double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
     for (size_t i = 0; i < (size_t)rows * cols; ++i)
         ret += ChargeI(i, g, rows, cols, dx, dy, pbc);
     return ret;
+}
+
+void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+{
+    double R2 = r * r;
+    for (int i = 0; i < rows; ++i)
+    {
+        double dy = (double)i - cy;
+        for (int j = 0; j < cols; ++j)
+        {
+            double dx = (double)j - cx;
+            double r2 = dx * dx + dy * dy;
+            double r = sqrt(r2);
+            if (exp(-r2 / R2) <= 1.0e-2)
+                continue;
+            
+            g[i * cols + j].z = 2.0 * P * (exp(-r2 / R2) - 0.5);
+        
+            if (r != 0)
+            {
+                g[i * cols + j].x = -dy * Q / r * (1.0 - fabs(g[i * cols + j].z));
+                g[i * cols + j].y = dx * Q / r * (1.0 - fabs(g[i * cols + j].z));
+            }
+            else
+            {
+                g[i * cols + j].x = 0.0;
+                g[i * cols + j].y = 0.0;
+            }
+        }
+    }
+}
+
+void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+{
+    double R2 = r * r;
+    for (int i = 0; i < rows; ++i)
+    {
+        double dy = (double)i - cy;
+        for (int j = 0; j < cols; ++j)
+        {
+            double dx = (double)j - cx;
+            double r2 = dx * dx + dy * dy;
+            double r = sqrt(r2);
+            if (exp(-r2 / R2) <= 1.0e-2)
+                continue;
+            
+            g[i * cols + j].z = 2.0 * P * (exp(-r2 / R2) - 0.5);
+        
+            if (r != 0)
+            {
+                g[i * cols + j].x = dx * Q / r * (1.0 - fabs(g[i * cols + j].z));
+                g[i * cols + j].y = dy * Q / r * (1.0 - fabs(g[i * cols + j].z));
+            }
+            else
+            {
+                g[i * cols + j].x = 0.0;
+                g[i * cols + j].y = 0.0;
+            }
+        }
+    }
 }
 #endif

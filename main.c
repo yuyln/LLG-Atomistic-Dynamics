@@ -8,7 +8,7 @@ int main()
     ExportSimulatorFile(&s, "./output/export_sim.out");
 
     
-    Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_joule = VecFrom(0.0, 0.0, -0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
 
     double J = 0.0;
@@ -16,10 +16,19 @@ int main()
     printf("%e\n", J);
     Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
 
-    IntegrateSimulator(&s, field_tesla, cur);
+    // IntegrateSimulator(&s, field_tesla, cur);
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
+        s.g_old.grid[I] = VecFrom(0.0, 0.0, -1.0);
+    
+    CreateSkyrmionBloch(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
+                       s.g_old.param.cols / 2, s.g_old.param.rows / 2, 3, -1.0, 1.0);
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
+        GridNormalizeI(I, &s.g_old);
 
+    PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 3.0e12;
+    J = 20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
     cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};

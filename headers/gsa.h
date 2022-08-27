@@ -185,8 +185,10 @@ void GSAGPU(GSAParam param, Grid* g_in, Grid* g_out, Vec field, GPU *gpu)
             int seed = rand();
             SetKernelArg(gpu->kernels[0], 6, sizeof(int) ,&seed);
             EnqueueND(gpu->queue, gpu->kernels[0], 1, NULL, &global, &local);
+            //Finish(gpu->queue);
 
             EnqueueND(gpu->queue, gpu->kernels[1], 1, NULL, &global, &local);
+            //Finish(gpu->queue);
 
             ReadBuffer(ham_buffer, ham_gpu, sizeof(double) * g_in->param.total, 0, gpu->queue);
 
@@ -201,6 +203,7 @@ void GSAGPU(GSAParam param, Grid* g_in, Grid* g_out, Vec field, GPU *gpu)
                 H_min = H_new;
                 SetKernelArg(gpu->kernels[2], 0, sizeof(cl_mem), &g_min_buffer);
                 EnqueueND(gpu->queue, gpu->kernels[2], 1, NULL, &global, &local);
+                //Finish(gpu->queue);
             }
 
             if (H_new <= H_old)
@@ -208,6 +211,7 @@ void GSAGPU(GSAParam param, Grid* g_in, Grid* g_out, Vec field, GPU *gpu)
                 H_old = H_new;
                 SetKernelArg(gpu->kernels[2], 0, sizeof(cl_mem), &g_old_buffer);
                 EnqueueND(gpu->queue, gpu->kernels[2], 1, NULL, &global, &local);
+                //Finish(gpu->queue);
             }
             else
             {
@@ -218,6 +222,7 @@ void GSAGPU(GSAParam param, Grid* g_in, Grid* g_out, Vec field, GPU *gpu)
                     H_old = H_new;
                     SetKernelArg(gpu->kernels[2], 0, sizeof(cl_mem), &g_old_buffer);
                     EnqueueND(gpu->queue, gpu->kernels[2], 1, NULL, &global, &local);
+                    //Finish(gpu->queue);
                 }
             }
         }
