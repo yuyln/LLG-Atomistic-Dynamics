@@ -3,7 +3,7 @@ GPU: 1
 PLAT: 0
 DEV: 0
 
-DT: 0.01
+DT: 0.001
 STEPS: 500000
 WRITE: 1
 CUT: 250
@@ -18,24 +18,24 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 
 
 EXCHANGE: 1.0e-21
-DMI: 1.5e-21
+DMI: 1.0e-21
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
 
-ALPHA: 0.04
+ALPHA: 0.3
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 
 
-DM_TYPE: 1
+DM_TYPE: 0
 R_ij -> 0
 Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 1
+PBC_TYPE: 0
 PBC_X: 0.0
 PBC_Y: 0.0
-PBC_Z: 0.0
+PBC_Z: -1.0
 XY -> 0
 X -> 1
 Y -> 2

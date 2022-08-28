@@ -13,26 +13,18 @@ int main()
 
     double J = 0.0;
     J = RealCurToNorm(J, s.g_old.param);
-    printf("%e\n", J);
     Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
 
-    // IntegrateSimulator(&s, field_tesla, cur);
-    for (size_t I = 0; I < s.g_old.param.total; ++I)
-        s.g_old.grid[I] = VecFrom(0.0, 0.0, -1.0);
-    
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
-                       s.g_old.param.cols / 5, s.g_old.param.rows / 2, 3, 1.0, 1.0);
-    for (size_t I = 0; I < s.g_old.param.total; ++I)
-        GridNormalizeI(I, &s.g_old);
+    IntegrateSimulator(&s, field_tesla, cur);
 
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 0.3e12;//20.0e9;
+    J = 3.0e12;//20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
-    cur = (Current){VecFrom(0.0, J, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
+    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
 
     IntegrateSimulator(&s, field_tesla, cur);
 
