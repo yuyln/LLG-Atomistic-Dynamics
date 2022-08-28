@@ -44,6 +44,10 @@ int main()
             fprintf(kernel, "\\n\\\n");
             continue;
         }
+
+        if (*ptr == '\r')
+            continue;
+
         fputc(*ptr, kernel);
     }
     
