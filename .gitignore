@@ -3,6 +3,7 @@ output
 build.bat
 build.sh
 imgs
+videos
 *.exe
 *.stackdump
 main
