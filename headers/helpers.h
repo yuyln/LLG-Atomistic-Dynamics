@@ -409,22 +409,6 @@ void IntegrateSimulator(Simulator *s, Vec field, Current cur)
         IntegrateSimulatorSingle(s, field, cur);
 }
 
-void WriteSimulatorSimulation(const char* root_path, Simulator* s)
-{
-    FILE* grid_anim = fopen(root_path, "w");
-
-    for (size_t i = 0; i < s->n_steps && s->write_to_file; ++i)
-    {
-        if (i % s->write_cut)
-            continue;
-        size_t t = i / s->write_cut;
-        PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
-        fprintf(grid_anim, "\n");
-    }
-
-    fclose(grid_anim);
-}
-
 double NormCurToReal(double density, GridParam params)
 {
     return 2.0 * QE * params.avg_spin * fabs(params.exchange) * density / (params.lattice * params.lattice * HBAR);
@@ -502,4 +486,85 @@ void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int r, doubl
         }
     }
 }
+
+Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+{
+    Vec ret = VecFromScalar(0.0);
+    double total_charge = 0.0;
+    for (size_t I = 0; I < (size_t)rows * cols; ++I)
+    {
+        int col = I % cols;
+        int row = (I - col) / cols;
+        double local_charge = ChargeI(I, g, rows, cols, dx, dy, pbc);
+        total_charge += local_charge;
+        ret.x += col * local_charge;
+        ret.y += row * local_charge;
+    }
+    return VecScalar(ret, 1.0 / total_charge);
+}
+
+void WriteSimulatorSimulation(const char* root_path, Simulator* s)
+{
+    char *out_grid_anim;
+    size_t out_grid_anim_size = snprintf(NULL, 0, "%s_grid.out", root_path) + 1;
+    out_grid_anim = (char*)calloc(out_grid_anim_size, 1);
+    snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
+    out_grid_anim[out_grid_anim_size - 1] = '\0';
+
+    char *out_charge_anim;
+    size_t out_charge_anim_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
+    out_charge_anim = (char*)calloc(out_charge_anim_size, 1);
+    snprintf(out_charge_anim, out_charge_anim_size, "%s_charge.out", root_path);
+    out_charge_anim[out_charge_anim_size - 1] = '\0';
+
+    char *out_charge_total;
+    size_t out_charge_total_size = snprintf(NULL, 0, "%s_charge_total.out", root_path) + 1;
+    out_charge_total = (char*)calloc(out_charge_total_size, 1);
+    snprintf(out_charge_total, out_charge_total_size, "%s_charge_total.out", root_path);
+    out_charge_total[out_charge_total_size - 1] = '\0';
+
+
+    FILE* grid_anim = fopen(out_grid_anim, "w");
+    FILE* charge_anim = fopen(out_charge_anim, "w");
+    FILE* charge_total = fopen(out_charge_total, "w");
+
+    free(out_grid_anim);
+    free(out_charge_anim);
+    free(out_charge_total);
+
+    double J_abs = fabs(s->g_old.param.exchange);
+    printf("Writing charges related output\n");
+    for (size_t i = 0; i < s->n_steps && s->write_to_file; ++i)
+    {
+        if (i % (s->n_steps / 10) == 0)
+            printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
+        if (i % s->write_cut)
+            continue;
+        size_t t = i / s->write_cut;
+        Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+        fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
+
+        double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+        fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge);
+    } //faster than writing the full grid
+    printf("Done writing charges related output\n");
+    fclose(charge_anim);
+    fclose(charge_total);
+    printf("Writing grid output\n");
+    for (size_t i = 0; i < s->n_steps && s->write_to_file; ++i)
+    {
+        if (i % (s->n_steps / 10) == 0)
+            printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
+        if (i % s->write_cut)
+            continue;
+        size_t t = i / s->write_cut;
+        PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
+        fprintf(grid_anim, "\n");
+    }
+    printf("Done writing grid output\n");
+
+    fclose(grid_anim);
+}
+
+
 #endif

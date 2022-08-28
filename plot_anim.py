@@ -59,7 +59,7 @@ def GetXY(data: pd.DataFrame) -> list[np.ndarray]:
     return [np.array(x), np.array(y)]
 
 
-full = pd.read_table("./output/anim.out", header=None)
+full = pd.read_table("./output/anim_grid.out", header=None)
 # cm_anim = pd.read_table("./output/cm_anim.out", header=None, delimiter=" ")
 r = rows / cols
 FixPlot(8 / r, 8)

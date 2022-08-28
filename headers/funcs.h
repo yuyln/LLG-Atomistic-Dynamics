@@ -225,26 +225,29 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
     {
     case CUR_CPP:
     {
-        Vec cur_local = VecScalar(VecCross(S, cur.j), g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s));
+        double factor = g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s);
+        Vec cur_local = VecScalar(VecCross(cur.j, S), factor);
         V = VecAdd(V, VecCross(S, cur_local));
-        V = VecAdd(V, cur_local);
+        V = VecAdd(V, VecScalar(cur_local, cur.beta));
         break;
     }
     case CUR_STT:
     {
         Vec cur_local = VecDotGradVecI(I, cur.j, g->grid, g->param.rows, g->param.cols, g->param.lattice, g->param.lattice, g->param.pbc);
         V = VecAdd(V, VecScalar(cur_local, cur.p * g->param.lattice));
-        V = VecAdd(V, VecScalar(VecCross(S, cur_local), cur.p * cur.beta * g->param.lattice / g->param.avg_spin));
+        V = VecSub(V, VecScalar(VecCross(S, cur_local), cur.p * cur.beta * g->param.lattice / g->param.avg_spin));
         break;
     }
     case CUR_BOTH:
     {
-        Vec cur_local = VecScalar(VecCross(S, cur.j), g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s));
+        double factor = g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s);
+        Vec cur_local = VecScalar(VecCross(cur.j, S), factor);
         V = VecAdd(V, VecCross(S, cur_local));
-        V = VecAdd(V, cur_local);
+        V = VecAdd(V, VecScalar(cur_local, cur.beta));
+
         cur_local = VecDotGradVecI(I, cur.j, g->grid, g->param.rows, g->param.cols, g->param.lattice, g->param.lattice, g->param.pbc);
         V = VecAdd(V, VecScalar(cur_local, cur.p * g->param.lattice));
-        V = VecAdd(V, VecScalar(VecCross(S, cur_local), cur.p * cur.beta * g->param.lattice / g->param.avg_spin));
+        V = VecSub(V, VecScalar(VecCross(S, cur_local), cur.p * cur.beta * g->param.lattice / g->param.avg_spin));
         break;
     }
     case CUR_NONE:
@@ -288,8 +291,8 @@ double ChargeI(size_t I, Vec *g, int rows, int cols, double dx, double dy, PBC p
         U = PBCVec(row + 1, col, g, rows, cols, pbc),
         D = PBCVec(row - 1, col, g, rows, cols, pbc);
     
-    Vec dgdx = VecScalar(VecSub(R, L), 1.0 / dx);
-    Vec dgdy = VecScalar(VecSub(U, D), 1.0 / dy);
+    Vec dgdx = VecScalar(VecSub(R, L), 0.5 / dx);
+    Vec dgdy = VecScalar(VecSub(U, D), 0.5 / dy);
     return 1.0 / (4 * M_PI) * dx * dy * VecDot(VecCross(dgdx, dgdy), g[I]);
 }
 #endif

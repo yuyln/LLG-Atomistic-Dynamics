@@ -156,6 +156,7 @@ Simulator InitSimulator(const char* path)
         size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
         comp_opt = (char*)calloc(comp_opt_size, 1);
         snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
+        comp_opt[comp_opt_size - 1] = '\0';
         printf("Compile OpenCL: %s\n", comp_opt);
 
         cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
