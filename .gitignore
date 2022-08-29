@@ -7,3 +7,4 @@ videos
 *.exe
 *.stackdump
 main
+__pycache__

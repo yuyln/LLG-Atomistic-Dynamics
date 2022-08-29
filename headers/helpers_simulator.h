@@ -75,17 +75,25 @@ Simulator InitSimulator(const char* path)
 
     char* local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
     char* local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
-    // EndParse();
+    
+    Anisotropy global_ani;
+    global_ani.K_1 = GetValueDouble("ANISOTROPY");
+    global_ani.dir.x = GetValueDouble("ANI_X");
+    global_ani.dir.y = GetValueDouble("ANI_Y");
+    global_ani.dir.z = GetValueDouble("ANI_Z");
+    global_ani.dir = VecNormalize(global_ani.dir);
 
     if (start_random)
         ret.g_old = InitGridRandom(GetValueInt("ROWS", 10), GetValueInt("COLS", 10));
     else
         ret.g_old = InitGridFromFile(local_file_dir);
     
-
     memcpy(&ret.g_old.param.exchange, &param_tmp.exchange, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
 
     StartParse(local_file_ani_dir);
+    
+    for (size_t i = 0; i < ret.g_old.param.total; ++i)
+        ret.g_old.ani[i] = global_ani;
 
     int index_data = FindIndexOfTag("Data");
     if (index_data < 0)
@@ -126,13 +134,13 @@ Simulator InitSimulator(const char* path)
 
     EndParse();
 
-    CopyGrid(&ret.g_new, &ret.g_old);
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
     free(local_file_dir);
     free(local_file_ani_dir);
     free(local_file_pin_dir);
-
     StartParse(path);
+
+    CopyGrid(&ret.g_new, &ret.g_old);
     ret.use_gpu = (bool)GetValueInt("GPU", 10);
     if (ret.use_gpu)
     {
