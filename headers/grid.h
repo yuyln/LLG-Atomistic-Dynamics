@@ -42,7 +42,6 @@ typedef struct
     Vec dir;
 } Pinning;
 
-
 typedef struct
 {
     int rows, cols;
@@ -55,15 +54,23 @@ typedef struct
 
 typedef struct
 {
+    double exchange_mult, dm_mult, field_mult; //current
+    DM_TYPE dm_type;
+} RegionParam;
+
+typedef struct
+{
     GridParam param;
     #ifndef OPENCLCOMP
     Vec *grid;
     Anisotropy *ani;
     Pinning *pinning;
+    RegionParam *regions;
     #else
     Vec grid[TOTAL];
     Anisotropy ani[TOTAL];
     Pinning pinning[TOTAL];
+    RegionParam regions[TOTAL];
     #endif
 } Grid;
 

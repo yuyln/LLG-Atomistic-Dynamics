@@ -67,6 +67,9 @@ void FreeGrid(Grid *g)
     
     if (g->pinning)
         free(g->pinning);
+    
+    if (g->regions)
+        free(g->regions);
 }
 
 void CopyGrid(Grid *to, Grid *from)
@@ -77,10 +80,12 @@ void CopyGrid(Grid *to, Grid *from)
     to->grid = (Vec*)calloc(from->param.total, sizeof(Vec));
     to->ani = (Anisotropy*)calloc(from->param.total, sizeof(Anisotropy));
     to->pinning = (Pinning*)calloc(from->param.total, sizeof(Pinning));
+    to->regions = (RegionParam*)calloc(from->param.total, sizeof(RegionParam));
 
     memcpy(to->grid, from->grid, from->param.total * sizeof(Vec));
     memcpy(to->ani, from->ani, from->param.total * sizeof(Anisotropy));
     memcpy(to->pinning, from->pinning, from->param.total * sizeof(Pinning));
+    memcpy(to->regions, from->regions, from->param.total * sizeof(RegionParam));
 }
 
 void CopyToExistingGrid(Grid *to, Grid *from)
@@ -88,6 +93,7 @@ void CopyToExistingGrid(Grid *to, Grid *from)
     memcpy(to->grid, from->grid, from->param.total * sizeof(Vec));
     memcpy(to->ani, from->ani, from->param.total * sizeof(Anisotropy));
     memcpy(to->pinning, from->pinning, from->param.total * sizeof(Pinning));
+    memcpy(to->regions, from->regions, from->param.total * sizeof(RegionParam));
 }
 
 void CopySpinsToExistingGrid(Grid *to, Grid *from)
@@ -177,6 +183,7 @@ Grid InitGridFromFile(const char* path)
 
     out.ani = (Anisotropy*)calloc(out.param.total, sizeof(Anisotropy));
     out.pinning = (Pinning*)calloc(out.param.total, sizeof(Pinning));
+    out.regions = (RegionParam*)calloc(out.param.total, sizeof(RegionParam));
     return out;
 }
 
@@ -189,6 +196,7 @@ Grid InitGridRandom(int rows, int cols)
     ret.grid = InitVecGridRandom(rows, cols);
     ret.ani = (Anisotropy*)calloc(ret.param.total, sizeof(Anisotropy));
     ret.pinning = (Pinning*)calloc(ret.param.total, sizeof(Pinning));
+    ret.regions = (RegionParam*)calloc(ret.param.total, sizeof(RegionParam));
     return ret;
 }
 
@@ -198,7 +206,8 @@ size_t FindGridSize(const Grid* g)
     size_t grid_vec = g->param.total * sizeof(Vec);
     size_t grid_pinning = g->param.total * sizeof(Pinning);
     size_t grid_ani = g->param.total * sizeof(Anisotropy);
-    return param + grid_vec + grid_pinning + grid_ani;
+    size_t grid_regions = g->param.total * sizeof(RegionParam);
+    return param + grid_vec + grid_pinning + grid_ani + grid_regions;
 }
 
 void PrintVecGrid(FILE* f, Vec* v, int rows, int cols)
@@ -295,6 +304,8 @@ void WriteFullGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     off += sizeof(Anisotropy) * g->param.total;
     WriteBuffer(buffer, g->pinning, sizeof(Pinning) * g->param.total, off, q);
     off += sizeof(Pinning) * g->param.total;
+    WriteBuffer(buffer, g->regions, sizeof(RegionParam) * g->param.total, off, q);
+    off += sizeof(RegionParam) * g->param.total;
 }
 
 void WriteVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
@@ -313,6 +324,8 @@ void ReadFullGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     off += sizeof(Anisotropy) * g->param.total;
     ReadBuffer(buffer, g->pinning, sizeof(Pinning) * g->param.total, off, q);
     off += sizeof(Pinning) * g->param.total;
+    ReadBuffer(buffer, g->regions, sizeof(RegionParam) * g->param.total, off, q);
+    off += sizeof(RegionParam) * g->param.total;
 }
 
 void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
@@ -565,6 +578,4 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
     fclose(grid_anim);
 }
-
-
 #endif

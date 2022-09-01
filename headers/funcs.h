@@ -72,14 +72,14 @@ double HamiltonianI(size_t I, Grid *g, Vec field)
         U = PBCVec(row + 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc),
         D = PBCVec(row - 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
 
-    Vec DMR = DMVec(0, 1, g->param.dm_type, g->param.dm),
-        DML = DMVec(0, -1, g->param.dm_type, g->param.dm),
-        DMU = DMVec(1, 0, g->param.dm_type, g->param.dm),
-        DMD = DMVec(-1, 0, g->param.dm_type, g->param.dm);
+    Vec DMR = DMVec(0, 1, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult),
+        DML = DMVec(0, -1, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult),
+        DMU = DMVec(1, 0, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult),
+        DMD = DMVec(-1, 0, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult);
 
-    double out = -g->param.mu_s * VecDot(C, field);
+    double out = -g->param.mu_s * VecDot(C, field) * g->regions[I].field_mult;
 
-    out += -0.5 * g->param.exchange * (VecDot(C, R)+
+    out += -0.5 * g->param.exchange * g->regions[I].exchange_mult * (VecDot(C, R)+
                                        VecDot(C, L)+
                                        VecDot(C, U)+
                                        VecDot(C, D));
@@ -97,43 +97,6 @@ double HamiltonianI(size_t I, Grid *g, Vec field)
 
     return out;
 }
-
-/*
-double Hamiltoninij(int row, int col, Grid *g, Vec field)
-{
-    size_t I = (size_t) (row * g->param.cols + col);
-    Vec C = PBCVec(row, col, g->grid, g->param.rows, g->param.cols, g->param.pbc),
-        R = PBCVec(row, col + 1, g->grid, g->param.rows, g->param.cols, g->param.pbc),
-        L = PBCVec(row, col - 1, g->grid, g->param.rows, g->param.cols, g->param.pbc),
-        U = PBCVec(row + 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc),
-        D = PBCVec(row - 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
-
-    Vec DMR = DMVec(0, 1, g->param.dm_type, g->param.dm),
-        DML = DMVec(0, -1, g->param.dm_type, g->param.dm),
-        DMU = DMVec(1, 0, g->param.dm_type, g->param.dm),
-        DMD = DMVec(-1, 0, g->param.dm_type, g->param.dm);
-
-    double out = -g->param.mu_s * VecDot(C, field);
-
-    out += -0.5 * g->param.exchange * (VecDot(C, R)+
-                                       VecDot(C, L)+
-                                       VecDot(C, U)+
-                                       VecDot(C, D));
-
-    out += -0.5 * (VecDot(DMR, VecCross(C, R))+
-                   VecDot(DML, VecCross(C, L))+
-                   VecDot(DMU, VecCross(C, U))+
-                   VecDot(DMD, VecCross(C, D)));
-
-    out += -g->ani[I].K_1 * VecDot(C, g->ani[I].dir) * VecDot(C, g->ani[I].dir);
-
-    out += -g->param.cubic_ani * (C.x * C.x * C.x * C.x+
-                                  C.y * C.y * C.y * C.y+
-                                  C.z * C.z * C.z * C.z);
-
-    return out;
-}
-*/
 
 double Hamiltonian(Grid *g, Vec field)
 {
@@ -184,15 +147,15 @@ Vec dHdSI(size_t I, Vec C, Grid *g, Vec field)
         U = PBCVec(row + 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc),
         D = PBCVec(row - 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
     
-    Vec DMR = DMVec(0, 1, g->param.dm_type, -g->param.dm), //put (-) here to remove from later
-        DML = DMVec(0, -1, g->param.dm_type, -g->param.dm),
-        DMU = DMVec(1, 0, g->param.dm_type, -g->param.dm),
-        DMD = DMVec(-1, 0, g->param.dm_type, -g->param.dm);
+    Vec DMR = DMVec(0, 1, g->regions[I].dm_type, -g->param.dm * g->regions[I].dm_mult), //put (-) here to remove from later
+        DML = DMVec(0, -1, g->regions[I].dm_type, -g->param.dm * g->regions[I].dm_mult),
+        DMU = DMVec(1, 0, g->regions[I].dm_type, -g->param.dm * g->regions[I].dm_mult),
+        DMD = DMVec(-1, 0, g->regions[I].dm_type, -g->param.dm * g->regions[I].dm_mult);
     
-    Vec exchange = VecScalar(R, -g->param.exchange);
-    exchange = VecAdd(exchange, VecScalar(L, -g->param.exchange));
-    exchange = VecAdd(exchange, VecScalar(U, -g->param.exchange));
-    exchange = VecAdd(exchange, VecScalar(D, -g->param.exchange));
+    Vec exchange = VecScalar(R, -g->param.exchange * g->regions[I].exchange_mult);
+    exchange = VecAdd(exchange, VecScalar(L, -g->param.exchange * g->regions[I].exchange_mult));
+    exchange = VecAdd(exchange, VecScalar(U, -g->param.exchange * g->regions[I].exchange_mult));
+    exchange = VecAdd(exchange, VecScalar(D, -g->param.exchange * g->regions[I].exchange_mult));
     ret = VecAdd(ret, exchange);
 
     Vec dm = VecCross(R, DMR);
@@ -208,7 +171,7 @@ Vec dHdSI(size_t I, Vec C, Grid *g, Vec field)
                           -4.0 * g->param.cubic_ani * C.z * C.z * C.z);
     ret = VecAdd(ret, cub_ani);
     
-    ret = VecSub(ret, VecScalar(field, g->param.mu_s));
+    ret = VecSub(ret, VecScalar(field, g->param.mu_s * g->regions[I].field_mult));
 
     return ret;
 }
@@ -217,7 +180,7 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
 {
     Vec S = VecAdd(g->grid[I], dS);
     Vec Heff = VecScalar(dHdSI(I, S, g, field), -1.0 / g->param.mu_s);
-    double J_abs = g->param.exchange * (g->param.exchange < 0? -1.0: 1.0);
+    double J_abs = g->param.exchange * g->regions[I].exchange_mult * (g->param.exchange * g->regions[I].exchange_mult < 0? -1.0: 1.0);
 
     Vec V = VecScalar(VecCross(S, Heff), -g->param.gamma * HBAR / J_abs);
 

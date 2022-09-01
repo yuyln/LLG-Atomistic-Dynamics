@@ -84,8 +84,8 @@ hy = rows / ny
 ax.set_xticks([i * hx for i in range(nx + 1)])
 ax.set_yticks([i * hy for i in range(ny + 1)])
 ax.tick_params(axis='both', labelsize=20)
-ax.set_xlabel("$x$", size=30)
-ax.set_ylabel("$y$", size=30)
+ax.set_xlabel("$x(a)$", size=30)
+ax.set_ylabel("$y(a)$", size=30)
 
 ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', scale=np.sqrt(1) / reduce_fac, pivot="mid")
 

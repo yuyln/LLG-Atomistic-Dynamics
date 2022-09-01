@@ -15,13 +15,26 @@ int main()
     J = RealCurToNorm(J, s.g_old.param);
     Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
 
+    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 10, 1};
+    if (s.use_gpu)
+    {
+        GSAGPU(gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
+        CopyGrid(&s.g_old, &s.g_new);
+        WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
+        WriteFullGridBuffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
+    }
+    else
+    {
+        GSA(gsap, &s.g_old, &s.g_new, field_tesla);
+    }
+
     IntegrateSimulator(&s, field_tesla, cur);
 
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 1.0e12;//20.0e9;
+    J = -1.0e12;//20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
     cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};

@@ -48,6 +48,12 @@ Simulator InitSimulator(const char* path)
     GridParam param_tmp = {0};
     GetGridParam(path, &param_tmp);
 
+    RegionParam region_default = {0};
+    region_default.exchange_mult = 1.0;
+    region_default.dm_mult = 1.0;
+    region_default.field_mult = 1.0;
+    region_default.dm_type = param_tmp.dm_type;
+
     StartParse(path);
 
     ret.dt = GetValueDouble("DT");
@@ -73,8 +79,16 @@ Simulator InitSimulator(const char* path)
         exit(1);
     }
 
+    if (FindIndexOfTag("FILE_REGIONS") < 0)
+    {
+        fprintf(stderr, "Must provide path do regions file, even if its empty");
+        exit(1);
+    }
+
+
     char* local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
     char* local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
+    char* local_file_regions_dir = strdup(parser_global_state[FindIndexOfTag("FILE_REGIONS") + 1]);
     
     Anisotropy global_ani;
     global_ani.K_1 = GetValueDouble("ANISOTROPY");
@@ -90,10 +104,14 @@ Simulator InitSimulator(const char* path)
     
     memcpy(&ret.g_old.param.exchange, &param_tmp.exchange, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
 
+    for (size_t i = 0; i < ret.g_old.param.total; ++i)
+    {
+        ret.g_old.ani[i] = global_ani;
+        ret.g_old.regions[i] = region_default;
+    }
+
     StartParse(local_file_ani_dir);
     
-    for (size_t i = 0; i < ret.g_old.param.total; ++i)
-        ret.g_old.ani[i] = global_ani;
 
     int index_data = FindIndexOfTag("Data");
     if (index_data < 0)
@@ -134,10 +152,30 @@ Simulator InitSimulator(const char* path)
 
     EndParse();
 
+    StartParse(local_file_regions_dir);
+    index_data = FindIndexOfTag("Data");
+    if (index_data < 0)
+    {
+        fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_regions_dir);
+        exit(1);
+    }
+
+    for (size_t I = index_data + 1; I < parser_global_n; I += 6)
+    {
+        size_t row = (size_t)strtoull(parser_global_state[I], NULL, 10);
+        size_t col = (size_t)strtoull(parser_global_state[I + 1], NULL, 10);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(parser_global_state[I + 2], NULL);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(parser_global_state[I + 3], NULL);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(parser_global_state[I + 4], NULL, 10);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].field_mult = strtod(parser_global_state[I + 5], NULL);
+    }
+    EndParse();
+
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
     free(local_file_dir);
     free(local_file_ani_dir);
     free(local_file_pin_dir);
+    free(local_file_regions_dir);
     StartParse(path);
 
     CopyGrid(&ret.g_new, &ret.g_old);
