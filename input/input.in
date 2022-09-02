@@ -1,5 +1,5 @@
 CPU: 1
-GPU: 1
+GPU: 0
 PLAT: 0
 DEV: 0
 
@@ -10,8 +10,8 @@ CUT: 250
 
 FILE: ./input/teste.vec
 RSG: 1
-ROWS: 32
-COLS: 72
+ROWS: 10 32
+COLS: 10 72
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
@@ -19,11 +19,11 @@ FILE_REGIONS: ./input/regions.in
 
 
 EXCHANGE: 1.0e-21
-DMI: 1.5e-21
+DMI: 0.5e-21
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
-ANISOTROPY: 0.0
+ANISOTROPY: 0.0 0.33e-21
 ANI_X: 0.0
 ANI_Y: 0.0
 ANI_Z: 1.0
@@ -33,14 +33,14 @@ GAMMA: 1.760859644e11
 LANDE: 2.002318
 
 
-DM_TYPE: 0
+DM_TYPE: 1
 R_ij -> 0
 Z_CROSS_R_ij -> 1
 
 PBC_TYPE: 0
 PBC_X: 0.0
 PBC_Y: 0.0
-PBC_Z: -1.0
+PBC_Z: 0.0
 XY -> 0
 X -> 1
 Y -> 2

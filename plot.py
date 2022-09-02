@@ -8,7 +8,7 @@ from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
 
 reduce_fac = 1
-data = pd.read_table("./output/start.out", header=None)
+data = pd.read_table("./output/end.out", header=None)
 try:
     ani = pd.read_table("./input/anisotropy.in", header=None, delimiter=" ", skiprows=2)
     row_ani = ani[0] + 0.5

@@ -6,6 +6,8 @@ int main()
 {
     Simulator s = InitSimulator("./input/input.in");
     ExportSimulatorFile(&s, "./output/export_sim.out");
+    printf("Grid size in bytes: %zu\n", FindGridSize(&s.g_old));
+    PrintVecGridToFile("./output/before.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
 
     
     Vec field_joule = VecFrom(0.0, 0.0, -0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
@@ -15,7 +17,7 @@ int main()
     J = RealCurToNorm(J, s.g_old.param);
     Current cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_NONE};
 
-    GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 10, 1};
+    /*GSAParam gsap = {2.8, 2.2, 2.6, 2.0, 70000, 10, 1};
     if (s.use_gpu)
     {
         GSAGPU(gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
@@ -27,17 +29,34 @@ int main()
     {
         GSA(gsap, &s.g_old, &s.g_new, field_tesla);
     }
+*/
+    //IntegrateSimulator(&s, field_tesla, cur);
 
-    IntegrateSimulator(&s, field_tesla, cur);
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
+        s.g_old.grid[I] = VecFrom(0.0, 0.0, -1.0);
+    
+    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 3, s.g_old.param.rows / 2, 6, 1.0, 1.0);
 
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
+        GridNormalizeI(I, &s.g_old);
+
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
+    {
+        int j = I % s.g_old.param.cols;
+        int i = (I - j) / s.g_old.param.cols;
+        s.g_old.grid[I] = VecScalar(s.g_old.grid[I], pow(1.0, i + j));
+    }
+    
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = -1.0e12;//20.0e9;
+    J = 0.3e12;//20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
-    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
+    // cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
+    cur = (Current){VecFrom(0.0, J, 0.0), 1.0, 0.0, 1.0e-9, CUR_CPP};
 
     IntegrateSimulator(&s, field_tesla, cur);
 

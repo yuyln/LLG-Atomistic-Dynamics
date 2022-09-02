@@ -6,5 +6,7 @@ imgs
 videos
 *.exe
 *.stackdump
+*.out
 main
 __pycache__
+prepare
