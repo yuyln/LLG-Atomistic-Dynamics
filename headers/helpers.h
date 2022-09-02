@@ -22,6 +22,12 @@
 #define PROFILER_IMPLEMENTATION
 #include <profiler.h>
 
+typedef struct
+{
+    double qA, qT, qV, T0;
+    size_t inner_loop, outer_loop, print_param;
+} GSAParam;
+
 typedef struct GPU
 {
     cl_platform_id *plats; size_t n_plats; int i_plat;
@@ -38,8 +44,8 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
-    bool write_to_file;
-    bool use_gpu;
+    bool write_to_file, use_gpu, do_gsa, do_relax;
+    GSAParam gsap;
     GPU gpu;
     Grid g_old;
     Grid g_new;

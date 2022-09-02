@@ -61,6 +61,19 @@ Simulator InitSimulator(const char* path)
 
     ret.write_to_file = (bool)GetValueInt("WRITE", 10);
     ret.write_cut = (size_t)GetValueULLInt("CUT", 10);
+    ret.do_gsa = (bool)GetValueInt("GSA", 10);
+    ret.do_relax = (bool)GetValueInt("RELAX", 10);
+
+    if (ret.do_gsa)
+    {
+        ret.gsap.qA = GetValueDouble("qA");
+        ret.gsap.qV = GetValueDouble("qV");
+        ret.gsap.qT = GetValueDouble("qT");
+        ret.gsap.outer_loop = GetValueULLInt("OUTER", 10);
+        ret.gsap.inner_loop = GetValueULLInt("INNER", 10);
+        ret.gsap.print_param = GetValueULLInt("PRINTPARAM", 10);
+        ret.gsap.T0 = GetValueDouble("STARTTEMP");
+    }
 
     ret.n_cpu = (size_t)GetValueULLInt("CPU", 10);
 

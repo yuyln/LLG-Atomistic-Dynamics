@@ -3,12 +3,6 @@
 
 #include <helpers.h>
 
-typedef struct
-{
-    double qA, qT, qV, T0;
-    size_t inner_loop, outer_loop, print_param;
-} GSAParam;
-
 void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
 {
     Grid g_min = InitNullGrid(),

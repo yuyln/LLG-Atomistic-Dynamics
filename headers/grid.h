@@ -14,7 +14,7 @@ typedef enum
 
 typedef enum
 {
-    CUR_CPP, CUR_STT, CUR_BOTH, CUR_NONE
+    CUR_NONE, CUR_CPP, CUR_STT, CUR_BOTH
 } CUR_TYPE;
 
 typedef struct
