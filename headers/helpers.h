@@ -533,26 +533,26 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
     out_grid_anim[out_grid_anim_size - 1] = '\0';
 
-    char *out_charge_anim;
-    size_t out_charge_anim_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
-    out_charge_anim = (char*)calloc(out_charge_anim_size, 1);
-    snprintf(out_charge_anim, out_charge_anim_size, "%s_charge.out", root_path);
-    out_charge_anim[out_charge_anim_size - 1] = '\0';
+    char *out_cm_charge_anim;
+    size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
+    out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
+    snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
+    out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
 
-    char *out_charge_total;
-    size_t out_charge_total_size = snprintf(NULL, 0, "%s_charge_total.out", root_path) + 1;
-    out_charge_total = (char*)calloc(out_charge_total_size, 1);
-    snprintf(out_charge_total, out_charge_total_size, "%s_charge_total.out", root_path);
-    out_charge_total[out_charge_total_size - 1] = '\0';
+    char *out_charge;
+    size_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
+    out_charge = (char*)calloc(out_charge_size, 1);
+    snprintf(out_charge, out_charge_size, "%s_charge.out", root_path);
+    out_charge[out_charge_size - 1] = '\0';
 
 
     FILE* grid_anim = fopen(out_grid_anim, "w");
-    FILE* charge_anim = fopen(out_charge_anim, "w");
-    FILE* charge_total = fopen(out_charge_total, "w");
+    FILE* charge_anim = fopen(out_cm_charge_anim, "w");
+    FILE* charge_total = fopen(out_charge, "w");
 
     free(out_grid_anim);
-    free(out_charge_anim);
-    free(out_charge_total);
+    free(out_cm_charge_anim);
+    free(out_charge);
 
     double J_abs = fabs(s->g_old.param.exchange);
     printf("Writing charges related output\n");

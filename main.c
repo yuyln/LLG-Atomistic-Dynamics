@@ -38,13 +38,13 @@ int main()
         printf("Done relaxing\n");
     }
 
-    /*for (size_t I = 0; I < s.g_old.param.total; ++I)
+    for (size_t I = 0; I < s.g_old.param.total; ++I)
         s.g_old.grid[I] = VecFrom(0.0, 0.0, -1.0);
     
     CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 3, s.g_old.param.rows / 2, 6, 1.0, 1.0);
 
     for (size_t I = 0; I < s.g_old.param.total; ++I)
-        GridNormalizeI(I, &s.g_old);*/
+        GridNormalizeI(I, &s.g_old);
 
     for (size_t I = 0; I < s.g_old.param.total; ++I)
     {
@@ -58,7 +58,7 @@ int main()
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 3.0e12;//20.0e9;
+    J = 3.0e12 * 0.0;//20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
     cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};

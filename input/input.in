@@ -19,8 +19,8 @@ GSA: 0
 
 RELAX: 0
 
-FILE: ./input/teste.vec
-RSG: 1
+FILE_GRID: ./input/teste.vec
+RANDOM_START_GRID: 1
     ROWS: 32
     COLS: 72
 

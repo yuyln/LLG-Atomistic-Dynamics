@@ -76,8 +76,8 @@ Simulator InitSimulator(const char* path)
 
     ret.n_cpu = (size_t)GetValueULLInt("CPU", 10);
 
-    bool start_random = (bool)GetValueInt("RSG", 10);
-    char* local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE") + 1]);
+    bool start_random = (bool)GetValueInt("RANDOM_START_GRID", 10);
+    char* local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE_GRID") + 1]);
 
     if (FindIndexOfTag("FILE_ANISOTROPY") < 0)
     {
