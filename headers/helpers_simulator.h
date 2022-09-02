@@ -38,8 +38,6 @@ void FreeGPU(GPU *g)
         free(g->devs);
     if (g->plats)
         free(g->plats);
-   
-
 }
 
 Simulator InitSimulator(const char* path)

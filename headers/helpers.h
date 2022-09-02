@@ -345,10 +345,10 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-        
+        double norm_time = (double)i * s->dt;
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
-            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt));
+            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
         }
         
@@ -367,11 +367,11 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-        
+        double norm_time = (double)i * s->dt;
         #pragma omp parallel for num_threads(s->n_cpu)
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
-            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt));
+            s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
         }
         
@@ -402,6 +402,9 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+
+        double norm_time = (double)i * s->dt;
+        SetKernelArg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
         
         EnqueueND(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
         //Finish(s->gpu.queue);

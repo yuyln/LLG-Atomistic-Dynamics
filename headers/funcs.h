@@ -4,6 +4,18 @@
 #include <grid.h>
 #include <constants.h>
 
+inline Current GenCurI(size_t I, Grid *g, Current base, double norm_time)
+{
+    (void)I; (void)g; (void)norm_time;
+    return base;
+}
+
+inline Vec GenFieldI(size_t I, Grid *g, Vec base, double norm_time)
+{
+    (void)I; (void)g; (void)norm_time;
+    return base;
+}
+
 Vec PBCVec(int row, int col, const Vec* v, int rows, int cols, PBC pbc)
 {
     switch (pbc.pbc_type)
@@ -136,7 +148,7 @@ Vec VecDotGradVecI(size_t I, Vec v, Vec *g, int rows, int cols, double dx, doubl
     return ret;
 }
 
-Vec dHdSI(size_t I, Vec C, Grid *g, Vec field)
+Vec dHdSI(size_t I, Vec C, Grid *g, Vec field, double norm_time)
 {
     int col = I % g->param.cols;
     int row = (I - col) / g->param.cols;
@@ -171,15 +183,15 @@ Vec dHdSI(size_t I, Vec C, Grid *g, Vec field)
                           -4.0 * g->param.cubic_ani * C.z * C.z * C.z);
     ret = VecAdd(ret, cub_ani);
     
-    ret = VecSub(ret, VecScalar(field, g->param.mu_s * g->regions[I].field_mult));
+    ret = VecSub(ret, VecScalar(GenFieldI(I, g, field, norm_time), g->param.mu_s * g->regions[I].field_mult));
 
     return ret;
 }
 
-Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
+Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur, double norm_time)
 {
     Vec S = VecAdd(g->grid[I], dS);
-    Vec Heff = VecScalar(dHdSI(I, S, g, field), -1.0 / g->param.mu_s);
+    Vec Heff = VecScalar(dHdSI(I, S, g, field, norm_time), -1.0 / g->param.mu_s);
     double J_abs = g->param.exchange * g->regions[I].exchange_mult * (g->param.exchange * g->regions[I].exchange_mult < 0? -1.0: 1.0);
 
     Vec V = VecScalar(VecCross(S, Heff), -g->param.gamma * HBAR / J_abs);
@@ -188,6 +200,7 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
     {
     case CUR_CPP:
     {
+        cur = GenCurI(I, g, cur, norm_time);
         double factor = g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s);
         Vec cur_local = VecScalar(VecCross(cur.j, S), factor);
         V = VecAdd(V, VecCross(S, cur_local));
@@ -196,6 +209,7 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
     }
     case CUR_STT:
     {
+        cur = GenCurI(I, g, cur, norm_time);
         Vec cur_local = VecDotGradVecI(I, cur.j, g->grid, g->param.rows, g->param.cols, g->param.lattice, g->param.lattice, g->param.pbc);
         V = VecAdd(V, VecScalar(cur_local, cur.p * g->param.lattice));
         V = VecSub(V, VecScalar(VecCross(S, cur_local), cur.p * cur.beta * g->param.lattice / g->param.avg_spin));
@@ -203,6 +217,7 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
     }
     case CUR_BOTH:
     {
+        cur = GenCurI(I, g, cur, norm_time);
         double factor = g->param.gamma * HBAR * cur.p * g->param.lattice * g->param.avg_spin / (cur.thick * g->param.mu_s);
         Vec cur_local = VecScalar(VecCross(cur.j, S), factor);
         V = VecAdd(V, VecCross(S, cur_local));
@@ -221,24 +236,24 @@ Vec dSdTauI(size_t I, Grid *g, Vec field, Vec dS, Current cur)
     return VecScalar(V, 1.0 / (1.0 + g->param.alpha * g->param.alpha));
 }
 
-Vec StepI(size_t I, Grid *g, Vec field, Current cur, double dt)
+Vec StepI(size_t I, Grid *g, Vec field, Current cur, double dt, double norm_time)
 {
     #if defined(RK4)
     Vec rk1, rk2, rk3, rk4;
-    rk1 = dSdTauI(I, g, field, VecFromScalar(0.0), cur);
-    rk2 = dSdTauI(I, g, field, VecScalar(rk1, dt / 2.0), cur);
-    rk3 = dSdTauI(I, g, field, VecScalar(rk2, dt / 2.0), cur);
-    rk4 = dSdTauI(I, g, field, VecScalar(rk3, dt), cur);
+    rk1 = dSdTauI(I, g, field, VecFromScalar(0.0), cur, norm_time);
+    rk2 = dSdTauI(I, g, field, VecScalar(rk1, dt / 2.0), cur, norm_time + dt / 2.0);
+    rk3 = dSdTauI(I, g, field, VecScalar(rk2, dt / 2.0), cur, norm_time + dt / 2.0);
+    rk4 = dSdTauI(I, g, field, VecScalar(rk3, dt), cur, norm_time + dt);
     return VecScalar(VecAdd(VecAdd(rk1, VecScalar(rk2, 2.0)), VecAdd(VecScalar(rk3, 2.0), rk4)), dt / 6.0);
 
     #elif defined(RK2)
     Vec rk1, rk2;
-    rk1 = dSdTauI(I, g, field, VecFromScalar(0.0), cur);
-    rk2 = dSdTauI(I, g, field, VecScalar(rk1, dt), cur);
+    rk1 = dSdTauI(I, g, field, VecFromScalar(0.0), cur, norm_time);
+    rk2 = dSdTauI(I, g, field, VecScalar(rk1, dt), cur, norm_time + dt);
     return VecScalar(VecAdd(rk1, rk2), dt / 2.0);
 
     #elif defined(EULER)
-    return VecScalar(dSdTauI(I, g, field, VecFromScalar(0.0), cur), dt);
+    return VecScalar(dSdTauI(I, g, field, VecFromScalar(0.0), cur, norm_time), dt);
 
     #else
     return (Vec){0.0, 0.0, 0.0};

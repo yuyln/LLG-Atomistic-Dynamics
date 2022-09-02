@@ -98,9 +98,9 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)
     g_old->grid[I] = g_new->grid[I];
 }
 
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur)
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time)
 {
 	size_t I = get_global_id(0);
-	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt));
+	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));
     GridNormalizeI(I, g_new);
 }
