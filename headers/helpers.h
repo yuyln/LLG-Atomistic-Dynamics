@@ -44,7 +44,7 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
@@ -345,7 +345,7 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-        double norm_time = (double)i * s->dt;
+        double norm_time = (double)i * s->dt * (!s->doing_relax);
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
@@ -367,7 +367,7 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-        double norm_time = (double)i * s->dt;
+        double norm_time = (double)i * s->dt * (!s->doing_relax);
         #pragma omp parallel for num_threads(s->n_cpu)
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
@@ -403,7 +403,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
 
-        double norm_time = (double)i * s->dt;
+        double norm_time = (double)i * s->dt * (!s->doing_relax);
         SetKernelArg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
         
         EnqueueND(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);

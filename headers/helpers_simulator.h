@@ -44,6 +44,7 @@ Simulator InitSimulator(const char* path)
 {
     Simulator ret = {0};
     GridParam param_tmp = {0};
+    ret.doing_relax = false;
     GetGridParam(path, &param_tmp);
 
     RegionParam region_default = {0};

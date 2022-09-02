@@ -1,5 +1,5 @@
-CPU: 2
-GPU: 0
+CPU: 1
+GPU: 1
 PLAT: 0
 DEV: 0
 
@@ -12,17 +12,17 @@ GSA: 0
     qA: 2.8
     qV: 2.2
     qT: 2.6
-    OUTER = 10
-    INNER = 70000
-    PRINTPARAM = 10
+    OUTER: 10
+    INNER: 70000
+    PRINTPARAM: 10
     STARTTEMP: 5.0
 
-RELAX: 1
+RELAX: 0
 
 FILE: ./input/teste.vec
 RSG: 1
-    ROWS: 10 32
-    COLS: 10 72
+    ROWS: 32
+    COLS: 72
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in

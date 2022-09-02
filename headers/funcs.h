@@ -7,6 +7,8 @@
 inline Current GenCurI(size_t I, Grid *g, Current base, double norm_time)
 {
     (void)I; (void)g; (void)norm_time;
+    base.j.y = base.j.x * sin(2.0 * M_PI / 50.0 * norm_time);
+    base.j.x = base.j.x * cos(2.0 * M_PI / 50.0 * norm_time);
     return base;
 }
 
@@ -89,7 +91,7 @@ double HamiltonianI(size_t I, Grid *g, Vec field)
         DMU = DMVec(1, 0, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult),
         DMD = DMVec(-1, 0, g->regions[I].dm_type, g->param.dm * g->regions[I].dm_mult);
 
-    double out = -g->param.mu_s * VecDot(C, field) * g->regions[I].field_mult;
+    double out = -g->param.mu_s * VecDot(C, GenFieldI(I, g, field, 0.0)) * g->regions[I].field_mult;
 
     out += -0.5 * g->param.exchange * g->regions[I].exchange_mult * (VecDot(C, R)+
                                        VecDot(C, L)+
