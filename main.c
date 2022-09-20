@@ -10,7 +10,7 @@ int main()
     PrintVecGridToFile("./output/before.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
 
     
-    Vec field_joule = VecFrom(0.0, 0.0, -0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_joule = VecFrom(0.0, 0.0, 0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
 
     double J; Current cur;
@@ -27,6 +27,16 @@ int main()
         GSA(s.gsap, &s.g_old, &s.g_new, field_tesla);
     }
 
+    for(int col = 0; col < s.g_old.param.cols; ++col)
+    {
+        s.g_old.grid[col] = VecNormalize(field_joule);
+    }
+
+    if (s.use_gpu)
+    {
+        WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
+    }
+
     if (s.do_relax)
     {
         J = 0.0;
@@ -37,37 +47,23 @@ int main()
         s.doing_relax = false;
         printf("Done relaxing\n");
     }
-
-    for (size_t I = 0; I < s.g_old.param.total; ++I)
-        s.g_old.grid[I] = VecFrom(0.0, 0.0, -1.0);
-    
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 3, s.g_old.param.rows / 2, 6, 1.0, 1.0);
-
-    for (size_t I = 0; I < s.g_old.param.total; ++I)
-        GridNormalizeI(I, &s.g_old);
-
-    for (size_t I = 0; I < s.g_old.param.total; ++I)
-    {
-        int j = I % s.g_old.param.cols;
-        int i = (I - j) / s.g_old.param.cols;
-        s.g_old.grid[I] = VecScalar(s.g_old.grid[I], pow(1.0, i + j));
-    }
-    
+        
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
-
+    printf("%d\n", s.doing_relax);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 3.0e12 * 0.0;//20.0e9;
+    J = 0.2e12;//20.0e9;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
-    cur = (Current){VecFrom(J, 0.0, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
+    cur = (Current){VecFrom(0.0, -J, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
 
-    IntegrateSimulator(&s, field_tesla, cur);
+    if (s.do_integrate)
+        IntegrateSimulator(&s, field_tesla, cur);
 
+    DumpWriteGrid("./output/grid_dump.bin", &s);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim", &s);
-
     FreeSimulator(&s);
     return 0;
 }

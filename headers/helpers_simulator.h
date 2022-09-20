@@ -62,6 +62,7 @@ Simulator InitSimulator(const char* path)
     ret.write_cut = (size_t)GetValueULLInt("CUT", 10);
     ret.do_gsa = (bool)GetValueInt("GSA", 10);
     ret.do_relax = (bool)GetValueInt("RELAX", 10);
+    ret.do_integrate = (bool)GetValueInt("INTEGRATE", 10);
 
     if (ret.do_gsa)
     {
@@ -287,5 +288,24 @@ void ExportSimulatorFile(Simulator* s, const char* path)
     }
     ExportSimulator(s, file);
     fclose(file);
+}
+
+void DumpWriteGrid(const char* file_path, Simulator* s)
+{
+    FILE *f = fopen(file_path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+    size_t ss = s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut * sizeof(Vec);
+    fwrite(s->grid_out_file, 1, ss, f);
+
+    /*char *data = (char*)malloc(ss);
+    memcpy(data, s->grid_out_file, ss);
+
+    free(data);*/
+    
+    fclose(f);
 }
 #endif

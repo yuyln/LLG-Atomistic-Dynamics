@@ -3,8 +3,8 @@ GPU: 1
 PLAT: 0
 DEV: 0
 
-DT: 0.001
-STEPS: 500000
+DT: 0.01
+STEPS: 50000
 WRITE: 1
 CUT: 250
 
@@ -13,16 +13,17 @@ GSA: 0
     qV: 2.2
     qT: 2.6
     OUTER: 10
-    INNER: 70000
+    INNER: 700000
     PRINTPARAM: 10
     STARTTEMP: 5.0
 
 RELAX: 0
+INTEGRATE: 1
 
-FILE_GRID: ./input/teste.vec
+FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 32
-    COLS: 72
+    ROWS: 16
+    COLS: 32
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
@@ -34,7 +35,7 @@ LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
 
-ANISOTROPY: 0.0 0.33e-21
+ANISOTROPY: 0.05e-21
     ANI_X: 0.0
     ANI_Y: 0.0
     ANI_Z: 1.0

@@ -3,12 +3,20 @@
 
 #include <grid.h>
 #include <constants.h>
+#define TIMEI 1000.0
+#define TIMEZ 4000.0
 
 inline Current GenCurI(size_t I, Grid *g, Current base, double norm_time)
 {
-    (void)I; (void)g; (void)norm_time;
-    base.j.y = base.j.x * sin(2.0 * M_PI / 50.0 * norm_time);
-    base.j.x = base.j.x * cos(2.0 * M_PI / 50.0 * norm_time);
+    (void)I; (void)g;
+    /*if (norm_time <= TIMEI)
+        base.j.y *= norm_time / TIMEI;
+    else if (norm_time > TIMEI && norm_time <= TIMEZ)
+        base.j.y *= -norm_time / (TIMEZ - TIMEI) - TIMEZ / (TIMEI - TIMEZ);
+    else
+        base.j.y = 0.0;*/
+    base.j.y *= sin(2.0 * M_PI / 500.0 * norm_time);
+    base.j.y *= base.j.y < 0;
     return base;
 }
 

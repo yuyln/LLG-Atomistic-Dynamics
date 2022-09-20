@@ -44,7 +44,7 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
@@ -396,7 +396,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
     SetKernelArg(s->gpu.kernels[3], 4, sizeof(Current), &cur);
 
     size_t global = s->g_old.param.total;
-    size_t local = gcd(global, 512);
+    size_t local = gcd(global, 32);
 
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -509,6 +509,34 @@ void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int r, doubl
     }
 }
 
+void CreateBimeron(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+{
+    double R2 = r * r;
+    for (int i = 0; i < rows; ++i)
+    {
+        double dy = (double)i - cy;
+        for (int j = 0; j < cols; ++j)
+        {
+            double dx = (double)j - cx;
+            double r2 = dx * dx + dy * dy;
+            double r = sqrt(r2);
+            
+            g[i * cols + j].x = 2.0 * P * (exp(-r2 / R2) - 0.5);
+        
+            if (r != 0)
+            {
+                g[i * cols + j].z = dx * Q / r * (1.0 - fabs(g[i * cols + j].x));
+                g[i * cols + j].y = dy * Q / r * (1.0 - fabs(g[i * cols + j].x));
+            }
+            else
+            {
+                g[i * cols + j].z = 0.0;
+                g[i * cols + j].y = 0.0;
+            }
+        }
+    }
+}
+
 Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     Vec ret = VecFromScalar(0.0);
@@ -586,5 +614,37 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     printf("Done writing grid output\n");
 
     fclose(grid_anim);
+}
+
+void DumpGrid(const char *file_path, Grid *g)
+{
+    FILE *f = fopen(file_path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+
+    char *data = (char*)malloc(FindGridSize(g));
+    char *ptr = data;
+    memcpy(ptr, &g->param, sizeof(GridParam));
+    ptr += sizeof(GridParam);
+
+    memcpy(ptr, g->grid, sizeof(Vec) * g->param.total);
+    ptr += sizeof(Vec) * g->param.total;
+
+    memcpy(ptr, g->ani, sizeof(Anisotropy) * g->param.total);
+    ptr += sizeof(Anisotropy) * g->param.total;
+
+    memcpy(ptr, g->pinning, sizeof(Pinning) * g->param.total);
+    ptr += sizeof(Pinning) * g->param.total;
+
+    memcpy(ptr, g->regions, sizeof(RegionParam) * g->param.total);
+    ptr += sizeof(RegionParam) * g->param.total;
+
+    fwrite(data, 1, FindGridSize(g), f);
+
+    free(data);
+    fclose(f);
 }
 #endif

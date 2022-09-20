@@ -7,8 +7,9 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
 
-reduce_fac = 1
+reduce_fac = 2
 data = pd.read_table("./output/end.out", header=None)
+#data = pd.read_table("./input/starting.in", header=None)
 try:
     ani = pd.read_table("./input/anisotropy.in", header=None, delimiter=" ", skiprows=2)
     row_ani = ani[0] + 0.5
@@ -57,18 +58,14 @@ z = np.array(z)
 colors = ["gold", "white", "green"]
 cmap1 = LinearSegmentedColormap.from_list("mcmp", colors)
 
-FixPlot(8, 8)
-fig, ax = plt.subplots()
+r = rows / cols
+FixPlot(8 / r, 8)
+fig = plt.figure()
+fig.set_size_inches(8 / r, 8 * 0.73 / 0.82)
+ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 
 
-bottom = cm.get_cmap('Oranges', 128)
-top = cm.get_cmap('Blues_r', 128)
-
-newcolors = np.vstack((top(np.linspace(0, 1, 128)),
-                       bottom(np.linspace(0, 1, 128))))
-newcmp = ListedColormap(newcolors, name='OrangeBlue')
-
-im = ax.imshow(mz, cmap="coolwarm", vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="none")
+im = ax.imshow(mz, cmap="coolwarm", vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="none", aspect='auto')
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(im, cax=cax1)
@@ -90,7 +87,6 @@ ax.set_ylabel("$y(a)$", size=30)
 ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', scale=np.sqrt(1) / reduce_fac, pivot="mid")
 
 r = rows / cols
-fig.set_size_inches(8, 8 * r)
 
 an = ax.scatter(col_ani, row_ani, color="green", s=20.0)
 pi = ax.scatter(col_pin, row_pin, color="yellow", s=20.0)
