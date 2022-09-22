@@ -44,7 +44,7 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
@@ -601,7 +601,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     fclose(charge_anim);
     fclose(charge_total);
     printf("Writing grid output\n");
-    for (size_t i = 0; i < s->n_steps && s->write_to_file; ++i)
+    for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
@@ -614,9 +614,10 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     printf("Done writing grid output\n");
 
     fclose(grid_anim);
+
 }
 
-void DumpGrid(const char *file_path, Grid *g)
+void DumpGrid(const char* file_path, Vec* g, int rows, int cols)
 {
     FILE *f = fopen(file_path, "w");
     if (!f)
@@ -624,27 +625,9 @@ void DumpGrid(const char *file_path, Grid *g)
         fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
         exit(1);
     }
-
-    char *data = (char*)malloc(FindGridSize(g));
-    char *ptr = data;
-    memcpy(ptr, &g->param, sizeof(GridParam));
-    ptr += sizeof(GridParam);
-
-    memcpy(ptr, g->grid, sizeof(Vec) * g->param.total);
-    ptr += sizeof(Vec) * g->param.total;
-
-    memcpy(ptr, g->ani, sizeof(Anisotropy) * g->param.total);
-    ptr += sizeof(Anisotropy) * g->param.total;
-
-    memcpy(ptr, g->pinning, sizeof(Pinning) * g->param.total);
-    ptr += sizeof(Pinning) * g->param.total;
-
-    memcpy(ptr, g->regions, sizeof(RegionParam) * g->param.total);
-    ptr += sizeof(RegionParam) * g->param.total;
-
-    fwrite(data, 1, FindGridSize(g), f);
-
-    free(data);
+    fwrite(&rows, sizeof(int), 1, f);
+    fwrite(&cols, sizeof(int), 1, f);
+    fwrite(g, sizeof(Vec) * rows * cols, 1, f);
     fclose(f);
 }
 #endif
