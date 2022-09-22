@@ -4,9 +4,9 @@ PLAT: 0
 DEV: 0
 
 DT: 0.01
-STEPS: 50000
+STEPS: 500000
 WRITE: 1
-WRITE_HUMAN: 1
+WRITE_HUMAN: 0
 CUT: 250
 
 GSA: 0
@@ -23,8 +23,8 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 16
-    COLS: 32
+    ROWS: 32
+    COLS: 72
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
@@ -49,7 +49,7 @@ DM_TYPE: 1
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 0
+PBC_TYPE: 1
 PBC_X: 0.0
 PBC_Y: 0.0
 PBC_Z: 0.0

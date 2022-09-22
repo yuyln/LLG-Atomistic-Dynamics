@@ -630,4 +630,24 @@ void DumpGrid(const char* file_path, Vec* g, int rows, int cols)
     fwrite(g, sizeof(Vec) * rows * cols, 1, f);
     fclose(f);
 }
+
+void DumpGridCharge(const char* file_path, Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
+{
+    FILE *f = fopen(file_path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+    double* charge = (double*)calloc(rows * cols, sizeof(double));
+    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+        charge[I] = ChargeI(I, g, rows, cols, dx, dy, pbc);
+    
+    fwrite(&rows, sizeof(int), 1, f);
+    fwrite(&cols, sizeof(int), 1, f);
+    fwrite(charge, sizeof(double) * rows * cols, 1, f);
+
+    free(charge);
+    fclose(f);
+}
 #endif

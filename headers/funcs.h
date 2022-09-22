@@ -15,8 +15,8 @@ inline Current GenCurI(size_t I, Grid *g, Current base, double norm_time)
         base.j.y *= -norm_time / (TIMEZ - TIMEI) - TIMEZ / (TIMEI - TIMEZ);
     else
         base.j.y = 0.0;*/
-    base.j.y *= sin(2.0 * M_PI / 500.0 * norm_time);
-    base.j.y *= base.j.y < 0;
+    // base.j.y *= sin(2.0 * M_PI / 500.0 * norm_time);
+    // base.j.y *= base.j.y < 0;
     return base;
 }
 

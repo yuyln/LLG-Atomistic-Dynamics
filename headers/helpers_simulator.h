@@ -311,4 +311,36 @@ void DumpWriteGrid(const char* file_path, Simulator* s)
     
     fclose(f);
 }
+
+void DumpWriteChargeGrid(const char* file_path, Simulator *s)
+{
+    FILE *f = fopen(file_path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+
+    int rows = s->g_old.param.rows;
+    int cols = s->g_old.param.cols;
+    fwrite(&rows, sizeof(rows), 1, f);
+    fwrite(&cols, sizeof(cols), 1, f);
+    int n_steps = s->n_steps / s->write_cut;
+    fwrite(&n_steps, 1, sizeof(int), f);
+
+    size_t ss = s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut * sizeof(double);
+
+    double* charge_total = calloc(s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut, sizeof(double));
+    for (int i = 0; i < n_steps; ++i)
+    {
+        for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+        {
+            charge_total[i * rows * cols + I] = ChargeI(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+        }
+    }
+    fwrite(charge_total, ss, 1, f);
+
+    fclose(f);
+    free(charge_total);
+}
 #endif
