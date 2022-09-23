@@ -26,6 +26,26 @@ inline Vec GenFieldI(size_t I, Grid *g, Vec base, double norm_time)
     return base;
 }
 
+Vec LinearIntep(Vec v1, Vec v2, double t)
+{
+    return VecAdd(v1, VecScalar(VecSub(v2, v1), t));
+}
+
+Vec BilinearInterp(Vec v00, Vec v10, Vec v11, Vec v01, double u, double v)
+{
+    Vec b = VecSub(v10, v00);
+    Vec c = VecSub(v01, v00);
+    Vec d = VecSub(v11, v10);
+    d = VecSub(d, v01);
+    d = VecAdd(d, v00);
+
+    Vec ret = v00;
+    ret = VecAdd(ret, VecScalar(b, u));
+    ret = VecAdd(ret, VecScalar(c, v));
+    ret = VecAdd(ret, VecScalar(d, u * v));
+    return ret;
+}
+
 Vec PBCVec(int row, int col, const Vec* v, int rows, int cols, PBC pbc)
 {
     switch (pbc.pbc_type)
