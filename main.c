@@ -74,7 +74,7 @@ int main()
     DumpWriteGrid("./output/grid_anim_dump.bin", &s);
     DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
-    WriteSimulatorSimulation("./output/anim", &s);
+    WriteSimulatorSimulation("./output/anim", &s, 20);
     FreeSimulator(&s);
     return 0;
 }

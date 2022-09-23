@@ -26,7 +26,7 @@ inline Vec GenFieldI(size_t I, Grid *g, Vec base, double norm_time)
     return base;
 }
 
-Vec LinearIntep(Vec v1, Vec v2, double t)
+Vec LinearInterp(Vec v1, Vec v2, double t)
 {
     return VecAdd(v1, VecScalar(VecSub(v2, v1), t));
 }
@@ -302,5 +302,43 @@ double ChargeI(size_t I, Vec *g, int rows, int cols, double dx, double dy, PBC p
     Vec dgdx = VecScalar(VecSub(R, L), 0.5 / dx);
     Vec dgdy = VecScalar(VecSub(U, D), 0.5 / dy);
     return 1.0 / (4 * M_PI) * dx * dy * VecDot(VecCross(dgdx, dgdy), g[I]);
+}
+
+double ChargeInterpI(size_t I, Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int n_interp)
+{
+    int col = I % cols;
+    int row = (I - col) / cols;
+    // Vec R = PBCVec(row, col + 1, g, rows, cols, pbc),
+    //     L = PBCVec(row, col - 1, g, rows, cols, pbc),
+    //     U = PBCVec(row + 1, col, g, rows, cols, pbc),
+    //     D = PBCVec(row - 1, col, g, rows, cols, pbc);
+
+    Vec v00 = PBCVec(row - 1, col - 1, g, rows, cols, pbc),
+        v10 = PBCVec(row - 1, col + 1, g, rows, cols, pbc),
+        v11 = PBCVec(row + 1, col + 1, g, rows, cols, pbc),
+        v01 = PBCVec(row + 1, col - 1, g, rows, cols, pbc);
+    double dxl = dx / (double)n_interp;
+    double dyl = dy / (double)n_interp;
+    double du = 1.0 / (double)n_interp;
+    double dv = 1.0 / (double)n_interp;
+    double ret = 0.0;
+    for (int i = 0; i < n_interp; ++i)
+    {
+        double v = (double)i / (double)n_interp;
+        for (int j = 0; j < n_interp; ++j)
+        {
+            double u = (double)j / (double)n_interp;
+            Vec Rl = VecNormalize(BilinearInterp(v00, v10, v11, v01, u + du / 2.0, v));
+            Vec Ll = VecNormalize(BilinearInterp(v00, v10, v11, v01, u - du / 2.0, v));
+            Vec Ul = VecNormalize(BilinearInterp(v00, v10, v11, v01, u, v + dv / 2.0));
+            Vec Dl = VecNormalize(BilinearInterp(v00, v10, v11, v01, u, v - dv / 2.0));
+            Vec Cl = VecNormalize(BilinearInterp(v00, v10, v11, v01, u, v));
+
+            Vec dgdx = VecScalar(VecSub(Rl, Ll), 0.5 / dxl);
+            Vec dgdy = VecScalar(VecSub(Ul, Dl), 0.5 / dyl);
+            ret += 1.0 / (4 * M_PI) * dxl * dyl * VecDot(VecCross(dgdx, dgdy), Cl);
+        }
+    }
+    return ret;
 }
 #endif
