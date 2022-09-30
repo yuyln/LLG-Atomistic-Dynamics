@@ -341,4 +341,52 @@ double ChargeInterpI(size_t I, Vec *g, int rows, int cols, double dx, double dy,
     }
     return ret;
 }
+
+Vec BemI(size_t I, Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+{
+    #ifdef INTERP
+    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP));
+    #else
+    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeI(I, g, rows, cols, dx, dy, pbc));
+    #endif
+}
+
+Vec EemI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+{
+    Vec ret = VecFromScalar(0.0);
+    int col = I % cols;
+    int row = (I - col) / cols;
+    Vec R = PBCVec(row, col + 1, current, rows, cols, pbc),
+        L = PBCVec(row, col - 1, current, rows, cols, pbc),
+        U = PBCVec(row + 1, col, current, rows, cols, pbc),
+        D = PBCVec(row - 1, col, current, rows, cols, pbc),
+        C = PBCVec(row, col, current, rows, cols, pbc);
+    
+    Vec dgdx = VecScalar(VecSub(R, L), 0.5 / dx);
+    Vec dgdy = VecScalar(VecSub(U, D), 0.5 / dy);
+    Vec dgdt = VecScalar(VecSub(after[I], before[I]), 0.5 / dt);
+    ret.x = HBAR / QE * VecDot(C, VecCross(dgdx, dgdt));
+    ret.y = HBAR / QE * VecDot(C, VecCross(dgdy, dgdt));
+    return ret;
+}
+
+Vec VelI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+{
+    Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
+    Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);
+    return (Vec){ Em.y / Bm.z, -Em.x / Bm.z };
+}
+
+Vec VelWeightedI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+{
+    Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
+    Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);
+    #ifdef INTERP
+    double charge = ChargeInterpI(I, current, rows, cols, dx, dy, pbc, INTERP);
+    #else
+    double charge = ChargeI(I, current, rows, cols, dx, dy, pbc);
+    #endif
+    return (Vec){ charge * Em.y / Bm.z, -charge * Em.x / Bm.z };
+}
+
 #endif
