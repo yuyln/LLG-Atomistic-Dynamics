@@ -374,7 +374,7 @@ Vec VelI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int cols, do
 {
     Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
     Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);
-    return (Vec){ Em.y / Bm.z, -Em.x / Bm.z };
+    return (Vec){ Em.y / Bm.z, -Em.x / Bm.z, 0.0 };
 }
 
 Vec VelWeightedI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
@@ -386,7 +386,7 @@ Vec VelWeightedI(size_t I, Vec *current, Vec *before, Vec *after, int rows, int 
     #else
     double charge = ChargeI(I, current, rows, cols, dx, dy, pbc);
     #endif
-    return (Vec){ charge * Em.y / Bm.z, -charge * Em.x / Bm.z };
+    return (Vec){ charge * Em.y / Bm.z, -charge * Em.x / Bm.z, 0.0 };
 }
 
 #endif
