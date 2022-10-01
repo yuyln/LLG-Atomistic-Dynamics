@@ -28,4 +28,5 @@ ax.legend()
 ax.set_xlabel("$t\mathrm{(ns)}$")
 ax.set_ylabel("$v_x, v_y\mathrm{(m/s)}$")
 plt.show()
+fig.savefig("./imgs/out_vel.png", dpi=500, facecolor="white", bbox_inches='tight')
 
