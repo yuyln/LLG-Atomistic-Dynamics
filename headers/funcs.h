@@ -308,10 +308,6 @@ double ChargeInterpI(size_t I, Vec *g, int rows, int cols, double dx, double dy,
 {
     int col = I % cols;
     int row = (I - col) / cols;
-    // Vec R = PBCVec(row, col + 1, g, rows, cols, pbc),
-    //     L = PBCVec(row, col - 1, g, rows, cols, pbc),
-    //     U = PBCVec(row + 1, col, g, rows, cols, pbc),
-    //     D = PBCVec(row - 1, col, g, rows, cols, pbc);
 
     Vec v00 = PBCVec(row - 1, col - 1, g, rows, cols, pbc),
         v10 = PBCVec(row - 1, col + 1, g, rows, cols, pbc),
@@ -345,9 +341,9 @@ double ChargeInterpI(size_t I, Vec *g, int rows, int cols, double dx, double dy,
 Vec BemI(size_t I, Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     #ifdef INTERP
-    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP));
+    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP) / (dx * dy));
     #else
-    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeI(I, g, rows, cols, dx, dy, pbc));
+    return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeI(I, g, rows, cols, dx, dy, pbc) / (dx * dy));
     #endif
 }
 

@@ -33,8 +33,8 @@ int main()
     CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
                        s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
 
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
-                       3 * s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
+    // CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
+    //                    3 * s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
 
     for(size_t I = 0; I < s.g_old.param.total; ++I)
         GridNormalizeI(I, &s.g_old);
@@ -74,7 +74,7 @@ int main()
     DumpWriteGrid("./output/grid_anim_dump.bin", &s);
     DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
-    WriteSimulatorSimulation("./output/anim", &s, 0);
+    WriteSimulatorSimulation("./output/anim", &s);
     FreeSimulator(&s);
     return 0;
 }

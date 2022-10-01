@@ -441,15 +441,16 @@ double RealCurToNorm(double density, GridParam params)
     return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
 }
 
-double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int n_interp)
+double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     double ret = 0.0;
     for (size_t i = 0; i < (size_t)rows * cols; ++i)
     {
-        if (n_interp == 0)
+        #ifdef INTERP
+            ret += ChargeInterpI(i, g, rows, cols, dx, dy, pbc, INTERP);
+        #else
             ret += ChargeI(i, g, rows, cols, dx, dy, pbc);
-        else
-            ret += ChargeInterpI(i, g, rows, cols, dx, dy, pbc, n_interp);
+        #endif
     }
     return ret;
 }
@@ -542,7 +543,7 @@ void CreateBimeron(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, 
     }
 }
 
-Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int n_interp)
+Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     Vec ret = VecFromScalar(0.0);
     double total_charge = 0.0;
@@ -551,10 +552,11 @@ Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int 
         int col = I % cols;
         int row = (I - col) / cols;
         double local_charge;
-        if (n_interp == 0)
+        #ifdef INTERP
+            local_charge = ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP);
+        #else
             local_charge = ChargeI(I, g, rows, cols, dx, dy, pbc);
-        else
-            local_charge = ChargeInterpI(I, g, rows, cols, dx, dy, pbc, n_interp);
+        #endif
         total_charge += local_charge;
         ret.x += col * local_charge;
         ret.y += row * local_charge;
@@ -562,7 +564,23 @@ Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int 
     return VecScalar(ret, 1.0 / total_charge);
 }
 
-void WriteSimulatorSimulation(const char* root_path, Simulator* s, int n_interp)
+Vec TotalVelocity(Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+{
+    Vec ret = VecFromScalar(0.0);
+    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+        ret = VecAdd(ret, VelI(I, current, before, after, rows, cols, dx, dy, dt, pbc));
+    return VecScalar(ret, dx * dy);
+}
+
+Vec TotalVelocityW(Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+{
+    Vec ret = VecFromScalar(0.0);
+    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+        ret = VecAdd(ret, VelWeightedI(I, current, before, after, rows, cols, dx, dy, dt, pbc));
+    return ret;
+}
+
+void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 {
     char *out_grid_anim;
     size_t out_grid_anim_size = snprintf(NULL, 0, "%s_grid.out", root_path) + 1;
@@ -582,14 +600,22 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s, int n_interp)
     snprintf(out_charge, out_charge_size, "%s_charge.out", root_path);
     out_charge[out_charge_size - 1] = '\0';
 
+    char *out_velocity;
+    size_t out_velocity_size = snprintf(NULL, 0, "%s_velocity.out", root_path) + 1;
+    out_velocity = (char*)calloc(out_velocity_size, 1);
+    snprintf(out_velocity, out_velocity_size, "%s_velocity.out", root_path);
+    out_velocity[out_velocity_size - 1] = '\0';
+
 
     FILE* grid_anim = fopen(out_grid_anim, "w");
     FILE* charge_anim = fopen(out_cm_charge_anim, "w");
     FILE* charge_total = fopen(out_charge, "w");
+    FILE* velocity_total = fopen(out_velocity, "w");
 
     free(out_grid_anim);
     free(out_cm_charge_anim);
     free(out_charge);
+    free(out_velocity);
 
     double J_abs = fabs(s->g_old.param.exchange);
     printf("Writing charges related output\n");
@@ -600,15 +626,27 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s, int n_interp)
         if (i % s->write_cut)
             continue;
         size_t t = i / s->write_cut;
-        Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc, n_interp);
+        Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
         fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
 
-        double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc, n_interp);
+        double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
         fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge);
-    } //faster than writing the full grid
+
+        if (t == 0 || t >= (s->n_steps / s->write_cut - 2))
+            continue;
+        Vec vel = TotalVelocityW(&s->grid_out_file[t       * s->g_old.param.total], 
+                                 &s->grid_out_file[(t - 1) * s->g_old.param.total],
+                                 &s->grid_out_file[(t + 1) * s->g_old.param.total], 
+                                 s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, 
+                                 (double)s->write_cut * s->dt * HBAR / J_abs, s->g_old.param.pbc);
+                                 
+        fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vel.x / charge, vel.y / charge);
+    } 
     printf("Done writing charges related output\n");
     fclose(charge_anim);
     fclose(charge_total);
+    fclose(velocity_total);
+
     printf("Writing grid output\n");
     for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
     {
