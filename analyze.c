@@ -50,6 +50,9 @@ int main(int argc, const char** argv)
 
     Vec *grid = (Vec*)calloc(rows * cols * steps, sizeof(Vec));
     memcpy(grid, ptr, rows * cols * steps * sizeof(Vec));
+    if (buffer)
+        free(buffer);
+    fclose(bin);
 
     int y_factor = 2;
     int x_factor = 1;
@@ -109,9 +112,6 @@ int main(int argc, const char** argv)
 
     fclose(out);
 
-    if (buffer)
-        free(buffer);
-
     if (grid)
         free(grid);
 
@@ -120,7 +120,5 @@ int main(int argc, const char** argv)
     
     if (charges)
         free(charges);
-
-    fclose(bin);
     return 0;
 }
