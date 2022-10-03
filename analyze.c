@@ -99,7 +99,7 @@ int main(int argc, const char** argv)
                 }
                 vels[y_stripe * x_factor + x_stripe] = VecScalar(vels[y_stripe * x_factor + x_stripe], 1.0 / charges[y_stripe * x_factor + x_stripe]);
                 if (fabs(charges[y_stripe * x_factor + x_stripe]) < 0.3)
-                    vels = VecFromScalar(0.0);
+                    vels[y_stripe * x_factor + x_stripe] = VecFromScalar(0.0);
                 fprintf(out, "%e,%d,%d,%d,%d,%e,%e\n", (int)t * dtw, cols_per_stripe * x_stripe, cols_per_stripe * (x_stripe + 1),
                                                                     rows_per_stripe * y_stripe, rows_per_stripe * (y_stripe + 1),
                                                                     vels[y_stripe * x_factor + x_stripe].x, vels[y_stripe * x_factor + x_stripe].y);
