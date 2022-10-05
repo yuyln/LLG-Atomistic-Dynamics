@@ -186,6 +186,7 @@ Simulator InitSimulator(const char* path)
     EndParse();
 
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
+    ret.velxy_chargez = (Vec*)calloc(ret.n_steps / ret.write_cut, sizeof(Vec));
     free(local_file_dir);
     free(local_file_ani_dir);
     free(local_file_pin_dir);
@@ -213,12 +214,23 @@ Simulator InitSimulator(const char* path)
         ret.gpu.program = InitProgramSource(ret.gpu.ctx, kernel_data);
 
         char* comp_opt;
+
+        #ifndef INTERP
+
         size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
         comp_opt = (char*)calloc(comp_opt_size, 1);
         snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
         comp_opt[comp_opt_size - 1] = '\0';
-        printf("Compile OpenCL: %s\n", comp_opt);
+        #else
+        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP) + 1;
+        comp_opt = (char*)calloc(comp_opt_size, 1);
+        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP);
+        comp_opt[comp_opt_size - 1] = '\0';
+        #endif
 
+
+
+        printf("Compile OpenCL: %s\n", comp_opt);
         cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
         BuildProgramInfo(stdout, ret.gpu.program, ret.gpu.devs[ret.gpu.i_dev], err);
 
@@ -244,6 +256,9 @@ void FreeSimulator(Simulator *s)
 {
     if (s->grid_out_file)
         free(s->grid_out_file);
+    
+    if (s->velxy_chargez)
+        free(s->velxy_chargez);
     
     FreeGrid(&s->g_old);
     FreeGrid(&s->g_new);

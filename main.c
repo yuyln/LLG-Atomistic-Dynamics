@@ -69,12 +69,27 @@ int main()
     if (s.do_integrate)
         IntegrateSimulator(&s, field_tesla, cur);
 
-    DumpGridCharge("./output/end_grid_charge.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice, s.g_old.param.lattice, s.g_old.param.pbc);
-    DumpWriteChargeGrid("./output/grid_charge_anim.bin", &s);
-    DumpWriteGrid("./output/grid_anim_dump.bin", &s);
+    if (s.write_to_file)
+    {
+        DumpGridCharge("./output/end_grid_charge.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice, s.g_old.param.lattice, s.g_old.param.pbc);
+        DumpWriteChargeGrid("./output/grid_charge_anim.bin", &s);
+        DumpWriteGrid("./output/grid_anim_dump.bin", &s);
+    }
+
     DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim", &s);
+
+    // FILE *test = fopen("./output/vel_test.out", "w");
+    // for (size_t t = 0; t < s.n_steps / s.write_cut; ++t)
+    //     fprintf(test, "%e\t%e\t%e\n", (double)t * s.dt * s.write_cut * HBAR / fabs(s.g_old.param.exchange), s.velxy_chargez[t].x, s.velxy_chargez[t].y);
+    // fclose(test);
+
+    // test = fopen("./output/charge_test.out", "w");
+    // for (size_t t = 0; t < s.n_steps / s.write_cut; ++t)
+    //     fprintf(test, "%e\t%e\n", (double)t * s.dt * s.write_cut * HBAR / fabs(s.g_old.param.exchange), s.velxy_chargez[t].z);
+    // fclose(test);
+
     FreeSimulator(&s);
     return 0;
 }
