@@ -44,7 +44,7 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
@@ -339,8 +339,22 @@ void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
 }
 
-void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur)
+void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* file_name)
 {
+    FILE *fly = fopen(file_name, "wb");
+    if (s->write_on_fly && (!s->doing_relax))
+    {
+        if (!fly)
+        {
+            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
+            exit(1);
+        }
+        fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
+        fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
+        int steps = (int)(s->n_steps / s->write_cut);
+        fwrite(&steps, sizeof(int), 1, fly);
+    }
+    
     for (size_t i = 0; i < s->n_steps; ++i)
     {
         if (i % (s->n_steps / 10) == 0)
@@ -369,12 +383,32 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur)
             s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
             if (s->write_to_file)
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
+            if (s->write_on_fly && (!s->doing_relax))
+                fwrite(s->g_old.grid, sizeof(Vec) * s->g_old.param.total, 1, fly);
+
         }
     }
+
+    fclose(fly);
 }
 
-void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur)
+void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* file_name)
 {
+    FILE *fly = fopen(file_name, "wb");
+    if (s->write_on_fly && (!s->doing_relax))
+    {
+        if (!fly)
+        {
+            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
+            exit(1);
+        }
+        fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
+        fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
+        int steps = (int)(s->n_steps / s->write_cut);
+        fwrite(&steps, sizeof(int), 1, fly);
+    }
+
+
     Vec *velxy_chargez_thread = (Vec*)(calloc(s->n_cpu, sizeof(Vec)));
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -410,12 +444,29 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur)
             s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
             if (s->write_to_file)
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
+            if (s->write_on_fly && (!s->doing_relax))
+                fwrite(s->g_old.grid, sizeof(Vec) * s->g_old.param.total, 1, fly);
         }
     }
+    fclose(fly);
 }
 
-void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
+void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* file_name)
 {
+    FILE *fly = fopen(file_name, "wb");
+    if (s->write_on_fly && (!s->doing_relax))
+    {
+        if (!fly)
+        {
+            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
+            exit(1);
+        }
+        fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
+        fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
+        int steps = (int)(s->n_steps / s->write_cut);
+        fwrite(&steps, sizeof(int), 1, fly);
+    }
+
     SetKernelArg(s->gpu.kernels[2], 0, sizeof(cl_mem), &s->g_old_buffer);
     SetKernelArg(s->gpu.kernels[2], 1, sizeof(cl_mem), &s->g_new_buffer);
 
@@ -470,22 +521,28 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur)
                 ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
             }
+            if (s->write_on_fly && (!s->doing_relax))
+            {
+                ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
+                fwrite(s->g_old.grid, sizeof(Vec) * s->g_old.param.total, 1, fly);
+            }
         }
     }
     ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
     PrintCLError(stderr, clReleaseMemObject(velxy_chargez_buffer), "Could not release velxy_chargez obj");
     if (velxy_chargez)
         free(velxy_chargez);
+    fclose(fly);
 }
 
-void IntegrateSimulator(Simulator *s, Vec field, Current cur)
+void IntegrateSimulator(Simulator *s, Vec field, Current cur, const char* file_name)
 {
     if (s->use_gpu)
-        IntegrateSimulatorGPU(s, field, cur);
+        IntegrateSimulatorGPU(s, field, cur, file_name);
     else if (s->n_cpu > 1)
-        IntegrateSimulatorMulti(s, field, cur);
+        IntegrateSimulatorMulti(s, field, cur, file_name);
     else
-        IntegrateSimulatorSingle(s, field, cur);
+        IntegrateSimulatorSingle(s, field, cur, file_name);
 }
 
 double NormCurToReal(double density, GridParam params)

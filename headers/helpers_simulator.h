@@ -64,6 +64,7 @@ Simulator InitSimulator(const char* path)
     ret.do_relax = (bool)GetValueInt("RELAX", 10);
     ret.do_integrate = (bool)GetValueInt("INTEGRATE", 10);
     ret.write_human = (bool)GetValueInt("WRITE_HUMAN", 10);
+    ret.write_on_fly = (bool)GetValueInt("WRITE_ON_FLY", 10);
 
     if (ret.do_gsa)
     {

@@ -50,7 +50,7 @@ int main()
         cur = (Current){0};
         printf("Relaxing\n");
         s.doing_relax = true;
-        IntegrateSimulator(&s, field_tesla, cur);
+        IntegrateSimulator(&s, field_tesla, cur, "relax");
         s.doing_relax = false;
         printf("Done relaxing\n");
     }
@@ -61,13 +61,13 @@ int main()
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 0.2e12;//20.0e9;
+    J = 0.2e12;
     J = RealCurToNorm(J, s.g_old.param);
     printf("%e\n", J);
     cur = (Current){VecFrom(0.0, -J, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
 
     if (s.do_integrate)
-        IntegrateSimulator(&s, field_tesla, cur);
+        IntegrateSimulator(&s, field_tesla, cur, "./output/integration_fly.bin");
 
     if (s.write_to_file)
     {
@@ -79,17 +79,6 @@ int main()
     DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim", &s);
-
-    // FILE *test = fopen("./output/vel_test.out", "w");
-    // for (size_t t = 0; t < s.n_steps / s.write_cut; ++t)
-    //     fprintf(test, "%e\t%e\t%e\n", (double)t * s.dt * s.write_cut * HBAR / fabs(s.g_old.param.exchange), s.velxy_chargez[t].x, s.velxy_chargez[t].y);
-    // fclose(test);
-
-    // test = fopen("./output/charge_test.out", "w");
-    // for (size_t t = 0; t < s.n_steps / s.write_cut; ++t)
-    //     fprintf(test, "%e\t%e\n", (double)t * s.dt * s.write_cut * HBAR / fabs(s.g_old.param.exchange), s.velxy_chargez[t].z);
-    // fclose(test);
-
     FreeSimulator(&s);
     return 0;
 }

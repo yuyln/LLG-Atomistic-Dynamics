@@ -23,7 +23,7 @@ except:
     row_pin = []
     col_pin = []
 
-file = open("./output/grid_anim_dump.bin", "rb")
+file = open("./output/integration_fly.bin", "rb")
 raw_data = file.read()
 file.close()
 nrow_ncol_steps = array.array("i")
