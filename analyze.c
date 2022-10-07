@@ -30,7 +30,7 @@ int main(int argc, const char** argv)
 
     int rows, cols, steps;
     fseek(bin, 0, SEEK_END);
-    unsigned int file_size = ftell(bin);
+    size_t file_size = ftell(bin);
     fseek(bin, 0, SEEK_SET);
 
     char* buffer = (char*)malloc(file_size);
@@ -46,12 +46,9 @@ int main(int argc, const char** argv)
     steps = *((int*)ptr);
     ptr += sizeof(int);
 
-    printf("Rows: %d Cols: %d Steps: %d\n", rows, cols, steps);
+    printf("Size: %zu Rows: %d Cols: %d Steps: %d\n", file_size, rows, cols, steps);
 
-    Vec *grid = (Vec*)calloc(rows * cols * steps, sizeof(Vec));
-    memcpy(grid, ptr, rows * cols * steps * sizeof(Vec));
-    if (buffer)
-        free(buffer);
+    Vec *grid = (Vec*)ptr;
     fclose(bin);
 
     int y_factor = 2;
@@ -61,7 +58,6 @@ int main(int argc, const char** argv)
 
     Vec *vels = (Vec*)calloc(y_factor * x_factor, sizeof(Vec));
     double *charges = (double*)calloc(y_factor * x_factor, sizeof(double));
-
 
     FILE *out = fopen("./output/out_vel_analyze.out", "w");
     if (!out)
@@ -112,13 +108,13 @@ int main(int argc, const char** argv)
 
     fclose(out);
 
-    if (grid)
-        free(grid);
-
     if (vels)
         free(vels);
     
     if (charges)
         free(charges);
+
+    if (buffer)
+        free(buffer);
     return 0;
 }
