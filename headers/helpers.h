@@ -358,7 +358,10 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
     for (size_t i = 0; i < s->n_steps; ++i)
     {
         if (i % (s->n_steps / 10) == 0)
+        {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+            fflush(stdout);
+        }
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         size_t t = i / s->write_cut;
         for (size_t I = 0; I < s->g_old.param.total; ++I)
@@ -414,7 +417,10 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
     {
         memset(velxy_chargez_thread, 0, sizeof(Vec) * s->n_cpu);
         if (i % (s->n_steps / 10) == 0)
+        {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+            fflush(stdout);
+        }
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         size_t t = i / s->write_cut;
         #pragma omp parallel for num_threads(s->n_cpu)
@@ -491,7 +497,10 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     for (size_t i = 0; i < s->n_steps; ++i)
     {
         if (i % (s->n_steps / 10) == 0)
+        {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
+            fflush(stdout);
+        }
 
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         SetKernelArg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
