@@ -7,7 +7,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
 
-reduce_fac = 2
+reduce_fac = 1
 data = pd.read_table("./output/end.out", header=None)
 #data = pd.read_table("./input/starting.in", header=None)
 try:

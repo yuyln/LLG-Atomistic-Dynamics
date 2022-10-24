@@ -74,7 +74,7 @@ kernel void TermalStep(global Grid* g_out, const global Grid* g_old, const doubl
     if (tyche_double(state) < 0.5)
         delta = -delta;
     
-    g_out->grid[I].x = g_old->grid[I].x + delta;
+    g_out->grid[I].y = g_old->grid[I].y + delta;
 
     R = tyche_double(state);
     delta = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);

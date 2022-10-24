@@ -7,25 +7,25 @@ DT: 0.01
 STEPS: 50000
 WRITE: 0
 WRITE_HUMAN: 0
-WRITE_ON_FLY: 1
+WRITE_ON_FLY: 0
 CUT: 250
 
-GSA: 0
+GSA: 1
     qA: 2.8
-    qV: 2.2
-    qT: 2.6
+    qV: 2.6
+    qT: 2.2
     OUTER: 10
-    INNER: 700000
+    INNER: 70000
     PRINTPARAM: 10
-    STARTTEMP: 5.0
+    STARTTEMP: 10.0
 
 RELAX: 0
-INTEGRATE: 1
+INTEGRATE: 0
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
     ROWS: 32
-    COLS: 72
+    COLS: 32
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in

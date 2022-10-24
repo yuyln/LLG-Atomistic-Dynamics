@@ -150,7 +150,7 @@ void GSAGPU(GSAParam param, Grid* g_in, Grid* g_out, Vec field, GPU *gpu)
 
 
     size_t global = g_in->param.total,
-           local = gcd(global, 512);
+           local = gcd(global, 32);
 
     SetKernelArg(gpu->kernels[0], 0, sizeof(cl_mem), &g_out_buffer);
     SetKernelArg(gpu->kernels[0], 1, sizeof(cl_mem), &g_old_buffer);
