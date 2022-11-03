@@ -1,4 +1,4 @@
-from turtle import width
+from matplotlib.colors import LinearSegmentedColormap
 from Plooter import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -53,7 +53,10 @@ fig = plt.figure()
 fig.set_size_inches(8 / r, 8 * 0.73 / 0.82)
 ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 
-img = ax.imshow(mz.reshape([nrows, ncols]), cmap="coolwarm", vmin=-1.0, vmax=1.0, origin="lower")
+colors = ["#037fff", "white", "#f40501"]
+cmap1 = LinearSegmentedColormap.from_list("mcmp", colors)
+
+img = ax.imshow(mz.reshape([nrows, ncols]), cmap=cmap1, vmin=-1.0, vmax=1.0, origin="lower")
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)

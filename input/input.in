@@ -15,9 +15,9 @@ GSA: 1
     qV: 2.6
     qT: 2.2
     OUTER: 10
-    INNER: 70000
+    INNER: 100000
     PRINTPARAM: 10
-    STARTTEMP: 10.0
+    STARTTEMP: 2.0
 
 RELAX: 0
 INTEGRATE: 0

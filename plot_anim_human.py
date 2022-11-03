@@ -6,7 +6,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.animation as anim
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib import cm
-from matplotlib.colors import LinearSegmentedColormap
 
 reduce_fac = 1
 
@@ -69,7 +68,10 @@ fig = plt.figure()
 fig.set_size_inches(8 / r, 8 * 0.73 / 0.82)
 ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 
-img = ax.imshow(mz.reshape([cols, -1]).T, cmap="coolwarm", vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation='none', aspect='auto')
+colors = ["#037fff", "white", "#f40501"]
+cmap1 = LinearSegmentedColormap.from_list("mcmp", colors)
+
+img = ax.imshow(mz.reshape([cols, -1]).T, cmap=cmap1, vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation='none', aspect='auto')
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)

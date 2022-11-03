@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib import cm
 
 reduce_fac = 1
 data = pd.read_table("./output/end.out", header=None)
@@ -55,7 +54,7 @@ x = np.array(x)
 y = np.array(y)
 z = np.array(z)
 
-colors = ["gold", "white", "green"]
+colors = ["#037fff", "white", "#f40501"]
 cmap1 = LinearSegmentedColormap.from_list("mcmp", colors)
 
 r = rows / cols
@@ -65,7 +64,7 @@ fig.set_size_inches(8 / r, 8 * 0.73 / 0.82)
 ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 
 
-im = ax.imshow(mz, cmap="coolwarm", vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="none", aspect='auto')
+im = ax.imshow(mz, cmap=cmap1, vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="none", aspect='auto')
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(im, cax=cax1)
