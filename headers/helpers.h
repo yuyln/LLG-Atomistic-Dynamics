@@ -711,11 +711,11 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
     out_grid_anim[out_grid_anim_size - 1] = '\0';
 
-    // char *out_cm_charge_anim;
-    // size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
-    // out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
-    // snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
-    // out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
+    char *out_cm_charge_anim;
+    size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
+    out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
+    snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
+    out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
 
     char *out_charge;
     size_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
@@ -730,12 +730,12 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     out_velocity[out_velocity_size - 1] = '\0';
 
 
-    // FILE* charge_anim = fopen(out_cm_charge_anim, "w");
+    FILE* charge_anim = fopen(out_cm_charge_anim, "w");
     FILE* charge_total = fopen(out_charge, "w");
     FILE* velocity_total = fopen(out_velocity, "w");
 
     free(out_grid_anim);
-    // free(out_cm_charge_anim);
+    free(out_cm_charge_anim);
     free(out_charge);
     free(out_velocity);
 
@@ -752,8 +752,8 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].x, s->velxy_chargez[t].y);
         fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].z);
 
-        // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
-        // fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
+        Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+        fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
 
 
         // double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
@@ -770,7 +770,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         // fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vel.x / charge, vel.y / charge);
     } 
     printf("Done writing charges related output\n");
-    // fclose(charge_anim);
+    fclose(charge_anim);
     fclose(charge_total);
     fclose(velocity_total);
 

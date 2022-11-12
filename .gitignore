@@ -8,5 +8,6 @@ videos
 *.stackdump
 *.out
 main
+relax
 __pycache__
 prepare

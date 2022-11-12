@@ -27,11 +27,11 @@ int main()
         GSA(s.gsap, &s.g_old, &s.g_new, field_tesla);
     }
 
-    // for(size_t I = 0; I < s.g_old.param.total; ++I)
-    //     s.g_old.grid[I] = VecNormalize(field_joule);
+    for(size_t I = 0; I < s.g_old.param.total; ++I)
+        s.g_old.grid[I] = VecNormalize(field_joule);
 
-    // CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
-    //                    s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
+    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
+                       s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
 
     // CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
     //                    3 * s.g_old.param.cols / 4, s.g_old.param.rows / 2, 3, 1.0, 1.0);
@@ -71,8 +71,8 @@ int main()
 
     if (s.write_to_file)
     {
-        DumpGridCharge("./output/end_grid_charge.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice, s.g_old.param.lattice, s.g_old.param.pbc);
-        DumpWriteChargeGrid("./output/grid_charge_anim.bin", &s);
+        // DumpGridCharge("./output/end_grid_charge.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice, s.g_old.param.lattice, s.g_old.param.pbc);
+        // DumpWriteChargeGrid("./output/grid_charge_anim.bin", &s);
         DumpWriteGrid("./output/grid_anim_dump.bin", &s);
     }
 

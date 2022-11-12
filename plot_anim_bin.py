@@ -25,6 +25,7 @@ except:
     col_pin = []
 
 file = open("./output/integration_fly.bin", "rb")
+file = open("./output/grid_anim_dump.bin", "rb")
 raw_data = file.read()
 file.close()
 nrow_ncol_steps = array.array("i")
@@ -64,8 +65,8 @@ def GetBatch(index:int):
     raw_vecs.frombytes(raw_data[12 + index * total * vecsz: 12 + (index + 1) * total * vecsz])
     M = np.array(raw_vecs)
     mx_, my_, mz_ = M[0::3], M[1::3], M[2::3]
-    mx__ = mx_#[index * total:(index + 1) * total]
-    my__ = my_#[index * total:(index + 1) * total]
+    mx__ = mx_
+    my__ = my_
 
     mx = mx__[x_in]
     mx = mx[y_in]
@@ -73,7 +74,7 @@ def GetBatch(index:int):
     my = my__[x_in]
     my = my[y_in]
 
-    mz = mz_#[index * total:(index + 1) * total]
+    mz = mz_
     return mx * facx, my * facy, mz
 
 mx, my, mz = GetBatch(0)
@@ -91,9 +92,9 @@ img = ax.imshow(mz.reshape([nrows, ncols]), cmap=cmap1, vmin=-1.0, vmax=1.0, ori
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)
-bar.set_label(fr"$m_z$", size=30)
+bar.set_label(fr"$m_z$", size=28)
 bar.set_ticks([-1, 0, 1])
-bar.ax.tick_params(labelsize=20)
+bar.ax.tick_params(labelsize=22)
 
 nx = 4
 hx = ncols / nx
@@ -101,25 +102,23 @@ ny = 4
 hy = nrows / ny
 ax.set_xticks([i * hx for i in range(nx + 1)])
 ax.set_yticks([i * hy for i in range(ny + 1)])
-ax.tick_params(axis='both', labelsize=20)
-ax.set_xlabel("$x(a)$", size=30)
-ax.set_ylabel("$y(a)$", size=30)
+ax.tick_params(axis='both', labelsize=22)
+ax.set_xlabel("$x(a)$", size=28)
+ax.set_ylabel("$y(a)$", size=28)
+
+vecs = ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', pivot="mid", scale=1, width=0.002)
 
 
-# vecs = ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', pivot="mid", scale=1, width=0.002)
-
-
-an = ax.scatter(col_ani, row_ani, color="green", s=20.0)
-pi = ax.scatter(col_pin, row_pin, color="yellow", s=20.0)
+an = ax.scatter(col_ani, row_ani, color="green", s=10.0)
+pi = ax.scatter(col_pin, row_pin, color="yellow", s=10.0)
 ax.set_xlim([-0.5, ncols - 0.5])
 ax.set_ylim([-0.5, nrows - 0.5])
-# plt.show()
 
 def animate(i):
     mx, my, mz = GetBatch(i)
     mz = mz.reshape([nrows, ncols])
     img.set_array(mz)
-    # vecs.set_UVC(mx, my)
+    vecs.set_UVC(mx, my)
 
 ani = anim.FuncAnimation(fig, animate, frames=frames)
 ani.save("./videos/out_bin.mp4", fps=60, dpi=250)
