@@ -75,21 +75,21 @@ img = ax.imshow(mz.reshape([cols, -1]).T, cmap=cmap1, vmin=-1, vmax=1, extent=[0
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)
-bar.set_label(fr"$m_z$", size=30)
+bar.set_label(fr"$m_z$", size=28)
 bar.set_ticks([-1, 0, 1])
-bar.ax.tick_params(labelsize=20)
+bar.ax.tick_params(labelsize=22)
 vecs = ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', scale=np.sqrt(1) / reduce_fac, pivot="mid")
-an = ax.scatter(col_ani, row_ani, color="green", s=50.0)
-pi = ax.scatter(col_pin, row_pin, color="yellow", s=50.0)
+an = ax.scatter(col_ani, row_ani, color="green", s=10.0)
+pi = ax.scatter(col_pin, row_pin, color="yellow", s=10.0)
 nx = 4
 hx = cols / nx
 ny = 4
 hy = rows / ny
 ax.set_xticks([i * hx for i in range(nx + 1)])
 ax.set_yticks([i * hy for i in range(ny + 1)])
-ax.tick_params(axis='both', labelsize=20)
-ax.set_xlabel("$x(a)$", size=30)
-ax.set_ylabel("$y(a)$", size=30)
+ax.tick_params(axis='both', labelsize=22)
+ax.set_xlabel("$x(a)$", size=28)
+ax.set_ylabel("$y(a)$", size=28)
 ax.set_xlim([0, cols])
 ax.set_ylim([0, rows])
 
