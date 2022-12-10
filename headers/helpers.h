@@ -53,6 +53,18 @@ typedef struct Simulator
     Vec* grid_out_file, *velxy_chargez;
 } Simulator;
 
+[[nodiscard]] FILE* mfopen(const char* name, const char* mode, int exit_)
+{
+    FILE *f = fopen(name, mode);
+    if (!f)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", name, strerror(errno));
+        if (exit_) exit(exit_);
+    }
+    return f;
+}
+
+
 double myrandom()
 {
     return (double)rand() / (double)RAND_MAX;
@@ -116,13 +128,7 @@ Grid InitNullGrid()
 
 int FindRowsFile(const char *path)
 {
-    FILE* f = fopen(path, "rb");
-
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
-        exit(1);
-    }
+    FILE* f = mfopen(path, "rb", 1);
 
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
@@ -241,13 +247,7 @@ void PrintVecGrid(FILE* f, Vec* v, int rows, int cols)
 
 void PrintVecGridToFile(const char* path, Vec* v, int rows, int cols)
 {
-    FILE *f = fopen(path, "wb");
-
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
-        exit(1);
-    }
+    FILE *f = mfopen(path, "wb", 1);
 
     PrintVecGrid(f, v, rows, cols);
 
@@ -342,14 +342,9 @@ void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
 
 void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* file_name)
 {
-    FILE *fly = fopen(file_name, "wb");
+    FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
-        if (!fly)
-        {
-            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
-            exit(1);
-        }
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         int steps = (int)(s->n_steps / s->write_cut);
@@ -398,14 +393,9 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
 
 void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* file_name)
 {
-    FILE *fly = fopen(file_name, "wb");
+    FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
-        if (!fly)
-        {
-            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
-            exit(1);
-        }
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         int steps = (int)(s->n_steps / s->write_cut);
@@ -460,14 +450,9 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
 
 void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* file_name)
 {
-    FILE *fly = fopen(file_name, "wb");
+    FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
-        if (!fly)
-        {
-            fprintf(stderr, "Could not open file %s: %s\n", file_name, strerror(errno));
-            exit(1);
-        }
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         int steps = (int)(s->n_steps / s->write_cut);
@@ -731,29 +716,10 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     out_velocity[out_velocity_size - 1] = '\0';
 
 
-    FILE* charge_anim = fopen(out_cm_charge_anim, "w");
-    if (!charge_anim)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", out_cm_charge_anim);
-    }
-
-    FILE* charge_total = fopen(out_charge, "w");
-    if (!charge_total)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", out_charge);
-    }
-
-    FILE* velocity_total = fopen(out_velocity, "w");
-    if (!velocity_total)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", out_velocity);
-    }
-
-    FILE* grid_anim = fopen(out_grid_anim, "w");
-    if (!grid_anim)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", out_grid_anim);
-    }
+    FILE* charge_anim = mfopen(out_cm_charge_anim, "w", 0);
+    FILE* charge_total = mfopen(out_charge, "w", 0);
+    FILE* velocity_total = mfopen(out_velocity, "w", 0);
+    FILE* grid_anim = mfopen(out_grid_anim, "w", 0);
 
     free(out_grid_anim);
     free(out_cm_charge_anim);
@@ -817,12 +783,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
 void DumpGrid(const char* file_path, Vec* g, int rows, int cols)
 {
-    FILE *f = fopen(file_path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
-        exit(1);
-    }
+    FILE *f = mfopen(file_path, "w", 1);
     fwrite(&rows, sizeof(int), 1, f);
     fwrite(&cols, sizeof(int), 1, f);
     fwrite(g, sizeof(Vec) * rows * cols, 1, f);
@@ -831,12 +792,7 @@ void DumpGrid(const char* file_path, Vec* g, int rows, int cols)
 
 void DumpGridCharge(const char* file_path, Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
-    FILE *f = fopen(file_path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
-        exit(1);
-    }
+    FILE *f = mfopen(file_path, "w", 1);
     double* charge = (double*)calloc(rows * cols, sizeof(double));
     for (size_t I = 0; I < (size_t)(rows * cols); ++I)
         charge[I] = ChargeI(I, g, rows, cols, dx, dy, pbc);

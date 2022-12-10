@@ -298,24 +298,14 @@ void ExportSimulator(Simulator* s, FILE* file)
 
 void ExportSimulatorFile(Simulator* s, const char* path)
 {
-    FILE *file = fopen(path, "w");
-    if (!file)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", path, strerror(errno));
-        exit(1);
-    }
+    FILE *file = mfopen(path, "w", 1);
     ExportSimulator(s, file);
     fclose(file);
 }
 
 void DumpWriteGrid(const char* file_path, Simulator* s)
 {
-    FILE *f = fopen(file_path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
-        exit(1);
-    }
+    FILE *f = mfopen(file_path, "w", 1);
 
     fwrite(&s->g_old.param.rows, sizeof(s->g_old.param.rows), 1, f);
     fwrite(&s->g_old.param.cols, sizeof(s->g_old.param.cols), 1, f);
@@ -331,12 +321,7 @@ void DumpWriteGrid(const char* file_path, Simulator* s)
 
 void DumpWriteChargeGrid(const char* file_path, Simulator *s)
 {
-    FILE *f = fopen(file_path, "w");
-    if (!f)
-    {
-        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
-        exit(1);
-    }
+    FILE *f = mfopen(file_path, "w", 1);
 
     int rows = s->g_old.param.rows;
     int cols = s->g_old.param.cols;
