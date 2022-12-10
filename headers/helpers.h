@@ -22,6 +22,12 @@
 #define PROFILER_IMPLEMENTATION
 #include <profiler.h>
 
+#if __STDC_VERSION__ > 201603L
+#define mynodiscard [[nodiscard]]
+#else
+#define mynodiscard 
+#endif
+
 typedef struct
 {
     double qA, qT, qV, T0;
@@ -53,7 +59,7 @@ typedef struct Simulator
     Vec* grid_out_file, *velxy_chargez;
 } Simulator;
 
-[[nodiscard]] FILE* mfopen(const char* name, const char* mode, int exit_)
+FILE* mfopen(const char* name, const char* mode, int exit_)
 {
     FILE *f = fopen(name, mode);
     if (!f)
