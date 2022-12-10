@@ -195,6 +195,7 @@ Grid InitGridFromFile(const char* path)
 
 Grid InitGridRandom(int rows, int cols)
 {
+    srand(time(NULL));
     Grid ret = InitNullGrid();
     ret.param.rows = rows;
     ret.param.cols = cols;
@@ -731,8 +732,28 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
 
     FILE* charge_anim = fopen(out_cm_charge_anim, "w");
+    if (!charge_anim)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", out_cm_charge_anim);
+    }
+
     FILE* charge_total = fopen(out_charge, "w");
+    if (!charge_total)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", out_charge);
+    }
+
     FILE* velocity_total = fopen(out_velocity, "w");
+    if (!velocity_total)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", out_velocity);
+    }
+
+    FILE* grid_anim = fopen(out_grid_anim, "w");
+    if (!grid_anim)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", out_grid_anim);
+    }
 
     free(out_grid_anim);
     free(out_cm_charge_anim);
@@ -752,8 +773,8 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].x, s->velxy_chargez[t].y);
         fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].z);
 
-        Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
-        fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
+        // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+        // fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
 
 
         // double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
@@ -778,7 +799,6 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         return;
 
     printf("Writing grid output\n");
-    FILE* grid_anim = fopen(out_grid_anim, "w");
     for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
     {
         if (i % (s->n_steps / 10) == 0)

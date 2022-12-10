@@ -64,7 +64,7 @@ fig.set_size_inches(8 / r, 8 * 0.73 / 0.82)
 ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 
 
-im = ax.imshow(mz, cmap=cmap1, vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="none", aspect='auto')
+im = ax.imshow(mz, cmap=cmap1, vmin=-1, vmax=1, extent=[0, cols, 0, rows], interpolation="bicubic", aspect='auto')
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(im, cax=cax1)
@@ -90,3 +90,4 @@ pi = ax.scatter(col_pin, row_pin, color="yellow", s=20.0)
 
 plt.show()
 fig.savefig("./imgs/out.png", dpi=500, facecolor="white", bbox_inches='tight')
+fig.savefig("./imgs/out.svg", facecolor="white", bbox_inches='tight')
