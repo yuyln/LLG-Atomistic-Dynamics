@@ -7,6 +7,10 @@ import numpy as np
 import array
 import pandas as pd
 REDUCE_FACTOR = 1
+PLOT_ARROWS = False
+PLOT_ANI = False
+PLOT_PIN = False
+INTERPOLATION = "bicubic"
 
 try:
     ani = pd.read_table("./input/anisotropy.in", header=None, delimiter=" ", skiprows=2)
@@ -25,7 +29,7 @@ except:
     col_pin = []
 
 file = open("./output/integration_fly.bin", "rb")
-file = open("./output/grid_anim_dump.bin", "rb")
+# file = open("./output/grid_anim_dump.bin", "rb")
 raw_data = file.read()
 file.close()
 nrow_ncol_steps = array.array("i")
@@ -88,7 +92,7 @@ ax = fig.add_axes([0.13, 0.15, 0.73, 0.82])
 colors = ["#037fff", "white", "#f40501"]
 cmap1 = LinearSegmentedColormap.from_list("mcmp", colors)
 
-img = ax.imshow(mz.reshape([nrows, ncols]), cmap=cmap1, vmin=-1.0, vmax=1.0, origin="lower")
+img = ax.imshow(mz.reshape([nrows, ncols]), cmap=cmap1, vmin=-1.0, vmax=1.0, origin="lower", interpolation=INTERPOLATION)
 divider = make_axes_locatable(ax)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)
@@ -106,11 +110,13 @@ ax.tick_params(axis='both', labelsize=22)
 ax.set_xlabel("$x(a)$", size=28)
 ax.set_ylabel("$y(a)$", size=28)
 
-vecs = ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', pivot="mid", scale=1, width=0.002)
+if PLOT_ARROWS:
+    global vecs
+    vecs = ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', pivot="mid", scale=1, width=0.002)
 
 
-an = ax.scatter(col_ani, row_ani, color="green", s=10.0)
-pi = ax.scatter(col_pin, row_pin, color="yellow", s=10.0)
+if PLOT_ANI: an = ax.scatter(col_ani, row_ani, color="green", s=10.0)
+if PLOT_PIN: pi = ax.scatter(col_pin, row_pin, color="yellow", s=10.0)
 ax.set_xlim([-0.5, ncols - 0.5])
 ax.set_ylim([-0.5, nrows - 0.5])
 
@@ -118,7 +124,7 @@ def animate(i):
     mx, my, mz = GetBatch(i)
     mz = mz.reshape([nrows, ncols])
     img.set_array(mz)
-    vecs.set_UVC(mx, my)
+    if PLOT_ARROWS: vecs.set_UVC(mx, my)
 
 ani = anim.FuncAnimation(fig, animate, frames=frames)
 ani.save("./videos/out_bin.mp4", fps=60, dpi=250)

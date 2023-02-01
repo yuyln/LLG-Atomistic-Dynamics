@@ -5,7 +5,7 @@ import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib import cm
-
+PLOT_ARROWS = False
 reduce_fac = 1
 data = pd.read_table("./output/end.out", header=None)
 #data = pd.read_table("./input/starting.in", header=None)
@@ -24,7 +24,6 @@ try:
 except:
     row_pin = []
     col_pin = []
-
 rows = len(data[0])
 cols = int(len(data.T[0]) / 3)
 
@@ -83,7 +82,8 @@ ax.tick_params(axis='both', labelsize=20)
 ax.set_xlabel("$x(a)$", size=30)
 ax.set_ylabel("$y(a)$", size=30)
 
-ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', scale=np.sqrt(1) / reduce_fac, pivot="mid")
+if PLOT_ARROWS:
+    ax.quiver(x, y, mx, my, angles='xy', scale_units='xy', scale=np.sqrt(0.5) / reduce_fac, pivot="mid")
 
 an = ax.scatter(col_ani, row_ani, color="green", s=20.0)
 pi = ax.scatter(col_pin, row_pin, color="yellow", s=20.0)

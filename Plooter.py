@@ -10,8 +10,11 @@ import matplotlib
 
 
 def FixPlot(lx, ly):
-    rcParams['font.family'] = 'sans-serif'
-    rcParams['font.sans-serif'] = ['Arial']
+    rcParams['font.family'] = 'serif'
+    rcParams['font.serif'] = ['Computer Modern']
+    rcParams['text.usetex'] = True
+    # rcParams['font.family'] = 'sans-serif'
+    # rcParams['font.sans-serif'] = ['Arial']
     rcParams['font.size'] = 40
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 10.0

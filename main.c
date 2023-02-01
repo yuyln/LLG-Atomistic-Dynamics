@@ -12,6 +12,12 @@ int main()
     
     Vec field_joule = VecFrom(0.0, 0.0, -0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
+    for (size_t i = 0; i < s.g_old.param.total; ++i)
+        s.g_old.grid[i] = VecNormalize(field_joule);
+
+    CreateSkyrmionBloch(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols,
+                        s.g_old.param.cols / 2, s.g_old.param.rows / 2,
+                        6, 1, 1);
 
     double J; Current cur;
 
@@ -38,7 +44,7 @@ int main()
         cur = (Current){0};
         printf("Relaxing\n");
         s.doing_relax = true;
-        IntegrateSimulator(&s, field_tesla, cur, "relax");
+        IntegrateSimulator(&s, field_tesla, cur, "./output/did_relax");
         s.doing_relax = false;
         printf("Done relaxing\n");
     }
@@ -49,9 +55,9 @@ int main()
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 0.2e12;
-    J = RealCurToNorm(J, s.g_old.param);
-    printf("%e\n", J);
+    J = 1.234147e-02;
+    // J = RealCurToNorm(0.150e12, s.g_old.param);
+    printf("Norm: %e Real: %e\n", J, NormCurToReal(J, s.g_old.param));
     cur = (Current){VecFrom(0.0, -J, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
 
     if (s.do_integrate)

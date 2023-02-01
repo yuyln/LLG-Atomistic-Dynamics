@@ -11,4 +11,14 @@
 #define MU_0 1.25663706212e-6 // N/A^2
 #define KB 1.380649e-23 // J/K
 
+#ifndef OPENCLCOMP
+#define GLOBAL
+#define LOCAL
+#define PRIVATE
+#else
+#define GLOBAL global
+#define LOCAL local
+#define PRIVATE private
+#endif
+
 #endif
