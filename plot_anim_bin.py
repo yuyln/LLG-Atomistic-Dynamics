@@ -7,10 +7,10 @@ import numpy as np
 import array
 import pandas as pd
 REDUCE_FACTOR = 1
-PLOT_ARROWS = False
+PLOT_ARROWS = True
 PLOT_ANI = False
 PLOT_PIN = False
-INTERPOLATION = "bicubic"
+INTERPOLATION = "nearest"
 
 try:
     ani = pd.read_table("./input/anisotropy.in", header=None, delimiter=" ", skiprows=2)

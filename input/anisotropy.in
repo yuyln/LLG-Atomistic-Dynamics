@@ -1,2 +1,2 @@
-Format: row col dir_x dir_y dir_z K_1
+Format: row col dir_x dir_y dir_z K_1 (units of J)
 Data:

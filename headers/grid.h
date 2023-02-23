@@ -48,6 +48,7 @@ typedef struct
     size_t total;
     double exchange, dm, lattice, cubic_ani;
     double mu_s, lande, avg_spin, alpha, gamma;
+    double total_time; //should not be a grid param, however.........
     DM_TYPE dm_type;
     PBC pbc;
 } GridParam;

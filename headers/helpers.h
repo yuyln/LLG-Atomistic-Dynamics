@@ -265,7 +265,7 @@ void GetGridParam(const char* path, GridParam* g)
     StartParse(path);
 
     g->exchange = GetValueDouble("EXCHANGE");
-    g->dm = GetValueDouble("DMI");
+    g->dm = GetValueDouble("DMI") * g->exchange;
     g->lattice = GetValueDouble("LATTICE");
     g->cubic_ani = GetValueDouble("CUBIC");
     g->lande = GetValueDouble("LANDE");

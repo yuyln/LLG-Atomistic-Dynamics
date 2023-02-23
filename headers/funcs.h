@@ -3,24 +3,14 @@
 
 #include <grid.h>
 #include <constants.h>
-#define TIMEI 1000.0
-#define TIMEZ 4000.0
 
-inline Current GenCurI(size_t I, GLOBAL Grid *g, Current base, double norm_time)
+inline Current GenCurI(size_t I, GLOBAL Grid* g, Current base, double norm_time)
 {
     (void)I; (void)g; (void)norm_time;
-    /*if (norm_time <= TIMEI)
-        base.j.y *= norm_time / TIMEI;
-    else if (norm_time > TIMEI && norm_time <= TIMEZ)
-        base.j.y *= -norm_time / (TIMEZ - TIMEI) - TIMEZ / (TIMEI - TIMEZ);
-    else
-        base.j.y = 0.0;*/
-    // base.j.y *= sin(2.0 * M_PI / 500.0 * norm_time);
-    // base.j.y *= base.j.y < 0;
     return base;
 }
 
-inline Vec GenFieldI(size_t I, GLOBAL Grid *g, Vec base, double norm_time)
+inline Vec GenFieldI(size_t I, GLOBAL Grid* g, Vec base, double norm_time)
 {
     (void)I; (void)g; (void)norm_time;
     return base;
@@ -46,7 +36,7 @@ Vec BilinearInterp(Vec v00, Vec v10, Vec v11, Vec v01, double u, double v)
     return ret;
 }
 
-Vec PBCVec(int row, int col, const GLOBAL Vec *v, int rows, int cols, PBC pbc)
+Vec PBCVec(int row, int col, const GLOBAL Vec* v, int rows, int cols, PBC pbc)
 {
     switch (pbc.pbc_type)
     {
@@ -104,7 +94,7 @@ Vec DMVec(int drow, int dcol, DM_TYPE dm_type, double dm)
     return VecFromScalar(0.0);
 }
 
-double HamiltonianI(size_t I, GLOBAL Grid *g, Vec field)
+double HamiltonianI(size_t I, GLOBAL Grid* g, Vec field)
 {
     int col = I % g->param.cols;
     int row = (I - col) / g->param.cols;
@@ -140,7 +130,7 @@ double HamiltonianI(size_t I, GLOBAL Grid *g, Vec field)
     return out;
 }
 
-double Hamiltonian(GLOBAL Grid *g, Vec field)
+double Hamiltonian(GLOBAL Grid* g, Vec field)
 {
     double ret = 0.0;
     for (size_t I = 0; I < g->param.total; ++I)
@@ -148,7 +138,7 @@ double Hamiltonian(GLOBAL Grid *g, Vec field)
     return ret;
 }
 
-void GridNormalizeI(size_t I, GLOBAL Grid *g)
+void GridNormalizeI(size_t I, GLOBAL Grid* g)
 {
     if (g->pinning[I].fixed)
         g->grid[I] = g->pinning[I].dir;
@@ -156,7 +146,7 @@ void GridNormalizeI(size_t I, GLOBAL Grid *g)
         g->grid[I] = VecNormalize(g->grid[I]);
 }
 
-Vec VecDotGradVecI(size_t I, Vec v, GLOBAL Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+Vec VecDotGradVecI(size_t I, Vec v, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     Vec ret;
     int col = I % cols;
@@ -178,7 +168,7 @@ Vec VecDotGradVecI(size_t I, Vec v, GLOBAL Vec *g, int rows, int cols, double dx
     return ret;
 }
 
-Vec dHdSI(size_t I, Vec C, GLOBAL Grid *g, Vec field, double norm_time)
+Vec dHdSI(size_t I, Vec C, GLOBAL Grid* g, Vec field, double norm_time)
 {
     int col = I % g->param.cols;
     int row = (I - col) / g->param.cols;
@@ -218,7 +208,7 @@ Vec dHdSI(size_t I, Vec C, GLOBAL Grid *g, Vec field, double norm_time)
     return ret;
 }
 
-Vec dSdTauI(size_t I, GLOBAL Grid *g, Vec field, Vec dS, Current cur, double norm_time)
+Vec dSdTauI(size_t I, GLOBAL Grid* g, Vec field, Vec dS, Current cur, double norm_time)
 {
     Vec S = VecAdd(g->grid[I], dS);
     Vec Heff = VecScalar(dHdSI(I, S, g, field, norm_time), -1.0 / g->param.mu_s);
@@ -266,7 +256,7 @@ Vec dSdTauI(size_t I, GLOBAL Grid *g, Vec field, Vec dS, Current cur, double nor
     return VecScalar(V, 1.0 / (1.0 + g->param.alpha * g->param.alpha));
 }
 
-Vec StepI(size_t I, GLOBAL Grid *g, Vec field, Current cur, double dt, double norm_time)
+Vec StepI(size_t I, GLOBAL Grid* g, Vec field, Current cur, double dt, double norm_time)
 {
     #if defined(RK4)
     Vec rk1, rk2, rk3, rk4;
@@ -290,7 +280,7 @@ Vec StepI(size_t I, GLOBAL Grid *g, Vec field, Current cur, double dt, double no
     #endif
 }
 
-double ChargeInterpI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, double dy, PBC pbc, int n_interp)
+double ChargeInterpI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc, int n_interp)
 {
     int col = I % cols;
     int row = (I - col) / cols;
@@ -324,7 +314,7 @@ double ChargeInterpI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, dou
     return ret;
 }
 
-double ChargeI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+double ChargeI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     #ifdef INTERP
     return ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP);
@@ -343,7 +333,7 @@ double ChargeI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, double dy
 }
 
 
-Vec BemI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
+Vec BemI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     #ifdef INTERP
     return VecFrom(0.0, 0.0, HBAR / QE * 4.0 * M_PI * ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP) / (dx * dy));
@@ -352,7 +342,7 @@ Vec BemI(size_t I, GLOBAL Vec *g, int rows, int cols, double dx, double dy, PBC 
     #endif
 }
 
-Vec EemI(size_t I, GLOBAL Vec *current, GLOBAL Vec *before, GLOBAL Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+Vec EemI(size_t I, GLOBAL Vec* current, GLOBAL Vec* before, GLOBAL Vec* after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
 {
     Vec ret = VecFromScalar(0.0);
     int col = I % cols;
@@ -371,14 +361,14 @@ Vec EemI(size_t I, GLOBAL Vec *current, GLOBAL Vec *before, GLOBAL Vec *after, i
     return ret;
 }
 
-Vec VelI(size_t I, GLOBAL Vec *current, GLOBAL Vec *before, GLOBAL Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+Vec VelI(size_t I, GLOBAL Vec* current, GLOBAL Vec* before, GLOBAL Vec* after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
 {
     Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
     Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);
     return (Vec){ Em.y / Bm.z, -Em.x / Bm.z, 0.0 };
 }
 
-Vec VelWeightedI(size_t I, GLOBAL Vec *current, GLOBAL Vec *before, GLOBAL Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
+Vec VelWeightedI(size_t I, GLOBAL Vec* current, GLOBAL Vec* before, GLOBAL Vec* after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
 {
     Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
     Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);

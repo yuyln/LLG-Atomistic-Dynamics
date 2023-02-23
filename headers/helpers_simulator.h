@@ -106,7 +106,7 @@ Simulator InitSimulator(const char* path)
     char* local_file_regions_dir = strdup(parser_global_state[FindIndexOfTag("FILE_REGIONS") + 1]);
     
     Anisotropy global_ani;
-    global_ani.K_1 = GetValueDouble("ANISOTROPY");
+    global_ani.K_1 = GetValueDouble("ANISOTROPY") * param_tmp.exchange;
     global_ani.dir.x = GetValueDouble("ANI_X");
     global_ani.dir.y = GetValueDouble("ANI_Y");
     global_ani.dir.z = GetValueDouble("ANI_Z");
@@ -141,7 +141,7 @@ Simulator InitSimulator(const char* path)
         double dir_x = strtod(parser_global_state[I + 2], NULL);
         double dir_y = strtod(parser_global_state[I + 3], NULL);
         double dir_z = strtod(parser_global_state[I + 4], NULL);
-        double K_1 = strtod(parser_global_state[I + 5], NULL);
+        double K_1 = strtod(parser_global_state[I + 5], NULL) * param_tmp.exchange;
         ret.g_old.ani[row * ret.g_old.param.cols + col] = (Anisotropy){K_1, VecFrom(dir_x, dir_y, dir_z)};
     }
 
@@ -195,6 +195,7 @@ Simulator InitSimulator(const char* path)
     free(local_file_regions_dir);
     StartParse(path);
 
+    ret.g_old.param.total_time = ret.dt * ret.n_steps;
     CopyGrid(&ret.g_new, &ret.g_old);
     ret.use_gpu = (bool)GetValueInt("GPU", 10);
     if (ret.use_gpu)

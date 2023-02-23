@@ -4,22 +4,35 @@
 
 int main()
 {
+    double J_norm = 1.0e-3;
+    double jx = 1.0,
+           jy = 0.0,
+           jz = 0.0;
+    double p = -1.0;
+    double beta = 0.0;
+    CUR_TYPE cur_type = CUR_STT;
+    double dh = 1.0e-9;
+
+    double Hz_norm = -0.5,
+           Hy_norm =  0.0,
+           Hx_norm =  0.0;
+
     Simulator s = InitSimulator("./input/input.in");
     ExportSimulatorFile(&s, "./output/export_sim.out");
     printf("Grid size in bytes: %zu\n", FindGridSize(&s.g_old));
     PrintVecGridToFile("./output/before.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
 
     
-    Vec field_joule = VecFrom(0.0, 0.0, -0.5 * s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
+    Vec field_joule = VecScalar(VecFrom(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
     for (size_t i = 0; i < s.g_old.param.total; ++i)
         s.g_old.grid[i] = VecNormalize(field_joule);
 
     CreateSkyrmionBloch(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols,
-                        s.g_old.param.cols / 2, s.g_old.param.rows / 2,
+                        s.g_old.param.cols / 5, s.g_old.param.rows / 2,
                         6, 1, 1);
 
-    double J; Current cur;
+    Current cur;
 
     if (s.use_gpu && s.do_gsa)
     {
@@ -40,7 +53,6 @@ int main()
 
     if (s.do_relax)
     {
-        J = 0.0;
         cur = (Current){0};
         printf("Relaxing\n");
         s.doing_relax = true;
@@ -55,10 +67,15 @@ int main()
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    J = 1.234147e-02;
-    // J = RealCurToNorm(0.150e12, s.g_old.param);
-    printf("Norm: %e Real: %e\n", J, NormCurToReal(J, s.g_old.param));
-    cur = (Current){VecFrom(0.0, -J, 0.0), -1.0, 0.0, 1.0e-9, CUR_STT};
+    printf("-------------------------------------\n");
+    printf("Real values:\n");
+    printf("Current  || Normalized: %.5e Real: %.5e A/m^2\n", J_norm, NormCurToReal(J_norm, s.g_old.param));
+    printf("Field    || Normalized: (%.5e, %.5e, %.5e) Real: (%.5e, %.5e, %.5e) T\n", field_joule.x, field_joule.y, field_joule.z,
+                                                                                                              field_tesla.x, field_tesla.y, field_tesla.z);
+    printf("                       =(%.5e, %.5e, %.5e)D^2/J\n", Hx_norm, Hy_norm, Hz_norm);
+    printf("-------------------------------------\n");
+    Vec j = VecNormalize(VecFrom(jx, jy, jz));
+    cur = (Current){VecScalar(j, J_norm), p, beta, dh, cur_type};
 
     if (s.do_integrate)
         IntegrateSimulator(&s, field_tesla, cur, "./output/integration_fly.bin");

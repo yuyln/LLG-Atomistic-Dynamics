@@ -8,7 +8,7 @@ STEPS: 50000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
-CUT: 250
+CUT: 500
 
 GSA: 0
     qA: 2.8
@@ -24,20 +24,20 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 32
-    COLS: 32
+    ROWS: 64
+    COLS: 64
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-DMI: 8.01088317e-23
+(units of J) DMI: 0.18
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
 
-ANISOTROPY: 0.0e-21
+(units of J) ANISOTROPY: 8.01088317e-24
     ANI_X: 0.0
     ANI_Y: 0.0
     ANI_Z: 1.0
@@ -46,7 +46,7 @@ ALPHA: 0.3
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 
-DM_TYPE: 0
+DM_TYPE: 1
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 
