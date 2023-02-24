@@ -4,11 +4,11 @@ PLAT: 0
 DEV: 0
 
 DT: 0.01
-STEPS: 50000
+STEPS: 500000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
-CUT: 500
+CUT: 5000
 
 GSA: 0
     qA: 2.8
@@ -32,12 +32,12 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: 0.18
+(units of J) DMI: -0.18
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
 
-(units of J) ANISOTROPY: 8.01088317e-24
+(units of J) ANISOTROPY: 0.01 0.02
     ANI_X: 0.0
     ANI_Y: 0.0
     ANI_Z: 1.0

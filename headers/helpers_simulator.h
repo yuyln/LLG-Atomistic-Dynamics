@@ -188,7 +188,7 @@ Simulator InitSimulator(const char* path)
 
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
     ret.velxy_chargez = (Vec*)calloc(ret.n_steps / ret.write_cut, sizeof(Vec));
-    printf("Size of grid out file in MB: %f\n", ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(Vec) / 1.0e6);
+    printf("Size of grid out file in MB: %f\n", (ret.write_to_file || ret.write_on_fly) * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(Vec) / 1.0e6);
     free(local_file_dir);
     free(local_file_ani_dir);
     free(local_file_pin_dir);
