@@ -371,13 +371,8 @@ Vec VelI(size_t I, GLOBAL Vec* current, GLOBAL Vec* before, GLOBAL Vec* after, i
 Vec VelWeightedI(size_t I, GLOBAL Vec* current, GLOBAL Vec* before, GLOBAL Vec* after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
 {
     Vec Em = EemI(I, current, before, after, rows, cols, dx, dy, dt, pbc);
-    Vec Bm = BemI(I, current, rows, cols, dx, dy, pbc);
-    #ifdef INTERP
-    double charge = ChargeInterpI(I, current, rows, cols, dx, dy, pbc, INTERP);
-    #else
-    double charge = ChargeI(I, current, rows, cols, dx, dy, pbc);
-    #endif
-    return (Vec){ charge * Em.y / Bm.z, -charge * Em.x / Bm.z, 0.0 };
+    double factor = dx * dy * QE / (4.0 * M_PI * HBAR);
+    return (Vec){ factor * Em.y, -factor * Em.x, 0.0 };
 }
 
 #endif
