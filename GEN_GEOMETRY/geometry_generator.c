@@ -13,6 +13,8 @@ typedef struct {v2d p1, p2, p3;} triangle;
 typedef struct {v2d p1, p2, p3, p4;} quad;
 typedef struct {v2d p1, p2; double thick;} line;
 typedef struct {int sides; v2d l, center, max_d, min_d; double rotation;} n_side;
+typedef struct {double R; v2d center;} circle;
+typedef struct {v2d center, F; double a;} ellipse; //@TODO
 
 v2d i_v2d(double x, double y);
 v2d s_v2d(double x);
@@ -32,22 +34,23 @@ bool quad_inside(v2d p, quad q);
 line line_points(v2d p1, v2d p2, double thickness);
 void line_discrete_to_file_smooth(FILE *file, line l, int xmin, int xmax, int ymin, int ymax);
 void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin, int ymax);
+void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int ymin, int ymax);
 bool line_inside_smooth(v2d p, line l);
+bool line_inside_quad(v2d p, line l);
 bool line_inside_quad(v2d p, line l);
 
 n_side n_side_center_angle(v2d center, v2d l, int n, double rot);
 void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin, int ymax);
 bool n_side_inside(v2d p, n_side t);
 
-
+circle circle_center_angle(v2d center, double R);
+void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin, int ymax);
+bool circle_inside(v2d p, circle c);
 
 int main(void) {
 	FILE *f_out = fopen("./pinning.in", "w");
 	int cols = 272;
 	int rows = 272;
-
-	n_side n = n_side_center_angle(i_v2d(cols / 2, rows / 2), i_v2d(100, 50), 8, -M_PI / 8.0 + M_PI / 4.0);
-	n_side_discrete_to_file(f_out, n, 0, cols, 0, rows);
 
 	fclose(f_out);
 }
@@ -286,6 +289,28 @@ void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin
 	}
 }
 
+void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int ymin, int ymax) {
+	double min_y = l.p1.y;
+	min_y = l.p2.y < min_y? l.p2.y : min_y;
+	double max_y = l.p1.y;
+	max_y = l.p2.y > max_y? l.p2.y : max_y;
+
+	double min_x = l.p1.x;
+	min_x = l.p2.x < min_x? l.p2.x : min_x;
+
+	double max_x = l.p1.x;
+	max_x = l.p2.x > max_x? l.p2.x : max_x;
+
+	for (int y = (int)min_y; y < (int)max_y; ++y) {
+		if (y < ymin || y >= ymax) continue;
+		for (int x = (int)min_x; x < (int)max_x; ++x) {
+			if (x < xmin || x >= xmax) continue;
+			v2d p = i_v2d(x, y);
+			if (line_inside_quad(p, l)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+		}
+	}
+}
+
 bool line_inside_smooth(v2d p, line l) {
 	double d2 = distance2_line_point(p, l);
 	double R = l.thick / 2.0;
@@ -377,4 +402,30 @@ bool n_side_inside(v2d p, n_side t) {
 
 	}
 	return false;
+}
+
+circle circle_center_angle(v2d center, double R) {
+	return (circle){.center = center, .R = R};
+}
+
+void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin, int ymax) {
+	double min_y = c.center.y - c.R;
+	double max_y = c.center.y + c.R;
+
+	double min_x = c.center.x - c.R;
+	double max_x = c.center.x + c.R;
+	for (int y = min_y; y < max_y; ++y) {
+		if (y < ymin || y >= ymax) continue;
+		for (int x = min_x; x < max_x; ++x) {
+			if (x < xmin || x >= xmax) continue;
+			v2d p = i_v2d(x, y);
+			if (circle_inside(p, c)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+		}
+	}
+}
+
+bool circle_inside(v2d p, circle c) {
+	double dx = c.center.x - p.x;
+	double dy = c.center.y - p.y;
+	return dx * dx + dy * dy <= c.R * c.R;
 }
