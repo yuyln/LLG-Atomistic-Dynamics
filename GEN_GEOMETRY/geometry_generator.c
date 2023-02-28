@@ -45,7 +45,7 @@ int main(void) {
 	int cols = 272;
 	int rows = 272;
 
-	n_side n = n_side_center_angle(i_v2d(cols / 2, rows / 2), i_v2d(100, 50), 8, M_PI / 8.0);
+	n_side n = n_side_center_angle(i_v2d(cols / 2, rows / 2), i_v2d(100, 50), 8, -M_PI / 8.0 + M_PI / 4.0);
 	n_side_discrete_to_file(f_out, n, 0, cols, 0, rows);
 
 	fclose(f_out);
@@ -317,9 +317,9 @@ void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin,
 	double min_x = t.center.x - t.l.x - 1;
 	double max_x = t.center.x + t.l.x + 1;
 
-	for (int y = (int)min_y; y < (int)max_y; ++y) {
+	for (int y = ymin; y < ymax; ++y) {
 		if (y < ymin || y >= ymax) continue;
-		for (int x = (int)min_x; x < (int)max_x; ++x) {
+		for (int x = xmin; x < xmax; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
 			if (n_side_inside(p, t)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
@@ -332,13 +332,19 @@ bool n_side_inside(v2d p, n_side t) {
 	double deph = 2.0 * M_PI / (double)t.sides;
 	double dt = deph;
 	for (int i = 0; i < t.sides; ++i) {
-		double theta = i * dt - deph / 2.0 + t.rotation;
+		double theta = i * dt - deph / 2.0;
 		triangle piece = {
-			.p1 = i_v2d(t.center.x, t.center.y),
-			.p2 = i_v2d(t.center.x + cos(theta) * t.l.x, t.center.y + sin(theta) * t.l.y),
-			.p3 = i_v2d(t.center.x + cos(theta + dt) * t.l.x, t.center.y + sin(theta + dt) * t.l.y)
+			.p1 = i_v2d(0.0, 0.0),
+			.p2 = i_v2d(cos(theta) * t.l.x, sin(theta) * t.l.y),
+			.p3 = i_v2d(cos(theta + dt) * t.l.x, sin(theta + dt) * t.l.y)
 		};
+
+		piece.p1 = v2d_add(t.center, rotate(piece.p1, t.rotation));
+		piece.p2 = v2d_add(t.center, rotate(piece.p2, t.rotation));
+		piece.p3 = v2d_add(t.center, rotate(piece.p3, t.rotation));
+
 		if (triangle_inside(p, piece)) return true;
+
 	}
 	return false;
 }
