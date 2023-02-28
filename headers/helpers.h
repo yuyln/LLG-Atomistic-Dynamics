@@ -374,7 +374,7 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
 
-            if (i % s->write_vel == 0)
+            if (i % s->write_cut == 0)
             {
                 s->velxy_chargez[t].z += ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 Vec vt = VelWeightedI(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
