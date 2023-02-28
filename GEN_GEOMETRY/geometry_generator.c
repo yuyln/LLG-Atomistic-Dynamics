@@ -5,13 +5,14 @@
 #include <math.h>
 
 #include <stdbool.h>
+#include <float.h>
 
 typedef struct {int x, y;} v2i;
 typedef struct {double x, y;} v2d;
 typedef struct {v2d p1, p2, p3;} triangle;
 typedef struct {v2d p1, p2, p3, p4;} quad;
 typedef struct {v2d p1, p2; double thick;} line;
-typedef struct {int sides; v2d l, center; double rotation;} n_side;
+typedef struct {int sides; v2d l, center, max_d, min_d; double rotation;} n_side;
 
 v2d i_v2d(double x, double y);
 v2d s_v2d(double x);
@@ -307,19 +308,48 @@ n_side n_side_center_angle(v2d center, v2d l, int n, double rot) {
 	ret.l = l;
 	ret.rotation = rot;
 	ret.sides = n;
+
+	ret.min_d = s_v2d(INFINITY);
+	ret.max_d = s_v2d(-INFINITY);
+
+	double deph = 2.0 * M_PI / (double)ret.sides;
+	double dt = deph;
+	for (int i = 0; i < ret.sides; ++i) {
+		double theta = i * dt - deph / 2.0;
+		triangle piece = {
+			.p1 = i_v2d(0.0, 0.0),
+			.p2 = i_v2d(cos(theta) * ret.l.x, sin(theta) * ret.l.y),
+			.p3 = i_v2d(cos(theta + dt) * ret.l.x, sin(theta + dt) * ret.l.y)
+		};
+
+		piece.p1 = v2d_add(ret.center, rotate(piece.p1, ret.rotation));
+		piece.p2 = v2d_add(ret.center, rotate(piece.p2, ret.rotation));
+		piece.p3 = v2d_add(ret.center, rotate(piece.p3, ret.rotation));
+
+		ret.min_d.y = ret.min_d.y < piece.p1.y? ret.min_d.y: piece.p1.y;
+		ret.min_d.y = ret.min_d.y < piece.p2.y? ret.min_d.y: piece.p2.y;
+		ret.min_d.y = ret.min_d.y < piece.p3.y? ret.min_d.y: piece.p3.y;
+
+		ret.min_d.x = ret.min_d.x < piece.p1.x? ret.min_d.x: piece.p1.x;
+		ret.min_d.x = ret.min_d.x < piece.p2.x? ret.min_d.x: piece.p2.x;
+		ret.min_d.x = ret.min_d.x < piece.p3.x? ret.min_d.x: piece.p3.x;
+
+		ret.max_d.y = ret.max_d.y > piece.p1.y? ret.max_d.y: piece.p1.y;
+		ret.max_d.y = ret.max_d.y > piece.p2.y? ret.max_d.y: piece.p2.y;
+		ret.max_d.y = ret.max_d.y > piece.p3.y? ret.max_d.y: piece.p3.y;
+
+		ret.max_d.x = ret.max_d.x > piece.p1.x? ret.max_d.x: piece.p1.x;
+		ret.max_d.x = ret.max_d.x > piece.p2.x? ret.max_d.x: piece.p2.x;
+		ret.max_d.x = ret.max_d.x > piece.p3.x? ret.max_d.x: piece.p3.x;
+	}
+
 	return ret;
 }
 
 void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin, int ymax) {
-	double min_y = t.center.y - t.l.y - 1;
-	double max_y = t.center.y + t.l.y + 1;
-
-	double min_x = t.center.x - t.l.x - 1;
-	double max_x = t.center.x + t.l.x + 1;
-
-	for (int y = ymin; y < ymax; ++y) {
+	for (int y = t.min_d.y; y < t.max_d.y; ++y) {
 		if (y < ymin || y >= ymax) continue;
-		for (int x = xmin; x < xmax; ++x) {
+		for (int x = t.min_d.x; x < t.max_d.x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
 			if (n_side_inside(p, t)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
