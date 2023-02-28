@@ -60,6 +60,7 @@ Simulator InitSimulator(const char* path)
 
     ret.write_to_file = (bool)GetValueInt("WRITE", 10);
     ret.write_cut = (size_t)GetValueULLInt("CUT", 10);
+    ret.write_vel_charge_cut = (size_t)GetValueULLInt("CUT_FOR_VEL_CHARGE", 10);
     ret.do_gsa = (bool)GetValueInt("GSA", 10);
     ret.do_relax = (bool)GetValueInt("RELAX", 10);
     ret.do_integrate = (bool)GetValueInt("INTEGRATE", 10);

@@ -50,6 +50,7 @@ typedef struct Simulator
     double dt;
     size_t n_cpu;
     size_t write_cut;
+    size_t write_vel_charge_cut;
     bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly;
     GSAParam gsap;
     GPU gpu;
@@ -346,6 +347,8 @@ void ReadVecGridBuffer(cl_command_queue q, cl_mem buffer, Grid *g)
     ReadBuffer(buffer, g->grid, g->param.total * sizeof(Vec), sizeof(GridParam), q);
 }
 
+
+//@TODO: Different cut for velocity and charge files
 void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* file_name)
 {
     FILE *fly = mfopen(file_name, "wb", 1);
@@ -371,7 +374,7 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
 
-            if (i % s->write_cut == 0)
+            if (i % s->write_vel == 0)
             {
                 s->velxy_chargez[t].z += ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 Vec vt = VelWeightedI(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
