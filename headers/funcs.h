@@ -316,9 +316,10 @@ double ChargeInterpI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, dou
 
 double ChargeI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
-    #ifdef INTERP
+    /*#ifdef INTERP
     return ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP);
     #else
+
     int col = I % cols;
     int row = (I - col) / cols;
     Vec R = PBCVec(row, col + 1, g, rows, cols, pbc),
@@ -329,7 +330,23 @@ double ChargeI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy
     Vec dgdx = VecScalar(VecSub(R, L), 0.5 / dx);
     Vec dgdy = VecScalar(VecSub(U, D), 0.5 / dy);
     return 1.0 / (4 * M_PI) * dx * dy * VecDot(VecCross(dgdx, dgdy), g[I]);
-    #endif
+    #endif*/
+    //https://iopscience.iop.org/article/10.1088/2633-1357/abad0c/pdf
+    int col = I % cols;
+    int row = (I - col) / cols;
+    Vec m2 = PBCVec(row, col + 1, g, rows, cols, pbc),
+        m4 = PBCVec(row + 1, col, g, rows, cols, pbc),
+        m3 = PBCVec(row + 1, col + 1, g, rows, cols, pbc),
+        m1 = PBCVec(row, col, g, rows, cols, pbc);
+    double num1 = VecDot(m1, VecCross(m2, m4));
+    double den1 = 1.0 + VecDot(m1, m2) + VecDot(m1, m4) + VecDot(m2, m4);
+    double num2 = VecDot(m2, VecCross(m3, m4));
+    double den2 = 1.0 + VecDot(m2, m3) + VecDot(m2, m4) + VecDot(m3, m4);
+
+    double q_124 = 2.0 * atan2(num1, den1);
+    double q_234 = 2.0 * atan2(num2, den2);
+
+    return 1.0 / (4.0 * M_PI) * (q_124 + q_234);
 }
 
 
