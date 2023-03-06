@@ -573,61 +573,71 @@ double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
     return ret;
 }
 
-void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int R, double P, double Q)
 {
-    double R2 = r * r;
-    for (int i = 0; i < rows; ++i)
+    double R2 = R * R;
+    for (int i = cy - 2 * R; i < cy + 2 * R; ++i)
     {
         double dy = (double)i - cy;
-        for (int j = 0; j < cols; ++j)
+        int il = i % rows;
+        if (il < 0) il += rows;
+        for (int j = cx - 2 * R; j < cx + 2 * R; ++j)
         {
+            int jl = j % cols;
+            if (jl < 0) jl += cols;
+
             double dx = (double)j - cx;
             double r2 = dx * dx + dy * dy;
             double r = sqrt(r2);
-            if (exp(-r2 / R2) <= 1.0e-2)
+            if (r > (2.0 * R))
                 continue;
             
-            g[i * cols + j].z = 2.0 * P * (exp(-r2 / R2) - 0.5);
+            g[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
         
             if (r != 0)
             {
-                g[i * cols + j].x = -dy * Q / r * (1.0 - fabs(g[i * cols + j].z));
-                g[i * cols + j].y = dx * Q / r * (1.0 - fabs(g[i * cols + j].z));
+                g[il * cols + jl].x = -dy * P / r * (1.0 - fabs(g[il * cols + jl].z));
+                g[il * cols + jl].y = dx * P / r * (1.0 - fabs(g[il * cols + jl].z));
             }
             else
             {
-                g[i * cols + j].x = 0.0;
-                g[i * cols + j].y = 0.0;
+                g[il * cols + jl].x = 0.0;
+                g[il * cols + jl].y = 0.0;
             }
         }
     }
 }
 
-void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int R, double P, double Q)
 {
-    double R2 = r * r;
-    for (int i = 0; i < rows; ++i)
+    double R2 = R * R;
+    for (int i = cy - 2 * R; i < cy + 2 * R; ++i)
     {
         double dy = (double)i - cy;
-        for (int j = 0; j < cols; ++j)
+        int il = i % rows;
+        if (il < 0) il += rows;
+        for (int j = cx - 2 * R; j < cx + 2 * R; ++j)
         {
+            int jl = j % cols;
+            if (jl < 0) jl += cols;
+
             double dx = (double)j - cx;
             double r2 = dx * dx + dy * dy;
             double r = sqrt(r2);
-            if (exp(-r2 / R2) <= 1.0e-2)
+            if (r > (2.0 * R))
                 continue;
             
-            g[i * cols + j].z = 2.0 * P * (exp(-r2 / R2) - 0.5);
+            g[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
         
             if (r != 0)
             {
-                g[i * cols + j].x = dx * Q / r * (1.0 - fabs(g[i * cols + j].z));
-                g[i * cols + j].y = dy * Q / r * (1.0 - fabs(g[i * cols + j].z));
+                g[il * cols + jl].x = dx * P / r * (1.0 - fabs(g[il * cols + jl].z));
+                g[il * cols + jl].y = dy * P / r * (1.0 - fabs(g[il * cols + jl].z));
             }
             else
             {
-                g[i * cols + j].x = 0.0;
-                g[i * cols + j].y = 0.0;
+                g[il * cols + jl].x = 0.0;
+                g[il * cols + jl].y = 0.0;
             }
         }
     }
@@ -812,5 +822,41 @@ void DumpGridCharge(const char* file_path, Vec* g, int rows, int cols, double dx
 
     free(charge);
     fclose(f);
+}
+
+void CreateNeelTriangularLattice(Vec *g, int rows, int cols, int R, int nx, double P, double Q)
+{
+    double Sl = ((double)cols - 2.0 * R * (double)nx) / (double)nx;
+    double S = Sl + 2.0 * R;
+    
+    double yc = sqrt(3.0) / 4.0 * S;
+    int j = 0;
+    while (yc < rows) {
+        for (int i = 0; i < nx; ++i) {
+            double xc = S / 2.0 + i * S;
+            if (j % 2) xc -= S / 2.0;
+            CreateSkyrmionNeel(g, rows, cols, xc, yc, R, P, Q);
+        }
+        yc += sqrt(3.0) / 2.0 * S;
+        ++j;
+    }
+}
+
+void CreateBlochTriangularLattice(Vec *g, int rows, int cols, int R, int nx, double P, double Q)
+{
+    double Sl = ((double)cols - 2.0 * R * (double)nx) / (double)nx;
+    double S = Sl + 2.0 * R;
+    
+    double yc = sqrt(3.0) / 4.0 * S;
+    int j = 0;
+    while (yc < rows) {
+        for (int i = 0; i < nx; ++i) {
+            double xc = S / 2.0 + i * S;
+            if (j % 2) xc -= S / 2.0;
+            CreateSkyrmionBloch(g, rows, cols, xc, yc, R, P, Q);
+        }
+        yc += sqrt(3.0) / 2.0 * S;
+        ++j;
+    }
 }
 #endif

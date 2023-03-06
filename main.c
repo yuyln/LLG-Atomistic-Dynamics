@@ -27,9 +27,7 @@ int main()
     for (size_t i = 0; i < s.g_old.param.total; ++i)
         s.g_old.grid[i] = VecNormalize(field_joule);
 
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols,
-                        s.g_old.param.cols / 2, s.g_old.param.rows / 2,
-                        12, 1, -1);
+    CreateNeelTriangularLattice(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 3, 3, 1.0, -1.0);
 
     Current cur;
 
@@ -59,7 +57,7 @@ int main()
         s.doing_relax = false;
         printf("Done relaxing\n");
     }
-        
+
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     DumpGrid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     printf("%d\n", s.doing_relax);
