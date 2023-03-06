@@ -4,13 +4,13 @@
 
 int main()
 {
-    double J_norm = 1.0e-3;
+    double J_norm = 1.0e-1;
     double jx = 0.0,
            jy = 1.0,
            jz = 0.0;
     double p = -1.0;
     double beta = 0.0;
-    CUR_TYPE cur_type = CUR_STT;
+    CUR_TYPE cur_type = CUR_CPP;
     double dh = 1.0e-9;
 
     double Hz_norm =  0.5,
@@ -27,7 +27,8 @@ int main()
     for (size_t i = 0; i < s.g_old.param.total; ++i)
         s.g_old.grid[i] = VecNormalize(field_joule);
 
-    CreateNeelTriangularLattice(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 3, 3, 1.0, -1.0);
+    CreateNeelTriangularLattice(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 3, 4, 1.0, -1.0);
+    // CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 2, s.g_old.param.rows / 2, 4, 1, -1.0);
 
     Current cur;
 

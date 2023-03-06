@@ -368,13 +368,13 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
             fflush(stdout);
         }
         double norm_time = (double)i * s->dt * (!s->doing_relax);
-        size_t t = i / s->write_cut;
+        size_t t = i / s->write_vel_charge_cut;
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
 
-            if (i % s->write_cut == 0)
+            if (i % s->write_vel_charge_cut == 0)
             {
                 s->velxy_chargez[t].z += ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 Vec vt = VelWeightedI(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
@@ -385,15 +385,19 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
         }
         
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(Vec) * s->g_old.param.total);
-        if (i % s->write_cut == 0)
+        if (i % s->write_vel_charge_cut == 0)
         {
             s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
             s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
+        }
+
+        if (i % s->write_cut == 0)
+        {
+            t = i / s->write_cut;
             if (s->write_to_file)
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
             if (s->write_on_fly && (!s->doing_relax))
                 fwrite(s->g_old.grid, sizeof(Vec) * s->g_old.param.total, 1, fly);
-
         }
     }
 
@@ -422,14 +426,14 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
             fflush(stdout);
         }
         double norm_time = (double)i * s->dt * (!s->doing_relax);
-        size_t t = i / s->write_cut;
+        size_t t = i / s->write_vel_charge_cut;
         #pragma omp parallel for num_threads(s->n_cpu)
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
 
-            if (i % s->write_cut == 0)
+            if (i % s->write_vel_charge_cut == 0)
             {
                 velxy_chargez_thread[omp_get_thread_num()].z += ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 Vec vt = VelWeightedI(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
@@ -440,7 +444,7 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
         }
         
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(Vec) * s->g_old.param.total);
-        if (i % s->write_cut == 0)
+        if (i % s->write_vel_charge_cut == 0) 
         {
             for (size_t k = 0; k < s->n_cpu; ++k)
             {
@@ -448,6 +452,11 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
             }
             s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
             s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
+        }
+        
+        if (i % s->write_cut == 0)
+        {
+            t = i / s->write_cut;
             if (s->write_to_file)
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(Vec) * s->g_old.param.total);
             if (s->write_on_fly && (!s->doing_relax))
@@ -477,8 +486,8 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     SetKernelArg(s->gpu.kernels[3], 3, sizeof(double), &s->dt);
     SetKernelArg(s->gpu.kernels[3], 4, sizeof(Current), &cur);
 
-    int cut = s->write_cut;
-    SetKernelArg(s->gpu.kernels[3], 7, sizeof(int), &cut);
+    // int cut = s->write_vel_charge_cut;
+    SetKernelArg(s->gpu.kernels[3], 7, sizeof(int), &s->write_vel_charge_cut);
 
     size_t global = s->g_old.param.total;
     size_t local = gcd(global, 32);
@@ -504,10 +513,10 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         
         EnqueueND(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
         EnqueueND(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
-        
-        if (i % s->write_cut == 0)
+
+        if (i % s->write_vel_charge_cut == 0)
         {
-            size_t t = i / s->write_cut;
+            size_t t = i / s->write_vel_charge_cut;
 
             ReadBuffer(velxy_chargez_buffer, velxy_chargez, sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
             for (size_t k = 0; k < s->g_old.param.total; ++k)
@@ -519,7 +528,11 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
 
             s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
             s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
-
+        }
+        
+        if (i % s->write_cut == 0)
+        {
+            size_t t = i / s->write_cut;
             if (s->write_to_file)
             {
                 ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
@@ -710,17 +723,17 @@ Vec TotalVelocityW(Vec *current, Vec *before, Vec *after, int rows, int cols, do
 
 void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 {
-    char *out_grid_anim;
-    size_t out_grid_anim_size = snprintf(NULL, 0, "%s_grid.out", root_path) + 1;
-    out_grid_anim = (char*)calloc(out_grid_anim_size, 1);
-    snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
-    out_grid_anim[out_grid_anim_size - 1] = '\0';
+    // char *out_grid_anim;
+    // size_t out_grid_anim_size = snprintf(NULL, 0, "%s_grid.out", root_path) + 1;
+    // out_grid_anim = (char*)calloc(out_grid_anim_size, 1);
+    // snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
+    // out_grid_anim[out_grid_anim_size - 1] = '\0';
 
-    char *out_cm_charge_anim;
-    size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
-    out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
-    snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
-    out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
+    // char *out_cm_charge_anim;
+    // size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
+    // out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
+    // snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
+    // out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
 
     char *out_charge;
     size_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
@@ -735,13 +748,13 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     out_velocity[out_velocity_size - 1] = '\0';
 
 
-    FILE* charge_anim = mfopen(out_cm_charge_anim, "w", 0);
+    // FILE* charge_anim = mfopen(out_cm_charge_anim, "w", 0);
+    // FILE* grid_anim = mfopen(out_grid_anim, "w", 0);
     FILE* charge_total = mfopen(out_charge, "w", 0);
     FILE* velocity_total = mfopen(out_velocity, "w", 0);
-    FILE* grid_anim = mfopen(out_grid_anim, "w", 0);
 
-    free(out_grid_anim);
-    free(out_cm_charge_anim);
+    // free(out_grid_anim);
+    // free(out_cm_charge_anim);
     free(out_charge);
     free(out_velocity);
 
@@ -751,10 +764,10 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
-        if (i % s->write_cut)
+        if (i % s->write_vel_charge_cut)
             continue;
 
-        size_t t = i / s->write_cut;
+        size_t t = i / s->write_vel_charge_cut;
         fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].x, s->velxy_chargez[t].y);
         fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_chargez[t].z);
 
@@ -776,27 +789,27 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         // fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vel.x / charge, vel.y / charge);
     } 
     printf("Done writing charges related output\n");
-    fclose(charge_anim);
+    // fclose(charge_anim);
     fclose(charge_total);
     fclose(velocity_total);
 
     if (!(s->write_to_file && s->write_human))
         return;
 
-    printf("Writing grid output\n");
-    for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
-    {
-        if (i % (s->n_steps / 10) == 0)
-            printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
-        if (i % s->write_cut)
-            continue;
-        size_t t = i / s->write_cut;
-        PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
-        fprintf(grid_anim, "\n");
-    }
-    printf("Done writing grid output\n");
+    // printf("Writing grid output\n");
+    // for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
+    // {
+    //     if (i % (s->n_steps / 10) == 0)
+    //         printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
+    //     if (i % s->write_cut)
+    //         continue;
+    //     size_t t = i / s->write_cut;
+    //     PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
+    //     fprintf(grid_anim, "\n");
+    // }
+    // printf("Done writing grid output\n");
 
-    fclose(grid_anim);
+    // fclose(grid_anim);
 
 }
 

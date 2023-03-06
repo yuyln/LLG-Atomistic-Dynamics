@@ -126,5 +126,6 @@ def animate(i):
     img.set_array(mz)
     if PLOT_ARROWS: vecs.set_UVC(mx, my)
 
+print(f"Total frames: {frames}")
 ani = anim.FuncAnimation(fig, animate, frames=frames)
 ani.save("./videos/out_bin.mp4", fps=60, dpi=250)

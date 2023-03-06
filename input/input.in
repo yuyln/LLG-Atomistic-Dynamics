@@ -8,9 +8,9 @@ STEPS: 50000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
-CUT: 50
+CUT: 500
 
-CUT_FOR_VEL_CHARGE: 100 //NOT WORKING
+CUT_FOR_VEL_CHARGE: 100
 
 GSA: 0
     qA: 2.8
@@ -26,7 +26,7 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 64
+    ROWS: 55
     COLS: 64
 
 FILE_PINNING: ./input/pinning.in
@@ -34,7 +34,7 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -0.5
+(units of J) DMI: -1.0
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
