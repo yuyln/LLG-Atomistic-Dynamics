@@ -28,8 +28,13 @@ except:
     row_pin = []
     col_pin = []
 
+# position = pd.read_table("./output/anim_pos_xy.out", header=None, delimiter="\t")
+# position[1] /= 0.5e-9
+# position[2] /= 0.5e-9
+# position[1] += 0.5
+# position[2] += 0.5
+
 file = open("./output/integration_fly.bin", "rb")
-# file = open("./output/grid_anim_dump.bin", "rb")
 raw_data = file.read()
 file.close()
 nrow_ncol_steps = array.array("i")
@@ -120,11 +125,17 @@ if PLOT_PIN: pi = ax.scatter(col_pin, row_pin, color="yellow", s=10.0)
 ax.set_xlim([-0.5, ncols - 0.5])
 ax.set_ylim([-0.5, nrows - 0.5])
 
+# center = ax.scatter(position[1][0], position[2][0], s=50.0, color="black")
+# frames_pos = len(position[0])
+# ratio = int(float(frames_pos) / float(frames))
+
 def animate(i):
     mx, my, mz = GetBatch(i)
     mz = mz.reshape([nrows, ncols])
     img.set_array(mz)
     if PLOT_ARROWS: vecs.set_UVC(mx, my)
+    # center.set_offsets([[position[1][ratio * i], position[2][ratio * i]]])
+
 
 print(f"Total frames: {frames}")
 ani = anim.FuncAnimation(fig, animate, frames=frames)

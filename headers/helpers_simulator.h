@@ -189,6 +189,7 @@ Simulator InitSimulator(const char* path)
 
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
     ret.velxy_chargez = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.pos_xy = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     printf("Size of grid out file in MB: %f\n", (ret.write_to_file || ret.write_on_fly) * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(Vec) / 1.0e6);
     free(local_file_dir);
     free(local_file_ani_dir);
@@ -259,10 +260,22 @@ Simulator InitSimulator(const char* path)
 void FreeSimulator(Simulator *s)
 {
     if (s->grid_out_file)
+    {
         free(s->grid_out_file);
+        s->grid_out_file = NULL;
+    }
     
     if (s->velxy_chargez)
+    {
         free(s->velxy_chargez);
+        s->velxy_chargez = NULL;
+    }
+    
+    if (s->pos_xy)
+    {
+        free(s->pos_xy);
+        s->pos_xy = NULL;
+    }
     
     FreeGrid(&s->g_old);
     FreeGrid(&s->g_new);
