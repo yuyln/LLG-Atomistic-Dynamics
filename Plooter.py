@@ -35,6 +35,7 @@ def FixPlot(lx, ly):
 
     rcParams['xtick.direction'] = "in"
     rcParams['ytick.direction'] = "in"
+    rcParams['axes.formatter.useoffset'] = False
 
     rcParams.update({"figure.figsize": (lx, ly),
                     "figure.subplot.left": 0.177, "figure.subplot.right": 0.946,
