@@ -98,8 +98,7 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)
     g_old->grid[I] = g_new->grid[I];
 }
 
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* velxy_chargez,
-					global Vec* avg_mag)
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Qz_avg_mag)
 {
 	size_t I = get_global_id(0);
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));
@@ -107,11 +106,11 @@ kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, dou
 
 	if (i % cut == 0)
 	{
-		velxy_chargez[I].z = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
+		vxvy_Qz_avg_mag[I].z = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
 		Vec vt = VelWeightedI(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, 
 					g_old->param.lattice, g_old->param.lattice, 0.5 * dt * HBAR / fabs(g_old->param.exchange), g_old->param.pbc);
-		velxy_chargez[I].x = vt.x;
-		velxy_chargez[I].y = vt.y;
-		avg_mag[I] = g_new->grid[I];
+		vxvy_Qz_avg_mag[I].x = vt.x;
+		vxvy_Qz_avg_mag[I].y = vt.y;
+		vxvy_Qz_avg_mag[TOTAL + I] = g_new->grid[I];
 	}
 }

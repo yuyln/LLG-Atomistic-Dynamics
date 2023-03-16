@@ -553,16 +553,12 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     size_t global = s->g_old.param.total;
     size_t local = gcd(global, 32);
 
-    Vec* velxy_chargez = (Vec*)calloc(s->g_old.param.total, sizeof(Vec));
-    cl_mem velxy_chargez_buffer = CreateBuffer(sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
-    WriteBuffer(velxy_chargez_buffer, velxy_chargez, sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
+    Vec* vxvy_Qz_avg_mag = (Vec*)calloc(2 * s->g_old.param.total, sizeof(Vec));
 
-    Vec* avg_mag = (Vec*)calloc(s->g_old.param.total, sizeof(Vec));
-    cl_mem avg_mag_buffer = CreateBuffer(sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
-    WriteBuffer(avg_mag_buffer, avg_mag, sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
+    cl_mem vxvy_Qz_avg_mag_buffer = CreateBuffer(2 * sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
+    WriteBuffer(vxvy_Qz_avg_mag_buffer, vxvy_Qz_avg_mag, 2 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
 
-    SetKernelArg(s->gpu.kernels[3], 8, sizeof(cl_mem), &velxy_chargez_buffer);
-    SetKernelArg(s->gpu.kernels[3], 9, sizeof(cl_mem), &avg_mag_buffer);
+    SetKernelArg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_Qz_avg_mag_buffer);
 
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -584,18 +580,17 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         {
             size_t t = i / s->write_vel_charge_cut;
 
-            ReadBuffer(velxy_chargez_buffer, velxy_chargez, sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
-            ReadBuffer(avg_mag_buffer, avg_mag, sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
+            ReadBuffer(vxvy_Qz_avg_mag_buffer, vxvy_Qz_avg_mag, 2 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
             for (size_t k = 0; k < s->g_old.param.total; ++k)
             {
                 size_t x = k % s->g_old.param.cols;
                 size_t y = (k - x) / s->g_old.param.cols;
-                s->velxy_chargez[t].x += velxy_chargez[k].x;
-                s->velxy_chargez[t].y += velxy_chargez[k].y;
-                s->velxy_chargez[t].z += velxy_chargez[k].z;
-                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * velxy_chargez[k].z;
-                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * velxy_chargez[k].z;
-                s->avg_mag[t] = VecAdd(s->avg_mag[t], avg_mag[k]);
+                s->velxy_chargez[t].x += vxvy_Qz_avg_mag[k].x;
+                s->velxy_chargez[t].y += vxvy_Qz_avg_mag[k].y;
+                s->velxy_chargez[t].z += vxvy_Qz_avg_mag[k].z;
+                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_Qz_avg_mag[k].z;
+                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_Qz_avg_mag[k].z;
+                s->avg_mag[t] = VecAdd(s->avg_mag[t], vxvy_Qz_avg_mag[s->g_old.param.total + k]);
             }
 
             s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
@@ -621,12 +616,10 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         }
     }
     ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
-    PrintCLError(stderr, clReleaseMemObject(velxy_chargez_buffer), "Could not release velxy_chargez obj");
-    PrintCLError(stderr, clReleaseMemObject(avg_mag_buffer), "Could not release avg_mag obj");
-    if (velxy_chargez)
-        free(velxy_chargez);
-    if (avg_mag)
-        free(avg_mag);
+    PrintCLError(stderr, clReleaseMemObject(vxvy_Qz_avg_mag_buffer), "Could not release vxvy_Qz_avg_mag_buffer obj");
+    if (vxvy_Qz_avg_mag)
+        free(vxvy_Qz_avg_mag);
+
     fclose(fly);
 }
 
