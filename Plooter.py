@@ -57,6 +57,51 @@ def FixPlot(lx, ly):
                      "lines.markeredgewidth": 0.8, 
                      "mathtext.fontset": "cm"})
 
+def FixPlot_(lx, ly):
+    from matplotlib import rcParams, cycler
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+    rcParams['text.usetex'] = False
+    rcParams['font.size'] = 40
+    rcParams['axes.linewidth'] = 1.1
+    rcParams['axes.labelpad'] = 10.0
+    plot_color_cycle = cycler('color', ['000000', 'FE0000', '0000FE', '008001', 'FD8000', '8c564b',
+                                        'e377c2', '7f7f7f', 'bcbd22', '17becf'])
+    rcParams['axes.prop_cycle'] = plot_color_cycle
+    rcParams['axes.xmargin'] = 0
+    rcParams['axes.ymargin'] = 0
+    rcParams['legend.fancybox'] = False
+    rcParams['legend.framealpha'] = 1.0
+    rcParams['legend.edgecolor'] = "black"
+    rcParams['legend.fontsize'] = 28
+    rcParams['xtick.labelsize'] = 22
+    rcParams['ytick.labelsize'] = 22
+
+    rcParams['ytick.right'] = True
+    rcParams['xtick.top'] = True
+
+    rcParams['xtick.direction'] = "in"
+    rcParams['ytick.direction'] = "in"
+
+    rcParams.update({"figure.figsize": (lx, ly),
+                    "figure.subplot.left": 0.177, "figure.subplot.right": 0.946,
+                     "figure.subplot.bottom": 0.156, "figure.subplot.top": 0.965,
+                     "axes.autolimit_mode": "round_numbers",
+                     "xtick.major.size": 7,
+                     "xtick.minor.size": 3.5,
+                     "xtick.major.width": 1.1,
+                     "xtick.minor.width": 1.1,
+                     "xtick.major.pad": 5,
+                     "xtick.minor.visible": True,
+                     "ytick.major.size": 7,
+                     "ytick.minor.size": 3.5,
+                     "ytick.major.width": 1.1,
+                     "ytick.minor.width": 1.1,
+                     "ytick.major.pad": 5,
+                     "ytick.minor.visible": True,
+                     "lines.markersize": 10,
+                     "lines.markeredgewidth": 0.8, 
+                     "mathtext.fontset": "dejavusans"}) #"cm"
 
 def FixTicks(ax, minorx, minory, multx, multy):
     ax.yaxis.set_major_locator(MultipleLocator(multy))

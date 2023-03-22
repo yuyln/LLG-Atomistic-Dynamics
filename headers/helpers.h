@@ -467,8 +467,10 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
             fflush(stdout);
         }
+
+        int I = 0; //For Visual Studio not complain
         #pragma omp parallel for num_threads(s->n_cpu)
-        for (size_t I = 0; I < s->g_old.param.total; ++I)
+        for (I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
             GridNormalizeI(I, &s->g_new);
@@ -580,6 +582,28 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         {
             size_t t = i / s->write_vel_charge_cut;
 
+            /*
+                So, reading the GPU this frequent is BAAAD
+                If Visual Studio is right, this read call takes about 60%-80% of the function call (cumulative)
+                The optimal way would be to create a large buffer on the GPU, write to that buffer via kernels, and
+                after all the integration is finished, read that buffer. However, this is almost impossible without
+                using too much memory.
+                A typical lattice of 272x272 with 3000000 integration steps would generate a huge buffer
+                3 * sizeof(double) * 272 * 272 * (3000000 / s->write_vel_charge_cut) * 2(velocity and avg_mag)
+               =3 * 8 * 272 * 272 * (3000000 / 100) * 2 (values used in real simulations made by me)
+               =106.5GB
+                So, no, there is no way of doing a large buffer for all the integration steps
+                What could work is doing a smaller buffer, and reading it in batches during the integration.
+                This way instead of 3000000 steps, as used above, we use the amount os elements per batch in the buffer.
+                3 * sizeof(double) * 272 * 272 * elementes per batch * 2
+               =3 * 8 * 272 * 272 * 500 * 2
+               =1.7GB
+                So, this would be more reasonable to use. However, usually we run many programs at the same time (~20)
+                and 1GB(+other memory needed, such as grid buffer and so on) per program would not fit on any RTX GPU,
+                so, yeah, no, we cannot use that either.
+                We are left with reading the buffers more frequent than what i would like,
+                but it is what it is and it isn't what it isn't
+            */
             ReadBuffer(vxvy_Qz_avg_mag_buffer, vxvy_Qz_avg_mag, 2 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
             for (size_t k = 0; k < s->g_old.param.total; ++k)
             {
