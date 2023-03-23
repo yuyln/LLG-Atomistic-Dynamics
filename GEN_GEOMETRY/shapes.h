@@ -9,47 +9,18 @@
 #define RAD(x) (x * M_PI / 180.0)
 #define DEG(x) (x * 180.0 / M_PI)
 
-typedef struct
-{
-	int x, y;
-} v2i;
-typedef struct
-{
-	double x, y;
-} v2d;
+typedef struct {int x, y;} v2i;
+typedef struct {double x, y;} v2d;
 
-// PRIMITIVE TYPES FOR DRAWING
-// #####################################################################################
-typedef struct
-{
-	v2d p1, p2, p3;
-} triangle; // #
-typedef struct
-{
-	v2d p1, p2, p3, p4;
-} quad; // #
-typedef struct
-{
-	v2d p1, p2;
-	double thick;
-} line; // #
-typedef struct
-{
-	int sides;
-	v2d l, center, max_d, min_d;
-	double rotation;
-} n_side; // #
-typedef struct
-{
-	double R;
-	v2d center;
-} circle; // #
-typedef struct
-{
-	v2d center, ab;
-	double angle;
-} ellipse; // #
-// #####################################################################################
+//PRIMITIVE TYPES FOR DRAWING
+//#####################################################################################
+typedef struct {v2d p1, p2, p3;} triangle;                                          //#
+typedef struct {v2d p1, p2, p3, p4;} quad;                                          //#
+typedef struct {v2d p1, p2; double thick;} line;                                    //#
+typedef struct {int sides; v2d l, center, max_d, min_d; double rotation;} n_side;   //#
+typedef struct {double R; v2d center;} circle;                                      //#
+typedef struct {v2d center, ab; double angle;} ellipse;                             //#
+//#####################################################################################
 
 const char DEFAULT_FORMAT[] = "0.0\t0.0\t-1.0";
 
