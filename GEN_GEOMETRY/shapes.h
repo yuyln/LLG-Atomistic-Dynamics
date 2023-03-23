@@ -9,6 +9,10 @@
 #define RAD(x) (x * M_PI / 180.0)
 #define DEG(x) (x * 180.0 / M_PI)
 
+#ifndef PRINT_FORMAT
+#define PRINT_FORMAT "%d\t%d\t0.0\t0.0\t-1.0\n", y, x
+#endif
+
 typedef struct {int x, y;} v2i;
 typedef struct {double x, y;} v2d;
 
@@ -150,7 +154,7 @@ void triangle_discrete_to_file(FILE *file, triangle t, int xmin, int xmax, int y
 		for (int x = (int)min_x; x < (int)max_x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (triangle_inside(p, t)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (triangle_inside(p, t)) fprintf(file, PRINT_FORMAT);
 		}
 	}	
 }
@@ -210,7 +214,7 @@ void quad_discrete_to_file(FILE *file, quad q, int xmin, int xmax, int ymin, int
 		for (int x = (int)min_x; x < (int)max_x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (quad_inside(p, q)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (quad_inside(p, q)) fprintf(file, PRINT_FORMAT);
 		}
 	}	
 }
@@ -269,7 +273,7 @@ void line_discrete_to_file_smooth(FILE *file, line l, int xmin, int xmax, int ym
 		for (int x = (int)min_x - 2 * l.thick; x < (int)max_x + 2 * l.thick; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (line_inside_smooth(p, l)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (line_inside_smooth(p, l)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 }
@@ -292,7 +296,7 @@ void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin
 		for (int x = (int)min_x - 2 * l.thick; x < (int)max_x + 2 * l.thick; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (line_inside_quad(p, l)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (line_inside_quad(p, l)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 }
@@ -314,7 +318,7 @@ void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int 
 		for (int x = (int)min_x; x < (int)max_x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (line_inside_quad(p, l)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (line_inside_quad(p, l)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 }
@@ -385,7 +389,7 @@ void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin,
 		for (int x = t.min_d.x; x < t.max_d.x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (n_side_inside(p, t)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (n_side_inside(p, t)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 
@@ -427,7 +431,7 @@ void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin,
 		for (int x = min_x; x < max_x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (circle_inside(p, c)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (circle_inside(p, c)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 }
@@ -459,7 +463,7 @@ void ellipse_discrete_to_file(FILE *file, ellipse e, int xmin, int xmax, int ymi
 		for (int x = min_x; x < max_x; ++x) {
 			if (x < xmin || x >= xmax) continue;
 			v2d p = i_v2d(x, y);
-			if (ellipse_inside(p, e)) fprintf(file, "%d\t%d\t0.0\t0.0\t-1.0\n", y, x);
+			if (ellipse_inside(p, e)) fprintf(file, PRINT_FORMAT);
 		}
 	}
 }

@@ -564,7 +564,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
 
     for (size_t i = 0; i < s->n_steps; ++i)
     {
-        if (i % (s->n_steps / 10) == 0)
+        if (i % (s->n_steps / 100) == 0)
         {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
             fflush(stdout);

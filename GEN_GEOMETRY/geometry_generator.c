@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#define PRINT_FORMAT "%d\t%d\t0.0\t0.0\t-1.0\n", y, x
 #define __SHAPES_C
 #include "shapes.h"
 
