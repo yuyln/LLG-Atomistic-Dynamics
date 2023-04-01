@@ -314,6 +314,21 @@ double ChargeInterpI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, dou
     return ret;
 }
 
+double ChargeI_old(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
+{
+    int col = I % cols;
+    int row = (I - col) / cols;
+    Vec R = PBCVec(row, col + 1, g, rows, cols, pbc),
+        L = PBCVec(row, col - 1, g, rows, cols, pbc),
+        U = PBCVec(row + 1, col, g, rows, cols, pbc),
+        D = PBCVec(row - 1, col, g, rows, cols, pbc);
+    
+    Vec dgdx = VecScalar(VecSub(R, L), 0.5 / dx);
+    Vec dgdy = VecScalar(VecSub(U, D), 0.5 / dy);
+    return 1.0 / (4 * M_PI) * dx * dy * VecDot(VecCross(dgdx, dgdy), g[I]);
+}
+
+
 double ChargeI(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
     /*#ifdef INTERP

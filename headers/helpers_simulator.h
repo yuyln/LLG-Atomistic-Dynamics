@@ -188,9 +188,10 @@ Simulator InitSimulator(const char* path)
     EndParse();
 
     ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
-    ret.velxy_chargez = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.velxy = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     ret.pos_xy = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     ret.avg_mag = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.chpr_chim = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     printf("Size of grid out file in MB: %f\n", (ret.write_to_file || ret.write_on_fly) * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(Vec) / 1.0e6);
     free(local_file_dir);
     free(local_file_ani_dir);
@@ -266,10 +267,10 @@ void FreeSimulator(Simulator *s)
         s->grid_out_file = NULL;
     }
     
-    if (s->velxy_chargez)
+    if (s->velxy)
     {
-        free(s->velxy_chargez);
-        s->velxy_chargez = NULL;
+        free(s->velxy);
+        s->velxy = NULL;
     }
     
     if (s->pos_xy)
@@ -282,6 +283,12 @@ void FreeSimulator(Simulator *s)
     {
         free(s->avg_mag);
         s->avg_mag = NULL;
+    }
+
+    if (s->chpr_chim)
+    {
+        free(s->chpr_chim);
+        s->chpr_chim = NULL;
     }
     
     FreeGrid(&s->g_old);

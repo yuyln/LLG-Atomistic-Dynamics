@@ -29,7 +29,6 @@ int main()
 
     // CreateNeelTriangularLattice(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 3, 4, 1.0, -1.0);
     CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 2, s.g_old.param.rows / 2, 4, 1, -1.0);
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 4, s.g_old.param.rows / 2, 4, 1, -1.0);
 
     Current cur;
 

@@ -1,8 +1,4 @@
-/**
-@file
-Implements a 512-bit tyche (Well-Equidistributed Long-period Linear) RNG.
-S. Neves, F. Araujo, Fast and small nonlinear pseudorandom number generators for computer simulation, in: International Conference on Parallel Processing and Applied Mathematics, Springer, 2011, pp. 92–101.
-*/
+/*S. Neves, F. Araujo*/
 #define TYCHE_FLOAT_MULTI 5.4210108624275221700372640e-20f
 #define TYCHE_DOUBLE_MULTI 5.4210108624275221700372640e-20
 
@@ -14,7 +10,6 @@ typedef union{
 } tyche_state;
 
 #define TYCHE_ROT(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-
 #define tyche_macro_ulong(state) (tyche_macro_advance(state), state.res)
 #define tyche_macro_advance(state) ( \
 	state.a += state.b, \
@@ -98,7 +93,7 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)
     g_old->grid[I] = g_new->grid[I];
 }
 
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Qz_avg_mag)
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_avg_mag_cp_ci)
 {
 	size_t I = get_global_id(0);
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));
@@ -106,11 +101,12 @@ kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, dou
 
 	if (i % cut == 0)
 	{
-		vxvy_Qz_avg_mag[I].z = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
 		Vec vt = VelWeightedI(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, 
 					g_old->param.lattice, g_old->param.lattice, 0.5 * dt * HBAR / fabs(g_old->param.exchange), g_old->param.pbc);
-		vxvy_Qz_avg_mag[I].x = vt.x;
-		vxvy_Qz_avg_mag[I].y = vt.y;
-		vxvy_Qz_avg_mag[TOTAL + I] = g_new->grid[I];
+		vxvy_avg_mag_cp_ci[I].x = vt.x;
+		vxvy_avg_mag_cp_ci[I].y = vt.y;
+		vxvy_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];
+		vxvy_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
+		vxvy_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
 	}
 }

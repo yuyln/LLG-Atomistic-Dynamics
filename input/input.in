@@ -26,8 +26,8 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 55
-    COLS: 64
+    ROWS: 128 55
+    COLS: 128
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
@@ -44,7 +44,7 @@ SPIN: 1.0
     ANI_Y: 0.0
     ANI_Z: 1.0
 
-ALPHA: 0.04
+ALPHA: 0.3
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 

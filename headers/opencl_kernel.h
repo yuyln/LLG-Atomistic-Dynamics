@@ -1,11 +1,7 @@
 #ifndef __OPEN_CL_KERNEL
 #define __OPEN_CL_KERNEL
 /*static*/ const char kernel_data[] = "\
-/**\n\
-@file\n\
-Implements a 512-bit tyche (Well-Equidistributed Long-period Linear) RNG.\n\
-S. Neves, F. Araujo, Fast and small nonlinear pseudorandom number generators for computer simulation, in: International Conference on Parallel Processing and Applied Mathematics, Springer, 2011, pp. 92–101.\n\
-*/\n\
+/*S. Neves, F. Araujo*/\n\
 #define TYCHE_FLOAT_MULTI 5.4210108624275221700372640e-20f\n\
 #define TYCHE_DOUBLE_MULTI 5.4210108624275221700372640e-20\n\
 \n\
@@ -17,7 +13,6 @@ typedef union{\n\
 } tyche_state;\n\
 \n\
 #define TYCHE_ROT(a,b) (((a) << (b)) | ((a) >> (32 - (b))))\n\
-\n\
 #define tyche_macro_ulong(state) (tyche_macro_advance(state), state.res)\n\
 #define tyche_macro_advance(state) ( \\n\
 	state.a += state.b, \\n\
@@ -101,7 +96,7 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)\n\
     g_old->grid[I] = g_new->grid[I];\n\
 }\n\
 \n\
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Qz_avg_mag)\n\
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_avg_mag_cp_ci)\n\
 {\n\
 	size_t I = get_global_id(0);\n\
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));\n\
@@ -109,12 +104,13 @@ kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, dou
 \n\
 	if (i % cut == 0)\n\
 	{\n\
-		vxvy_Qz_avg_mag[I].z = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
 		Vec vt = VelWeightedI(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, \n\
 					g_old->param.lattice, g_old->param.lattice, 0.5 * dt * HBAR / fabs(g_old->param.exchange), g_old->param.pbc);\n\
-		vxvy_Qz_avg_mag[I].x = vt.x;\n\
-		vxvy_Qz_avg_mag[I].y = vt.y;\n\
-		vxvy_Qz_avg_mag[TOTAL + I] = g_new->grid[I];\n\
+		vxvy_avg_mag_cp_ci[I].x = vt.x;\n\
+		vxvy_avg_mag_cp_ci[I].y = vt.y;\n\
+		vxvy_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];\n\
+		vxvy_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		vxvy_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
 	}\n\
 }";
 #endif
