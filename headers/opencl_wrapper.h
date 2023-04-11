@@ -374,20 +374,43 @@ void DeviceInfo(FILE *file, cl_device_id dev, size_t idev)
     PrintCLError(stderr, err, "ERROR GETTING PLATFORM NAME FROM DEVICE[%zu]", idev);
 
     fprintf(file, "DEVICE[%zu] ON PLATFORM %s\n", idev, info);
+    free(info);
 
+    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VENDOR INFO", idev);
+    info = (char*)malloc(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] VENDOR INFO", idev);
+    fprintf(file, "DEVICE[%zu] VENDOR: %s\n", idev, info);
+    free(info);
+
+    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VERSION INFO", idev);
+    info = (char*)malloc(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] VERSION INFO", idev);
+    fprintf(file, "DEVICE[%zu] VERSION: %s\n", idev, info);
+    free(info);
+
+    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] DRIVER VERSION INFO", idev);
+    info = (char*)malloc(n);
+    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] DRIVER VERSION INFO", idev);
+    fprintf(file, "DEVICE[%zu] DRIVER VERSION: %s\n", idev, info);
+    free(info);
 
     err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n);
     PrintCLError(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] NAME INFO", idev);
-
-    free(info);
     info = (char*)malloc(n);
     err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL);
     PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] NAME INFO", idev);
-    
-
-
     fprintf(file, "DEVICE[%zu] NAME: %s\n", idev, info);
     free(info);
+
+    cl_bool device_avaiable;
+    err = clGetDeviceInfo(dev, CL_DEVICE_AVAILABLE, sizeof(cl_bool), &device_avaiable, NULL);
+    fprintf(file, "DEVICE[%zu] AVAILABLE: %d\n", idev, device_avaiable);
 
     cl_ulong memsize;
     err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL);

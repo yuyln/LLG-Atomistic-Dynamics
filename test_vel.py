@@ -16,14 +16,17 @@ vxs = np.concatenate([vxs, [vxs[-1]]])
 vys = np.concatenate([vys, [vys[-1]]])
 
 fig, ax = plt.subplots()
-ax.plot(vels[0] / NANO, vels[1], color="black", label="P")
-ax.plot(vels[0] / NANO, vels[2], color="red", label="P")
+ax.plot(vels[0] / NANO, vels[1], label="P")
+ax.plot(vels[0] / NANO, vels[2], label="P")
 
-ax.plot(vels[0] / NANO, vels[3], color="blue", label="I")
-ax.plot(vels[0] / NANO, vels[4], color="green", label="I")
+ax.plot(vels[0] / NANO, vels[3], label="I")
+ax.plot(vels[0] / NANO, vels[4], label="I")
 
-ax.plot(vels[0] / NANO, vxs, color="orange", label="D")
-ax.plot(vels[0] / NANO, vys, color="pink", label="D")
+ax.plot(vels[0] / NANO, vxs, label="D")
+ax.plot(vels[0] / NANO, vys, label="D")
+
+ax.plot(vels[0] / NANO, (vels[1] + vels[3]) * 0.5, label="M")
+ax.plot(vels[0] / NANO, (vels[2] + vels[4]) * 0.5, label="M")
 
 ax.legend()
 

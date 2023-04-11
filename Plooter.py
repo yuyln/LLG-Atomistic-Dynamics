@@ -15,7 +15,7 @@ def FixPlot(lx, ly):
     rcParams['text.usetex'] = True
     # rcParams['font.family'] = 'sans-serif'
     # rcParams['font.sans-serif'] = ['Arial']
-    rcParams['font.size'] = 40
+    rcParams['font.size'] = 28
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 10.0
     plot_color_cycle = cycler('color', ['000000', 'FE0000', '0000FE', '008001', 'FD8000', '8c564b',
@@ -26,7 +26,7 @@ def FixPlot(lx, ly):
     rcParams['legend.fancybox'] = False
     rcParams['legend.framealpha'] = 1.0
     rcParams['legend.edgecolor'] = "black"
-    rcParams['legend.fontsize'] = 28
+    rcParams['legend.fontsize'] = 22
     rcParams['xtick.labelsize'] = 22
     rcParams['ytick.labelsize'] = 22
 

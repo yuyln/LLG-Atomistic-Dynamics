@@ -3,18 +3,17 @@
 
 #include <helpers.h>
 #if defined(RK4)
-static const char* integration_method = "RK4";
+static const char *integration_method = "RK4";
 #elif defined(RK2)
-static const char* integration_method = "RK2";
+static const char *integration_method = "RK2";
 #elif defined(EULER)
-static const char* integration_method = "EULER";
+static const char *integration_method = "EULER";
 #else
-static const char* integration_method = "???";
+static const char *integration_method = "???";
 #endif
 
-
-#define kernels_n sizeof(kernels) / sizeof(char*)
-static const char* kernels[] = {"TermalStep", "HamiltonianGPU", "Reset", "StepGPU"};
+#define kernels_n sizeof(kernels) / sizeof(char *)
+static const char *kernels[] = {"TermalStep", "HamiltonianGPU", "Reset", "StepGPU"};
 
 void FreeGPU(GPU *g)
 {
@@ -22,14 +21,14 @@ void FreeGPU(GPU *g)
     {
         PrintCLError(stderr, clReleaseKernel(g->kernels[i].kernel), "Error releasing kernel %s", g->kernels[i].name);
     }
-    
+
     if (g->kernels)
         free(g->kernels);
 
     PrintCLError(stderr, clReleaseProgram(g->program), "Error releasing program");
     PrintCLError(stderr, clReleaseContext(g->ctx), "Error releasing context");
     PrintCLError(stderr, clReleaseCommandQueue(g->queue), "Error releasing queue");
-    
+
     for (size_t i = 0; i < g->n_devs; ++i)
     {
         PrintCLError(stderr, clReleaseDevice(g->devs[i]), "Error releasing device[%zu]", i);
@@ -40,7 +39,7 @@ void FreeGPU(GPU *g)
         free(g->plats);
 }
 
-Simulator InitSimulator(const char* path)
+Simulator InitSimulator(const char *path)
 {
     Simulator ret = {0};
     GridParam param_tmp = {0};
@@ -81,7 +80,7 @@ Simulator InitSimulator(const char* path)
     ret.n_cpu = (size_t)GetValueULLInt("CPU", 10);
 
     bool start_random = (bool)GetValueInt("RANDOM_START_GRID", 10);
-    char* local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE_GRID") + 1]);
+    char *local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE_GRID") + 1]);
 
     if (FindIndexOfTag("FILE_ANISOTROPY") < 0)
     {
@@ -101,11 +100,10 @@ Simulator InitSimulator(const char* path)
         exit(1);
     }
 
+    char *local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
+    char *local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
+    char *local_file_regions_dir = strdup(parser_global_state[FindIndexOfTag("FILE_REGIONS") + 1]);
 
-    char* local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
-    char* local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
-    char* local_file_regions_dir = strdup(parser_global_state[FindIndexOfTag("FILE_REGIONS") + 1]);
-    
     Anisotropy global_ani;
     global_ani.K_1 = GetValueDouble("ANISOTROPY") * param_tmp.exchange;
     global_ani.dir.x = GetValueDouble("ANI_X");
@@ -117,7 +115,7 @@ Simulator InitSimulator(const char* path)
         ret.g_old = InitGridRandom(GetValueInt("ROWS", 10), GetValueInt("COLS", 10));
     else
         ret.g_old = InitGridFromFile(local_file_dir);
-    
+
     memcpy(&ret.g_old.param.exchange, &param_tmp.exchange, sizeof(GridParam) - (sizeof(int) * 2 + sizeof(size_t)));
 
     for (size_t i = 0; i < ret.g_old.param.total; ++i)
@@ -127,7 +125,6 @@ Simulator InitSimulator(const char* path)
     }
 
     StartParse(local_file_ani_dir);
-    
 
     int index_data = FindIndexOfTag("Data");
     if (index_data < 0)
@@ -187,11 +184,11 @@ Simulator InitSimulator(const char* path)
     }
     EndParse();
 
-    ret.grid_out_file = (Vec*)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
-    ret.velxy = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
-    ret.pos_xy = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
-    ret.avg_mag = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
-    ret.chpr_chim = (Vec*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.grid_out_file = (Vec *)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
+    ret.velxy = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.pos_xy = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.avg_mag = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.chpr_chim = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     printf("Size of grid out file in MB: %f\n", (ret.write_to_file || ret.write_on_fly) * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(Vec) / 1.0e6);
     free(local_file_dir);
     free(local_file_ani_dir);
@@ -215,27 +212,24 @@ Simulator InitSimulator(const char* path)
         for (size_t i = 0; i < ret.gpu.n_devs; ++i)
             DeviceInfo(stdout, ret.gpu.devs[i], i);
 
-
         ret.gpu.ctx = InitContext(ret.gpu.devs, ret.gpu.n_devs);
         ret.gpu.queue = InitQueue(ret.gpu.ctx, ret.gpu.devs[ret.gpu.i_dev]);
         ret.gpu.program = InitProgramSource(ret.gpu.ctx, kernel_data);
 
-        char* comp_opt;
+        char *comp_opt;
 
-        #ifndef INTERP
+#ifndef INTERP
 
         size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
-        comp_opt = (char*)calloc(comp_opt_size, 1);
+        comp_opt = (char *)calloc(comp_opt_size, 1);
         snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
         comp_opt[comp_opt_size - 1] = '\0';
-        #else
+#else
         size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP) + 1;
-        comp_opt = (char*)calloc(comp_opt_size, 1);
+        comp_opt = (char *)calloc(comp_opt_size, 1);
         snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP);
         comp_opt[comp_opt_size - 1] = '\0';
-        #endif
-
-
+#endif
 
         printf("Compile OpenCL: %s\n", comp_opt);
         cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
@@ -251,10 +245,10 @@ Simulator InitSimulator(const char* path)
 
     EndParse();
 
-    #if !(defined(RK4) || defined(RK2) || defined(EULER))
+#if !(defined(RK4) || defined(RK2) || defined(EULER))
     fprintf(stderr, "Invalid integration\n");
     exit(1);
-    #endif
+#endif
 
     return ret;
 }
@@ -266,13 +260,13 @@ void FreeSimulator(Simulator *s)
         free(s->grid_out_file);
         s->grid_out_file = NULL;
     }
-    
+
     if (s->velxy)
     {
         free(s->velxy);
         s->velxy = NULL;
     }
-    
+
     if (s->pos_xy)
     {
         free(s->pos_xy);
@@ -290,7 +284,7 @@ void FreeSimulator(Simulator *s)
         free(s->chpr_chim);
         s->chpr_chim = NULL;
     }
-    
+
     FreeGrid(&s->g_old);
     FreeGrid(&s->g_new);
     if (s->use_gpu)
@@ -299,10 +293,9 @@ void FreeSimulator(Simulator *s)
         PrintCLError(stderr, clReleaseMemObject(s->g_new_buffer), "Error releasing g_new buffer");
         FreeGPU(&s->gpu);
     }
-
 }
 
-void ExportSimulator(Simulator* s, FILE* file)
+void ExportSimulator(Simulator *s, FILE *file)
 {
     // double J_abs = s->g_old.param.exchange * (s->g_old.param.exchange < 0? -1.0: 1.0);
     double J_abs = fabs(s->g_old.param.exchange);
@@ -325,14 +318,14 @@ void ExportSimulator(Simulator* s, FILE* file)
     fprintf(file, "Write to File Cut: %zu\n", s->write_cut);
 }
 
-void ExportSimulatorFile(Simulator* s, const char* path)
+void ExportSimulatorFile(Simulator *s, const char *path)
 {
     FILE *file = mfopen(path, "w", 1);
     ExportSimulator(s, file);
     fclose(file);
 }
 
-void DumpWriteGrid(const char* file_path, Simulator* s)
+void DumpWriteGrid(const char *file_path, Simulator *s)
 {
     FILE *f = mfopen(file_path, "w", 1);
 
@@ -344,11 +337,10 @@ void DumpWriteGrid(const char* file_path, Simulator* s)
     size_t ss = s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut * sizeof(Vec);
     fwrite(s->grid_out_file, 1, ss, f);
 
-    
     fclose(f);
 }
 
-void DumpWriteChargeGrid(const char* file_path, Simulator *s)
+void DumpWriteChargeGrid(const char *file_path, Simulator *s)
 {
     FILE *f = mfopen(file_path, "w", 1);
 
@@ -361,7 +353,7 @@ void DumpWriteChargeGrid(const char* file_path, Simulator *s)
 
     size_t ss = s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut * sizeof(double);
 
-    double* charge_total = calloc(s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut, sizeof(double));
+    double *charge_total = calloc(s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut, sizeof(double));
     for (int i = 0; i < n_steps; ++i)
     {
         for (size_t I = 0; I < (size_t)(rows * cols); ++I)

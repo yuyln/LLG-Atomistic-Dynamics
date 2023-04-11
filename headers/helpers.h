@@ -571,6 +571,8 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     size_t local = gcd(global, 32);
 
     Vec* vxvy_avg_mag_chpr_chim = (Vec*)calloc(3 * s->g_old.param.total, sizeof(Vec));
+    memset(vxvy_avg_mag_chpr_chim, 1, sizeof(Vec) * s->g_old.param.total * 3);
+    memset(vxvy_avg_mag_chpr_chim, 0, sizeof(Vec) * s->g_old.param.total * 3);
 
     cl_mem vxvy_avg_mag_chpr_chim_buffer = CreateBuffer(3 * sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
     WriteBuffer(vxvy_avg_mag_chpr_chim_buffer, vxvy_avg_mag_chpr_chim, 3 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
@@ -904,7 +906,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         chim = s->chpr_chim[t].y;
         fprintf(velocity_total, "%e\t%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vx / chpr, vy / chpr, vx / chim, vy / chim);
         fprintf(charge_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
-        fprintf(pos_xy, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
+        fprintf(pos_xy, "%e\t%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
         fprintf(avg_mag, "%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->avg_mag[t].x, s->avg_mag[t].y, s->avg_mag[t].z);
 
         // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
