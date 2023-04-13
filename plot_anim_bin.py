@@ -7,7 +7,7 @@ import numpy as np
 import array
 import pandas as pd
 REDUCE_FACTOR = 1
-PLOT_ARROWS = True
+PLOT_ARROWS = False 
 PLOT_ANI = False
 PLOT_PIN = False
 INTERPOLATION = "nearest"

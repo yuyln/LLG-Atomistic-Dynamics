@@ -3,7 +3,7 @@ GPU: 1
 PLAT: 0
 DEV: 0
 
-DT: 0.01
+DT: 0.0006
 STEPS: 500000
 WRITE: 0
 WRITE_HUMAN: 0
@@ -11,6 +11,7 @@ WRITE_ON_FLY: 1
 CUT: 5000
 
 CUT_FOR_VEL_CHARGE: 100
+CALCULATE_ENERGY: 1
 
 GSA: 0
     qA: 2.8
@@ -26,15 +27,15 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 128 55
-    COLS: 128
+    ROWS: 64
+    COLS: 64 
 
 FILE_PINNING: ./input/pinning.in
 FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -1.0
+(units of J) DMI: -0.5
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
@@ -52,7 +53,7 @@ DM_TYPE: 1
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 0
+PBC_TYPE: 1
 PBC_X: 0.0
 PBC_Y: 0.0
 PBC_Z: 0.0

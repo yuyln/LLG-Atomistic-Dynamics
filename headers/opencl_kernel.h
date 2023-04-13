@@ -96,7 +96,7 @@ kernel void Reset(global Grid* g_old, global const Grid* g_new)\n\
     g_old->grid[I] = g_new->grid[I];\n\
 }\n\
 \n\
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_avg_mag_cp_ci)\n\
+kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)\n\
 {\n\
 	size_t I = get_global_id(0);\n\
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));\n\
@@ -106,11 +106,14 @@ kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, dou
 	{\n\
 		Vec vt = VelWeightedI(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, \n\
 					g_old->param.lattice, g_old->param.lattice, 0.5 * dt * HBAR / fabs(g_old->param.exchange), g_old->param.pbc);\n\
-		vxvy_avg_mag_cp_ci[I].x = vt.x;\n\
-		vxvy_avg_mag_cp_ci[I].y = vt.y;\n\
-		vxvy_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];\n\
-		vxvy_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
-		vxvy_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		vxvy_Ez_avg_mag_cp_ci[I].x = vt.x;\n\
+		vxvy_Ez_avg_mag_cp_ci[I].y = vt.y;\n\
+		vxvy_Ez_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];\n\
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		if (calc_energy)\n\
+			vxvy_Ez_avg_mag_cp_ci[I].z = HamiltonianI(I, g_new, field);\n\
 	}\n\
-}";
+}\n\
+";
 #endif

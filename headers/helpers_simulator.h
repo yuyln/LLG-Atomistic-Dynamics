@@ -63,6 +63,7 @@ Simulator InitSimulator(const char *path)
     ret.do_gsa = (bool)GetValueInt("GSA", 10);
     ret.do_relax = (bool)GetValueInt("RELAX", 10);
     ret.do_integrate = (bool)GetValueInt("INTEGRATE", 10);
+    ret.calculate_energy = (bool)GetValueInt("CALCULATE_ENERGY", 10);
     ret.write_human = (bool)GetValueInt("WRITE_HUMAN", 10);
     ret.write_on_fly = (bool)GetValueInt("WRITE_ON_FLY", 10);
 
@@ -185,7 +186,7 @@ Simulator InitSimulator(const char *path)
     EndParse();
 
     ret.grid_out_file = (Vec *)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(Vec));
-    ret.velxy = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
+    ret.velxy_Ez = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     ret.pos_xy = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     ret.avg_mag = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
     ret.chpr_chim = (Vec *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(Vec));
@@ -218,18 +219,11 @@ Simulator InitSimulator(const char *path)
 
         char *comp_opt;
 
-#ifndef INTERP
 
-        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
+        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
         comp_opt = (char *)calloc(comp_opt_size, 1);
-        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
+        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
         comp_opt[comp_opt_size - 1] = '\0';
-#else
-        size_t comp_opt_size = snprintf(NULL, 0, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP) + 1;
-        comp_opt = (char *)calloc(comp_opt_size, 1);
-        snprintf(comp_opt, comp_opt_size, "-I ./headers -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -DINTERP=%d", ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method, INTERP);
-        comp_opt[comp_opt_size - 1] = '\0';
-#endif
 
         printf("Compile OpenCL: %s\n", comp_opt);
         cl_int err = BuildProgram(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
@@ -261,10 +255,10 @@ void FreeSimulator(Simulator *s)
         s->grid_out_file = NULL;
     }
 
-    if (s->velxy)
+    if (s->velxy_Ez)
     {
-        free(s->velxy);
-        s->velxy = NULL;
+        free(s->velxy_Ez);
+        s->velxy_Ez = NULL;
     }
 
     if (s->pos_xy)

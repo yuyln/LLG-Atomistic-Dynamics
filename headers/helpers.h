@@ -51,13 +51,13 @@ typedef struct Simulator
     size_t n_cpu;
     size_t write_cut;
     size_t write_vel_charge_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly, calculate_energy;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
     Grid g_new;
     cl_mem g_old_buffer, g_new_buffer;
-    Vec *grid_out_file, *velxy, *pos_xy, *avg_mag, *chpr_chim;
+    Vec *grid_out_file, *velxy_Ez, *pos_xy, *avg_mag, *chpr_chim;
 } Simulator;
 
 FILE* mfopen(const char* name, const char* mode, int exit_)
@@ -371,7 +371,7 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
         int steps = (int)(s->n_steps / s->write_cut);
         fwrite(&steps, sizeof(int), 1, fly);
     }
-    memset(s->velxy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
+    memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->pos_xy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->avg_mag, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->chpr_chim, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -402,8 +402,8 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
                 Vec vt = VelWeightedI(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
                             s->g_old.param.lattice, s->g_old.param.lattice, 0.5 * s->dt * HBAR / fabs(s->g_old.param.exchange), s->g_old.param.pbc);
 
-                s->velxy[t].x += vt.x;
-                s->velxy[t].y += vt.y;
+                s->velxy_Ez[t].x += vt.x;
+                s->velxy_Ez[t].y += vt.y;
 
                 s->avg_mag[t] = VecAdd(s->avg_mag[t], s->g_new.grid[I]);
 
@@ -416,10 +416,10 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
         if (i % s->write_vel_charge_cut == 0)
         {
             // Moved to export phase
-            /*s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
-            s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_chargez[t].z;*/
+            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
+            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = VecScalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
 
@@ -447,7 +447,7 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
         fwrite(&steps, sizeof(int), 1, fly);
     }
 
-    memset(s->velxy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
+    memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->pos_xy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->avg_mag, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->chpr_chim, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -509,17 +509,17 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
         {
             for (size_t k = 0; k < s->n_cpu; ++k)
             {
-                s->velxy[t] = VecAdd(s->velxy[t], velxy_thread[k]);
+                s->velxy_Ez[t] = VecAdd(s->velxy_Ez[t], velxy_thread[k]);
                 s->pos_xy[t] = VecAdd(s->pos_xy[t], pos_xy_thread[k]);
                 s->avg_mag[t] = VecAdd(s->avg_mag[t], avg_mag_thread[k]);
                 s->chpr_chim[t] = VecAdd(s->chpr_chim[t], chpr_chim_thread[k]);
             }
 
             // Moved to export phase
-            /*s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
-            s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_chargez[t].z;*/
+            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
+            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = VecScalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
         
@@ -550,7 +550,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         fwrite(&steps, sizeof(int), 1, fly);
     }
 
-    memset(s->velxy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
+    memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->pos_xy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->avg_mag, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->chpr_chim, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -566,18 +566,19 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
 
     // int cut = s->write_vel_charge_cut;
     SetKernelArg(s->gpu.kernels[3], 7, sizeof(int), &s->write_vel_charge_cut);
+    SetKernelArg(s->gpu.kernels[3], 9, sizeof(int), &s->calculate_energy);
 
     size_t global = s->g_old.param.total;
     size_t local = gcd(global, 32);
 
-    Vec* vxvy_avg_mag_chpr_chim = (Vec*)calloc(3 * s->g_old.param.total, sizeof(Vec));
-    memset(vxvy_avg_mag_chpr_chim, 1, sizeof(Vec) * s->g_old.param.total * 3);
-    memset(vxvy_avg_mag_chpr_chim, 0, sizeof(Vec) * s->g_old.param.total * 3);
+    Vec* vxvy_Ez_avg_mag_chpr_chim = (Vec*)calloc(3 * s->g_old.param.total, sizeof(Vec));
+    memset(vxvy_Ez_avg_mag_chpr_chim, 1, sizeof(Vec) * s->g_old.param.total * 3);
+    memset(vxvy_Ez_avg_mag_chpr_chim, 0, sizeof(Vec) * s->g_old.param.total * 3);
 
-    cl_mem vxvy_avg_mag_chpr_chim_buffer = CreateBuffer(3 * sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
-    WriteBuffer(vxvy_avg_mag_chpr_chim_buffer, vxvy_avg_mag_chpr_chim, 3 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
+    cl_mem vxvy_Ez_avg_mag_chpr_chim_buffer = CreateBuffer(3 * sizeof(Vec) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
+    WriteBuffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
 
-    SetKernelArg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_avg_mag_chpr_chim_buffer);
+    SetKernelArg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_Ez_avg_mag_chpr_chim_buffer);
 
     for (size_t i = 0; i < s->n_steps; ++i)
     {
@@ -621,27 +622,28 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
                 We are left with reading the buffers more frequent than what i would like,
                 but it is what it is and it isn't what it isn't
             */
-            ReadBuffer(vxvy_avg_mag_chpr_chim_buffer, vxvy_avg_mag_chpr_chim, 3 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
+            ReadBuffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(Vec) * s->g_old.param.total, 0, s->gpu.queue);
             for (size_t k = 0; k < s->g_old.param.total; ++k)
             {
                 size_t x = k % s->g_old.param.cols;
                 size_t y = (k - x) / s->g_old.param.cols;
-                s->velxy[t].x += vxvy_avg_mag_chpr_chim[k].x;
-                s->velxy[t].y += vxvy_avg_mag_chpr_chim[k].y;
+                s->velxy_Ez[t].x += vxvy_Ez_avg_mag_chpr_chim[k].x;
+                s->velxy_Ez[t].y += vxvy_Ez_avg_mag_chpr_chim[k].y;
+		s->velxy_Ez[t].z += vxvy_Ez_avg_mag_chpr_chim[k].z;
 
-                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
-                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
+                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
+                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
 
-                s->avg_mag[t] = VecAdd(s->avg_mag[t], vxvy_avg_mag_chpr_chim[s->g_old.param.total + k]);
+                s->avg_mag[t] = VecAdd(s->avg_mag[t], vxvy_Ez_avg_mag_chpr_chim[s->g_old.param.total + k]);
 
-                s->chpr_chim[t] = VecAdd(s->chpr_chim[t], vxvy_avg_mag_chpr_chim[2 * s->g_old.param.total + k]);
+                s->chpr_chim[t] = VecAdd(s->chpr_chim[t], vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k]);
             }
 
             // Moved to export phase
-            /*s->velxy_chargez[t].x /= s->velxy_chargez[t].z;
-            s->velxy_chargez[t].y /= s->velxy_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_chargez[t].z;*/
+            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
+            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = VecScalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
         
@@ -661,9 +663,9 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
         }
     }
     ReadVecGridBuffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
-    PrintCLError(stderr, clReleaseMemObject(vxvy_avg_mag_chpr_chim_buffer), "Could not release vxvy_avg_mag_chpr_chim_buffer obj");
-    if (vxvy_avg_mag_chpr_chim)
-        free(vxvy_avg_mag_chpr_chim);
+    PrintCLError(stderr, clReleaseMemObject(vxvy_Ez_avg_mag_chpr_chim_buffer), "Could not release vxvy_Ez_avg_mag_chpr_chim_buffer obj");
+    if (vxvy_Ez_avg_mag_chpr_chim)
+        free(vxvy_Ez_avg_mag_chpr_chim);
 
     fclose(fly);
 }
@@ -875,12 +877,19 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     snprintf(out_avg_mag, out_avg_mag_size, "%s_avg_mag.out", root_path);
     out_avg_mag[out_avg_mag_size - 1] = '\0';
 
+    char *out_energy;
+    size_t out_energy_size = snprintf(NULL, 0, "%s_energy.out", root_path) + 1;
+    out_energy = (char*)calloc(out_energy_size, 1);
+    snprintf(out_energy, out_energy_size, "%s_energy.out", root_path);
+    out_energy[out_energy_size - 1] = '\0';
+
     // FILE* charge_anim = mfopen(out_cm_charge_anim, "w", 0);
     // FILE* grid_anim = mfopen(out_grid_anim, "w", 0);
     FILE *charge_total = mfopen(out_charge, "w", 0);
     FILE *velocity_total = mfopen(out_velocity, "w", 0);
     FILE *pos_xy = mfopen(out_pos_xy, "w", 0);
     FILE *avg_mag = mfopen(out_avg_mag, "w", 0);
+    FILE *energy = mfopen(out_energy, "w", 0);
 
     // free(out_grid_anim);
     // free(out_cm_charge_anim);
@@ -888,6 +897,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     free(out_velocity);
     free(out_pos_xy);
     free(out_avg_mag);
+    free(out_energy);
 
     double J_abs = fabs(s->g_old.param.exchange);
     printf("Writing charges related output\n");
@@ -900,15 +910,15 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
         size_t t = i / s->write_vel_charge_cut;
         double vx, vy, chpr, chim;
-        vx = s->velxy[t].x;
-        vy = s->velxy[t].y;
+        vx = s->velxy_Ez[t].x;
+        vy = s->velxy_Ez[t].y;
         chpr = s->chpr_chim[t].x;
         chim = s->chpr_chim[t].y;
         fprintf(velocity_total, "%e\t%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vx / chpr, vy / chpr, vx / chim, vy / chim);
         fprintf(charge_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
-        fprintf(pos_xy, "%e\t%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
+        fprintf(pos_xy, "%e\t%e\t%en", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
         fprintf(avg_mag, "%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->avg_mag[t].x, s->avg_mag[t].y, s->avg_mag[t].z);
-
+	fprintf(energy, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_Ez[t].z);
         // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
         // fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
 
@@ -932,6 +942,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     fclose(velocity_total);
     fclose(pos_xy);
     fclose(avg_mag);
+    fclose(energy);
 
     if (!(s->write_to_file && s->write_human))
         return;
