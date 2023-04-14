@@ -616,7 +616,7 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
                 3 * sizeof(double) * 272 * 272 * elementes per batch * 2
                =3 * 8 * 272 * 272 * 500 * 2
                =1.7GB
-                So, this would be more reasonable to use. However, usually we run many programs at the same time (~20)
+                So, this would be more reasonable to use. However, usually we run many programs at the same time (~40)
                 and 1GB(+other memory needed, such as grid buffer and so on) per program would not fit on any RTX GPU,
                 so, yeah, no, we cannot use that either.
                 We are left with reading the buffers more frequent than what i would like,
