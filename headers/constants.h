@@ -21,4 +21,6 @@
 #define PRIVATE private
 #endif
 
+#define UNUSED(x) ((void)x)
+
 #endif

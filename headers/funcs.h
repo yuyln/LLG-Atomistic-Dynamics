@@ -6,18 +6,13 @@
 
 inline Current GenCurI(size_t I, GLOBAL Grid* g, Current base, double norm_time)
 {
-    (void)I;
-    
-//    double osc = 2.0;
-//    double T = g->param.total_time / osc;
-//    base.j.x *= cos(2.0 * M_PI / T * norm_time);
-//    base.j.y *= sin(2.0 * M_PI / T * norm_time);
+    UNUSED(I); UNUSED(g); UNUSED(norm_time);
     return base;
 }
 
 inline Vec GenFieldI(size_t I, GLOBAL Grid* g, Vec base, double norm_time)
 {
-    (void)I; (void)g; (void)norm_time;
+    UNUSED(I); UNUSED(g); UNUSED(norm_time);
     return base;
 }
 

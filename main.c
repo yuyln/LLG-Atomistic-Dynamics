@@ -60,7 +60,7 @@ int main()
     }
 
     PrintVecGridToFile("./output/start.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
-    DumpGrid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    DumpGrid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     printf("%d\n", s.doing_relax);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
@@ -85,7 +85,7 @@ int main()
         DumpWriteGrid("./output/grid_anim_dump.bin", &s);
     }
 
-    DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim", &s);
     FreeSimulator(&s);

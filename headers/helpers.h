@@ -366,10 +366,15 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
     FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
+	int steps = (int)(s->n_steps / s->write_cut);
+	int fcut = s->write_cut;
+	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
-        int steps = (int)(s->n_steps / s->write_cut);
         fwrite(&steps, sizeof(int), 1, fly);
+	fwrite(&fcut, sizeof(int), 1, fly);
+	fwrite(&dt_real, sizeof(double), 1, fly);
+	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
     memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
     memset(s->pos_xy, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -441,10 +446,15 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
     FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
+	int steps = (int)(s->n_steps / s->write_cut);
+	int fcut = s->write_cut;
+	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
-        int steps = (int)(s->n_steps / s->write_cut);
         fwrite(&steps, sizeof(int), 1, fly);
+	fwrite(&fcut, sizeof(int), 1, fly);
+	fwrite(&dt_real, sizeof(double), 1, fly);
+	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -544,10 +554,15 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
+	int steps = (int)(s->n_steps / s->write_cut);
+	int fcut = s->write_cut;
+	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
-        int steps = (int)(s->n_steps / s->write_cut);
         fwrite(&steps, sizeof(int), 1, fly);
+	fwrite(&fcut, sizeof(int), 1, fly);
+	fwrite(&dt_real, sizeof(double), 1, fly);
+	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -964,11 +979,12 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
 }
 
-void DumpGrid(const char* file_path, Vec* g, int rows, int cols)
+void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
 {
     FILE *f = mfopen(file_path, "w", 1);
     fwrite(&rows, sizeof(int), 1, f);
     fwrite(&cols, sizeof(int), 1, f);
+    fwrite(&lattice, sizeof(double), 1, f);
     fwrite(g, sizeof(Vec) * rows * cols, 1, f);
     fclose(f);
 }
