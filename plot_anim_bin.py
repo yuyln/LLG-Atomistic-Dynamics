@@ -1,4 +1,5 @@
 from Plooter import *
+import mmap
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -35,7 +36,7 @@ except:
 # position[2] += 0.5
 
 file = open("./output/integration_fly.bin", "rb")
-raw_data = file.read()
+raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
 file.close()
 nrow_ncol_steps = array.array("i")
 nrow_ncol_steps.frombytes(raw_data[:12])
