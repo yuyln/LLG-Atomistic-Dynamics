@@ -40,7 +40,7 @@ cax1 = divider.append_axes("right", size="5%", pad=0.05)
 bar = plt.colorbar(img, cax=cax1)
 bar.set_ticks([-1, 0, 1])
 
-time_text = fig.text(0.5, 0.97, "t=0 ns", verticalalignment="center", horizontalalignment="center", fontsize=28)
+time_text = fig.text(0.5, 0.95, "t=0 ns", verticalalignment="center", horizontalalignment="center", fontsize=28)
 
 if cmd_parser.PLOT_ARROWS:
     global vecs
@@ -83,7 +83,6 @@ if cmd_parser.PLOT_PIN:
         x_pin = np.array([]) * lattice
         print(e)
     ax.scatter(x_pin, y_pin, marker="s", s=marker_size, c=cmd_parser.COLOR_PIN)
-    print(cmd_parser.COLOR_PIN)
 
 if cmd_parser.USE_LATEX:
     ax.set_xlabel("$x$(nm)")
