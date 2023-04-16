@@ -45,7 +45,10 @@ void GradientDescentSingle(Grid *g_in, Grid *g_out, double dt, double alpha, dou
 	    g_aux.grid = g_c;
 	    Vec vel = GradientDescentVelocity(g_p[j], g_n[j], dt);
 	    Vec Heff = GradientDescentForce(j, &g_aux, vel, g_c, field, J, alpha, beta);
-	    Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+
+	    if (T != 0)
+                Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+
 	    g_n[j] = VecAdd(
 			    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
 			    VecScalar(Heff, -2.0 * dt * dt / mass)
@@ -121,7 +124,10 @@ void GradientDescentMultiple(Grid *g_in, Grid *g_out, double dt, double alpha, d
 	    g_aux.grid = g_c;
 	    Vec vel = GradientDescentVelocity(g_p[j], g_n[j], dt);
 	    Vec Heff = GradientDescentForce(j, &g_aux, vel, g_c, field, J, alpha, beta);
-	    Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+
+	    if (T != 0)
+	        Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+
 	    g_n[j] = VecAdd(
 			    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
 			    VecScalar(Heff, -2.0 * dt * dt / mass)

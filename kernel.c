@@ -75,16 +75,22 @@ kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, g
 {
     size_t j = get_global_id(0);
 
-    tyche_state state;
-    tyche_seed(&state, seed + j);
-
-    double R1 = tyche_double(state);
-    double R2 = tyche_double(state);
-    double R3 = tyche_double(state);
 
     Vec vel = GradientDescentVelocity(g_p[j], g_n[j], dt);
     Vec Heff = GradientDescentForce(j, g_aux, vel, g_c, field, J, alpha, beta);
-    Heff = VecAdd(Heff, VecScalar(VecFrom(R1, R2, R3), T));
+
+    if (T != 0)
+    {
+        tyche_state state;
+        tyche_seed(&state, seed + j);
+
+        double R1 = tyche_double(state);
+        double R2 = tyche_double(state);
+        double R3 = tyche_double(state);
+
+    
+        Heff = VecAdd(Heff, VecScalar(VecFrom(R1, R2, R3), T));
+    }
 
     g_n[j] = VecAdd(
    		    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
