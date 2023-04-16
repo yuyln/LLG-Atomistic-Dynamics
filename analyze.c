@@ -84,11 +84,7 @@ int main(int argc, const char** argv)
                 {
                     for (int col = cols_per_stripe * x_stripe; col < cols_per_stripe * (x_stripe + 1); ++col)
                     {
-                        #ifdef INTERP
-                        charges[y_stripe * x_factor + x_stripe] += ChargeInterpI(row * cols + col, &grid[t * rows * cols], rows, cols, a, a, params.pbc, INTERP);
-                        #else
-                        charges[y_stripe * x_factor + x_stripe] += ChargeI(row * cols + col, &grid[t * rows * cols], rows, cols, a, a, params.pbc);
-                        #endif
+                        charges[y_stripe * x_factor + x_stripe] += ChargeI(row * cols + col, &grid[t * rows * cols], rows, cols, params.pbc);
                         vels[y_stripe * x_factor + x_stripe] = VecAdd(vels[y_stripe * x_factor + x_stripe], 
                                                                VelWeightedI(row * cols + col, 
                                                                             &grid[t * rows * cols], 

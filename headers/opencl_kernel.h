@@ -1,55 +1,7 @@
 #ifndef __OPEN_CL_KERNEL
 #define __OPEN_CL_KERNEL
 /*static*/ const char kernel_data[] = "\
-/*S. Neves, F. Araujo*/\n\
-#define TYCHE_FLOAT_MULTI 5.4210108624275221700372640e-20f\n\
-#define TYCHE_DOUBLE_MULTI 5.4210108624275221700372640e-20\n\
-\n\
-typedef union{\n\
-	struct{\n\
-		uint a,b,c,d;\n\
-	};\n\
-	ulong res;\n\
-} tyche_state;\n\
-\n\
-#define TYCHE_ROT(a,b) (((a) << (b)) | ((a) >> (32 - (b))))\n\
-#define tyche_macro_ulong(state) (tyche_macro_advance(state), state.res)\n\
-#define tyche_macro_advance(state) ( \\n\
-	state.a += state.b, \\n\
-	state.d = TYCHE_ROT(state.d ^ state.a, 16), \\n\
-	state.c += state.d, \\n\
-	state.b = TYCHE_ROT(state.b ^ state.c, 12), \\n\
-	state.a += state.b, \\n\
-	state.d = TYCHE_ROT(state.d ^ state.a, 8), \\n\
-	state.c += state.d, \\n\
-	state.b = TYCHE_ROT(state.b ^ state.c, 7) \\n\
-)\n\
-\n\
-#define tyche_ulong(state) (tyche_advance(&state), state.res)\n\
-void tyche_advance(tyche_state* state){\n\
-	state->a += state->b;\n\
-	state->d = TYCHE_ROT(state->d ^ state->a, 16);\n\
-	state->c += state->d;\n\
-	state->b = TYCHE_ROT(state->b ^ state->c, 12);\n\
-	state->a += state->b;\n\
-	state->d = TYCHE_ROT(state->d ^ state->a, 8);\n\
-	state->c += state->d;\n\
-	state->b = TYCHE_ROT(state->b ^ state->c, 7);\n\
-}\n\
-void tyche_seed(tyche_state* state, ulong seed){\n\
-	state->a = seed >> 32;\n\
-	state->b = seed;\n\
-	state->c = 2654435769;\n\
-	state->d = 1367130551 ^ (get_global_id(0) + get_global_size(0) * (get_global_id(1) + get_global_size(1) * get_global_id(2)));\n\
-	for(uint i=0;i<20;i++){\n\
-		tyche_advance(state);\n\
-	}\n\
-}\n\
-\n\
-#define tyche_uint(state) ((uint)tyche_ulong(state))\n\
-#define tyche_float(state) (tyche_ulong(state)*TYCHE_FLOAT_MULTI)\n\
-#define tyche_double(state) (tyche_ulong(state)*TYCHE_DOUBLE_MULTI)\n\
-#define tyche_double2(state) tyche_double(state)\n\
+#include <random_extern.h>\n\
 #include <grid.h>\n\
 #include <funcs.h>\n\
 \n\
@@ -81,13 +33,13 @@ kernel void TermalStep(global Grid* g_out, global Grid* g_old, double T, double 
     \n\
     g_out->grid[I].z = g_old->grid[I].z + delta;\n\
 \n\
-    GridNormalizeI(I, g_out);\n\
+    GridNormalizeI(I, g_out->grid, g_out->pinning);\n\
 }\n\
 \n\
 kernel void HamiltonianGPU(global Grid* g, global double* ham_buffer, Vec field)\n\
 {\n\
     size_t I = get_global_id(0);\n\
-    ham_buffer[I] = HamiltonianI(I, g, field);\n\
+    ham_buffer[I] = HamiltonianI(I, g->grid, &g->param, g->ani, g->regions, field);\n\
 }\n\
 \n\
 kernel void Reset(global Grid* g_old, global Grid* g_new)\n\
@@ -96,11 +48,17 @@ kernel void Reset(global Grid* g_old, global Grid* g_new)\n\
     g_old->grid[I] = g_new->grid[I];\n\
 }\n\
 \n\
+kernel void ResetVec(global Vec *v1, global Vec *v2)\n\
+{\n\
+    size_t I = get_global_id(0);\n\
+    v1[I] = v2[I];\n\
+}\n\
+\n\
 kernel void StepGPU(global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)\n\
 {\n\
 	size_t I = get_global_id(0);\n\
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));\n\
-    GridNormalizeI(I, g_new);\n\
+    GridNormalizeI(I, g_new->grid, g_new->pinning);\n\
 \n\
 	if (i % cut == 0)\n\
 	{\n\
@@ -109,11 +67,35 @@ kernel void StepGPU(global Grid *g_old, global Grid *g_new, Vec field, double dt
 		vxvy_Ez_avg_mag_cp_ci[I].x = vt.x;\n\
 		vxvy_Ez_avg_mag_cp_ci[I].y = vt.y;\n\
 		vxvy_Ez_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];\n\
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.pbc);\n\
 		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
 		if (calc_energy)\n\
-			vxvy_Ez_avg_mag_cp_ci[I].z = HamiltonianI(I, g_new, field);\n\
+			vxvy_Ez_avg_mag_cp_ci[I].z = HamiltonianI(I, g_new->grid, &g_new->param, g_new->ani, g_new->regions, field);\n\
 	}\n\
+}\n\
+\n\
+kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, global Vec *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed, double J, Vec field)\n\
+{\n\
+    size_t j = get_global_id(0);\n\
+\n\
+    tyche_state state;\n\
+    tyche_seed(&state, seed + j);\n\
+\n\
+    double R1 = tyche_double(state);\n\
+    double R2 = tyche_double(state);\n\
+    double R3 = tyche_double(state);\n\
+\n\
+    Vec vel = GradientDescentVelocity(g_p[j], g_n[j], dt);\n\
+    Vec Heff = GradientDescentForce(j, g_aux, vel, g_c, field, J, alpha, beta);\n\
+    Heff = VecAdd(Heff, VecScalar(VecFrom(R1, R2, R3), T));\n\
+\n\
+    g_n[j] = VecAdd(\n\
+   		    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),\n\
+   		    VecScalar(Heff, -2.0 * dt * dt / mass)\n\
+    		   );\n\
+\n\
+    GridNormalizeI(j, g_n, g_aux->pinning);\n\
+    H[j] = HamiltonianI(j, g_n, &g_aux->param, g_aux->ani, g_aux->regions, field);\n\
 }\n\
 ";
 #endif

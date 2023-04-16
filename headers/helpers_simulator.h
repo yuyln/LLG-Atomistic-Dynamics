@@ -13,7 +13,7 @@ static const char *integration_method = "???";
 #endif
 
 #define kernels_n sizeof(kernels) / sizeof(char *)
-static const char *kernels[] = {"TermalStep", "HamiltonianGPU", "Reset", "StepGPU"};
+static const char *kernels[] = {"TermalStep", "HamiltonianGPU", "Reset", "StepGPU", "GradientStep", "ResetVec"};
 
 void FreeGPU(GPU *g)
 {
@@ -66,6 +66,19 @@ Simulator InitSimulator(const char *path)
     ret.calculate_energy = (bool)GetValueInt("CALCULATE_ENERGY", 10);
     ret.write_human = (bool)GetValueInt("WRITE_HUMAN", 10);
     ret.write_on_fly = (bool)GetValueInt("WRITE_ON_FLY", 10);
+    ret.do_gradient = (bool)GetValueInt("GRADIENT", 10);
+    ret.gradient_steps = GetValueInt("GRADIENT_STEPS", 10);
+    ret.dt_gradient = GetValueDouble("GRADIENT_DT");
+    ret.alpha_gradient = GetValueDouble("GRADIENT_ALPHA");
+    ret.beta_gradient = GetValueDouble("GRADIENT_BETA");
+    ret.temp_gradient = GetValueDouble("GRADIENT_TEMP");
+    ret.factor_gradient = GetValueDouble("GRADIENT_FACTOR");
+    ret.mass_gradient = GetValueDouble("GRADIENT_MASS");
+
+    if (ret.gradient_steps == 0)
+	ret.gradient_steps = ret.n_steps;
+    if (ret.dt_gradient == 0)
+	ret.dt_gradient = ret.dt;
 
     if (ret.do_gsa)
     {
@@ -135,8 +148,10 @@ Simulator InitSimulator(const char *path)
     }
     for (size_t I = index_data + 1; I < parser_global_n; I += 6)
     {
-        int row = strtol(parser_global_state[I], NULL, 10) % ret.g_old.param.rows;
-        int col = strtol(parser_global_state[I + 1], NULL, 10) % ret.g_old.param.cols;
+        int row = strtol(parser_global_state[I], NULL, 10);
+        int col = strtol(parser_global_state[I + 1], NULL, 10);
+	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
+	    continue;
         double dir_x = strtod(parser_global_state[I + 2], NULL);
         double dir_y = strtod(parser_global_state[I + 3], NULL);
         double dir_z = strtod(parser_global_state[I + 4], NULL);
@@ -156,8 +171,10 @@ Simulator InitSimulator(const char *path)
     }
     for (size_t I = index_data + 1; I < parser_global_n; I += 5)
     {
-        int row = strtol(parser_global_state[I], NULL, 10) % ret.g_old.param.rows;
-        int col = strtol(parser_global_state[I + 1], NULL, 10) % ret.g_old.param.cols;
+        int row = strtol(parser_global_state[I], NULL, 10);
+        int col = strtol(parser_global_state[I + 1], NULL, 10);
+	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
+	    continue;
         double dir_x = strtod(parser_global_state[I + 2], NULL);
         double dir_y = strtod(parser_global_state[I + 3], NULL);
         double dir_z = strtod(parser_global_state[I + 4], NULL);
@@ -176,8 +193,10 @@ Simulator InitSimulator(const char *path)
 
     for (size_t I = index_data + 1; I < parser_global_n; I += 6)
     {
-        size_t row = (size_t)strtoull(parser_global_state[I], NULL, 10);
-        size_t col = (size_t)strtoull(parser_global_state[I + 1], NULL, 10);
+        int row = strtol(parser_global_state[I], NULL, 10);
+        int col = strtol(parser_global_state[I + 1], NULL, 10);
+	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
+	    continue;
         ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(parser_global_state[I + 2], NULL);
         ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(parser_global_state[I + 3], NULL);
         ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(parser_global_state[I + 4], NULL, 10);
@@ -352,7 +371,7 @@ void DumpWriteChargeGrid(const char *file_path, Simulator *s)
     {
         for (size_t I = 0; I < (size_t)(rows * cols); ++I)
         {
-            charge_total[i * rows * cols + I] = ChargeI(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+            charge_total[i * rows * cols + I] = ChargeI(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.pbc);
         }
     }
     fwrite(charge_total, ss, 1, f);

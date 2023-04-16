@@ -46,12 +46,12 @@ typedef struct GPU
 
 typedef struct Simulator
 {
-    size_t n_steps;
-    double dt;
+    size_t n_steps, relax_steps, gradient_steps;
+    double dt, dt_gradient, alpha_gradient, beta_gradient, temp_gradient, factor_gradient, mass_gradient;
     size_t n_cpu;
     size_t write_cut;
     size_t write_vel_charge_cut;
-    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly, calculate_energy;
+    bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly, calculate_energy, do_gradient;
     GSAParam gsap;
     GPU gpu;
     Grid g_old;
@@ -393,13 +393,13 @@ void IntegrateSimulatorSingle(Simulator* s, Vec field, Current cur, const char* 
         for (size_t I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
-            GridNormalizeI(I, &s->g_new);
+            GridNormalizeI(I, s->g_new.grid, s->g_new.pinning);
 
             if (i % s->write_vel_charge_cut == 0)
             {
                 size_t x = I % s->g_old.param.cols;
                 size_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
                 double charge_i_old = ChargeI_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * charge_i;
                 s->pos_xy[t].y += (double)y * s->g_old.param.lattice * charge_i;
@@ -491,14 +491,14 @@ void IntegrateSimulatorMulti(Simulator* s, Vec field, Current cur, const char* f
         for (I = 0; I < s->g_old.param.total; ++I)
         {
             s->g_new.grid[I] = VecAdd(s->g_old.grid[I], StepI(I, &s->g_old, field, cur, s->dt, norm_time));
-            GridNormalizeI(I, &s->g_new);
+            GridNormalizeI(I, s->g_new.grid, s->g_new.pinning);
 
             if (i % s->write_vel_charge_cut == 0)
             {
                 int nt = omp_get_thread_num();
                 size_t x = I % s->g_old.param.cols;
                 size_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = ChargeI(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
                 double charge_i_old = ChargeI_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 pos_xy_thread[nt].x += (double)x * s->g_old.param.lattice * charge_i;
                 pos_xy_thread[nt].y += (double)y * s->g_old.param.lattice * charge_i;
@@ -705,20 +705,6 @@ double RealCurToNorm(double density, GridParam params)
     return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
 }
 
-double LatticeCharge(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
-{
-    double ret = 0.0;
-    for (size_t i = 0; i < (size_t)rows * cols; ++i)
-    {
-        #ifdef INTERP
-            ret += ChargeInterpI(i, g, rows, cols, dx, dy, pbc, INTERP);
-        #else
-            ret += ChargeI(i, g, rows, cols, dx, dy, pbc);
-        #endif
-    }
-    return ret;
-}
-
 void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int R, double P, double Q)
 {
     double R2 = R * R;
@@ -815,27 +801,6 @@ void CreateBimeron(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, 
             }
         }
     }
-}
-
-Vec ChargeCenter(Vec *g, int rows, int cols, double dx, double dy, PBC pbc)
-{
-    Vec ret = VecFromScalar(0.0);
-    double total_charge = 0.0;
-    for (size_t I = 0; I < (size_t)rows * cols; ++I)
-    {
-        int col = I % cols;
-        int row = (I - col) / cols;
-        double local_charge;
-        #ifdef INTERP
-            local_charge = ChargeInterpI(I, g, rows, cols, dx, dy, pbc, INTERP);
-        #else
-            local_charge = ChargeI(I, g, rows, cols, dx, dy, pbc);
-        #endif
-        total_charge += local_charge;
-        ret.x += col * local_charge;
-        ret.y += row * local_charge;
-    }
-    return VecScalar(ret, 1.0 / total_charge);
 }
 
 Vec TotalVelocity(Vec *current, Vec *before, Vec *after, int rows, int cols, double dx, double dy, double dt, PBC pbc)
@@ -961,22 +926,6 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
     if (!(s->write_to_file && s->write_human))
         return;
-
-    // printf("Writing grid output\n");
-    // for (size_t i = 0; i < s->n_steps && s->write_to_file && s->write_human; ++i)
-    // {
-    //     if (i % (s->n_steps / 10) == 0)
-    //         printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
-    //     if (i % s->write_cut)
-    //         continue;
-    //     size_t t = i / s->write_cut;
-    //     PrintVecGrid(grid_anim, &s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols);
-    //     fprintf(grid_anim, "\n");
-    // }
-    // printf("Done writing grid output\n");
-
-    // fclose(grid_anim);
-
 }
 
 void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
@@ -986,21 +935,6 @@ void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
     fwrite(&cols, sizeof(int), 1, f);
     fwrite(&lattice, sizeof(double), 1, f);
     fwrite(g, sizeof(Vec) * rows * cols, 1, f);
-    fclose(f);
-}
-
-void DumpGridCharge(const char* file_path, Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
-{
-    FILE *f = mfopen(file_path, "wb", 1);
-    double* charge = (double*)calloc(rows * cols, sizeof(double));
-    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
-        charge[I] = ChargeI(I, g, rows, cols, dx, dy, pbc);
-    
-    fwrite(&rows, sizeof(int), 1, f);
-    fwrite(&cols, sizeof(int), 1, f);
-    fwrite(charge, sizeof(double) * rows * cols, 1, f);
-
-    free(charge);
     fclose(f);
 }
 

@@ -70,7 +70,7 @@ void GSA(GSAParam param, Grid* g_in, Grid* g_out, Vec field)
                     delta = -delta;
                 g_out->grid[I].z = g_old.grid[I].z + delta;
 
-                GridNormalizeI(I, g_out);
+                GridNormalizeI(I, g_out->grid, g_out->pinning);
             }
             
             H_new = Hamiltonian(g_out, field);
