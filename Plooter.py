@@ -1,8 +1,4 @@
-from shutil import which
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator, FormatStrFormatter
 from matplotlib import rcParams, cycler
 from scipy.optimize import curve_fit
@@ -13,8 +9,6 @@ def FixPlot(lx, ly):
     rcParams['font.family'] = 'serif'
     rcParams['font.serif'] = ['Computer Modern']
     rcParams['text.usetex'] = True
-    # rcParams['font.family'] = 'sans-serif'
-    # rcParams['font.sans-serif'] = ['Arial']
     rcParams['font.size'] = 28
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 10.0
@@ -62,7 +56,7 @@ def FixPlot_(lx, ly):
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     rcParams['text.usetex'] = False
-    rcParams['font.size'] = 40
+    rcParams['font.size'] = 28
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 10.0
     plot_color_cycle = cycler('color', ['000000', 'FE0000', '0000FE', '008001', 'FD8000', '8c564b',

@@ -981,7 +981,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 
 void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
 {
-    FILE *f = mfopen(file_path, "w", 1);
+    FILE *f = mfopen(file_path, "wb", 1);
     fwrite(&rows, sizeof(int), 1, f);
     fwrite(&cols, sizeof(int), 1, f);
     fwrite(&lattice, sizeof(double), 1, f);
@@ -991,7 +991,7 @@ void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
 
 void DumpGridCharge(const char* file_path, Vec* g, int rows, int cols, double dx, double dy, PBC pbc)
 {
-    FILE *f = mfopen(file_path, "w", 1);
+    FILE *f = mfopen(file_path, "wb", 1);
     double* charge = (double*)calloc(rows * cols, sizeof(double));
     for (size_t I = 0; I < (size_t)(rows * cols); ++I)
         charge[I] = ChargeI(I, g, rows, cols, dx, dy, pbc);

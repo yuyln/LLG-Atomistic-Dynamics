@@ -53,7 +53,7 @@ void tyche_seed(tyche_state* state, ulong seed){\n\
 #include <grid.h>\n\
 #include <funcs.h>\n\
 \n\
-kernel void TermalStep(global Grid* g_out, const global Grid* g_old, const double T, const double qV1, const double exp1, const double exp2, const int seed)\n\
+kernel void TermalStep(global Grid* g_out, global Grid* g_old, double T, double qV1, double exp1, double exp2, int seed)\n\
 {\n\
     size_t I = get_global_id(0);\n\
 \n\
@@ -84,19 +84,19 @@ kernel void TermalStep(global Grid* g_out, const global Grid* g_old, const doubl
     GridNormalizeI(I, g_out);\n\
 }\n\
 \n\
-kernel void HamiltonianGPU(global Grid* g, global double* ham_buffer, const Vec field)\n\
+kernel void HamiltonianGPU(global Grid* g, global double* ham_buffer, Vec field)\n\
 {\n\
     size_t I = get_global_id(0);\n\
     ham_buffer[I] = HamiltonianI(I, g, field);\n\
 }\n\
 \n\
-kernel void Reset(global Grid* g_old, global const Grid* g_new)\n\
+kernel void Reset(global Grid* g_old, global Grid* g_new)\n\
 {\n\
     size_t I = get_global_id(0);\n\
     g_old->grid[I] = g_new->grid[I];\n\
 }\n\
 \n\
-kernel void StepGPU(const global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)\n\
+kernel void StepGPU(global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)\n\
 {\n\
 	size_t I = get_global_id(0);\n\
 	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));\n\

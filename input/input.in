@@ -27,7 +27,7 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 64
+    ROWS: 32
     COLS: 64 
 
 FILE_PINNING: ./input/pinning.in
@@ -53,7 +53,7 @@ DM_TYPE: 1
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 
-PBC_TYPE: 1
+PBC_TYPE: 0
 PBC_X: 0.0
 PBC_Y: 0.0
 PBC_Z: 0.0

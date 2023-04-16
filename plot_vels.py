@@ -1,32 +1,28 @@
-import pandas as pd
-import numpy as np
+import utils
+from Plooter import FixPlot, FixPlot_
 import matplotlib.pyplot as plt
-from Plooter import *
 
-vels_nagaosa = pd.read_table("./output/anim_velocity.out", header=None)
-pos = pd.read_table("./output/anim_cm_charge.out", header=None)
+cmd_parser = utils.CMDArgs("./output/anim_velocity.out", "./imgs/plot_velocities.png")
 
-t = pos[0]
-x = pos[1]
-y = pos[2]
-dxdt = np.array([])
-dydt = np.array([])
-for i in range(1, len(t) - 1):
-    dxdt = np.concatenate([dxdt, [0.5 * (x[i + 1] - x[i - 1]) / (t[i + 1] - t[i - 1])]])
-    dydt = np.concatenate([dydt, [0.5 * (y[i + 1] - y[i - 1]) / (t[i + 1] - t[i - 1])]])
+data = utils.ReadFile(cmd_parser.INPUT_FILE)
 
+if cmd_parser.USE_LATEX: FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+else: FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 
-FixPlot(8, 8)
 fig, ax = plt.subplots()
-ax.plot(t[1: len(t) - 1] / 1.0e-9, dxdt, color="black", label="$v_x$")
-ax.plot(t[1: len(t) - 1] / 1.0e-9, dydt, "--", color="black", label="$v_y$")
+fig.set_size_inches(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 
-ax.plot(vels_nagaosa[0] / 1.0e-9, vels_nagaosa[1], color="red", label=r"$v_x^\mathrm{Nagaosa}$")
-ax.plot(vels_nagaosa[0] / 1.0e-9, vels_nagaosa[2], "--", color="red", label=r"$v_y^\mathrm{Nagaosa}$")
+ax.plot(data[0] / utils.NANO, data[1])
+ax.plot(data[0] / utils.NANO, data[2])
 
-ax.legend()
-ax.set_xlabel("$t\mathrm{(ns)}$")
-ax.set_ylabel("$v_x, v_y\mathrm{(m/s)}$")
-plt.show()
-fig.savefig("./imgs/out_vel.png", dpi=500, facecolor="white", bbox_inches='tight')
+if cmd_parser.USE_LATEX:
+    ax.set_xlabel("$t$(ns)")
+    ax.set_ylabel("$v_x, v_y$(ms$^{-1}$)")
+else:
+    ax.set_xlabel("t(ns)")
+    ax.set_ylabel("v$\\mathsf{_x}$, v$\\mathsf{_y}$(ms$^{-1}$)")
 
+ax.set_xlim([min(data[0]) / utils.NANO, max(data[0]) / utils.NANO])
+
+cmd_parser.print()
+fig.savefig(cmd_parser.OUTPUT_FILE, dpi=cmd_parser.DPI, facecolor="white", bbox_inches="tight")
