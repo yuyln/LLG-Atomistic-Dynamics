@@ -28,15 +28,15 @@ class CMDArgs:
         parser.add_argument("-input", default=inp, nargs="?", type=str)
         parser.add_argument("-output", default=out, nargs="?", type=str)
         parser.add_argument("-DPI", default=250, nargs="?", type=int)
-        parser.add_argument("-arrows", default=False, nargs="?", type=bool)
+        parser.add_argument("-arrows", action="store_true")
         parser.add_argument("-factor", default=1, nargs="?", type=int)
         parser.add_argument("-fps", default=60, nargs="?", type=int)
-        parser.add_argument("-anisotropy", default=False, nargs="?", type=bool)
-        parser.add_argument("-pinning", default=False, nargs="?", type=bool)
+        parser.add_argument("-anisotropy", action="store_true")
+        parser.add_argument("-pinning", action="store_true")
         parser.add_argument("-anisotropy-color", default="black", nargs="?", type=str)
         parser.add_argument("-pinning-color", default="yellow", nargs="?", type=str)
         parser.add_argument("-interpolation", default="nearest", nargs="?", type=str)
-        parser.add_argument("-latex", default=False, nargs="?", type=bool)
+        parser.add_argument("-latex", action="store_true")
         parser.add_argument("-width", default=8, nargs="?", type=float)
         parser.add_argument("-height", default=8, nargs="?", type=float)
         parser.add_argument("-anisotropy-input", default="./input/anisotropy.in", nargs="?", type=str)
@@ -46,6 +46,7 @@ class CMDArgs:
         parser.add_argument("-anisotropy-sep", default="\t", nargs="?", type=str)
         parser.add_argument("-pinning-sep", default="\t", nargs="?", type=str)
         parser.add_argument("-batch-size", default=50, nargs="?", type=int)
+
         self.args = vars(parser.parse_args())
         self.INPUT_FILE    = self.args["input"]
         self.OUTPUT_FILE   = self.args["output"]

@@ -23,12 +23,8 @@ else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 r = cols / rows
 fig = plt.figure()
 
-if r >= 1:
-    fig.set_size_inches(cmd_parser.WIDTH * r, cmd_parser.HEIGHT * 0.75 / 0.83)
-    ax = fig.add_axes([0.12, 0.12, 0.75, 0.83])
-else:
-    fig.set_size_inches(cmd_parser.WIDTH, cmd_parser.HEIGHT * 0.75 / 0.83 / r)
-    ax = fig.add_axes([0.12, 0.12, 0.75, 0.83])
+fig.set_size_inches(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+ax = fig.add_axes([0.12, 0.12, 0.75, 0.83])
 
 img = ax.imshow(mz.reshape([rows, cols]), cmap=utils.cmap, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
 
