@@ -1,5 +1,4 @@
 import utils
-from Plooter import FixPlot, FixPlot_
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
@@ -18,8 +17,8 @@ min_y = -lattice / 2
 max_x = (cols - 1) * lattice + lattice / 2
 max_y = (rows - 1) * lattice + lattice / 2
 
-if cmd_parser.USE_LATEX: FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
-else: FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+if cmd_parser.USE_LATEX: utils.FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 
 r = cols / rows
 fig = plt.figure()

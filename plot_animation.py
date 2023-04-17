@@ -1,5 +1,4 @@
 import utils
-from Plooter import FixPlot, FixPlot_
 import matplotlib.animation as anim
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -19,8 +18,8 @@ min_y = -lattice / 2
 max_x = (cols - 1) * lattice + lattice / 2
 max_y = (rows - 1) * lattice + lattice / 2
 
-if cmd_parser.USE_LATEX: FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
-else: FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+if cmd_parser.USE_LATEX: utils.FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
+else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 
 r = cols / rows
 fig = plt.figure()
@@ -94,6 +93,8 @@ else:
     bar.set_label("m$\\mathsf{_z}$")
 
 def animate(i):
+    if (i % (frames / 10) == 0):
+        print(f"{i / frames * 100 :.1f}%")
     mx, my, mz = utils.GetFrameFromBinary(rows, cols, frames, data, i)
     mz = mz.reshape([rows, cols])
     img.set_array(mz)
