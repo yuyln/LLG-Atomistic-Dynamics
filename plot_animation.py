@@ -87,7 +87,7 @@ else:
     ax.set_ylabel("y(nm)")
     bar.set_label("m$\\mathsf{_z}$")
 
-def GetBatchLattices(b_i: int) -> [np.array, np.array, np.array]:
+def GetBatchLattices(b_i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     mxs = np.zeros([cmd_parser.BATCH_S, rows * cols])
     mys = np.zeros([cmd_parser.BATCH_S, rows * cols])
     mzs = np.zeros([cmd_parser.BATCH_S, rows * cols])

@@ -73,21 +73,33 @@ class CMDArgs:
     def print(self):
         pprint.pprint(self.args)
 
+def ReadAnimationBinaryOLD(path: str, cut: int, dt: float, lattice: float) -> tuple[int, int, int, int, float, float, mmap.mmap]:
+    file = open(path, "r")
+    raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
+    rows, cols, frames = unpack(f"{UBO}iii", raw_data[:12])
+    file.close()
+    return rows, cols, frames, cut, dt, lattice, raw_data
 
-def ReadAnimationBinary(path: str) -> list[int, int, int, int, float, float, mmap.mmap]:
+def ReadLatticeBinaryOLD(path: str, lattice: float) -> tuple[int, int, float, mmap.mmap]:
+    file = open(path, "r")
+    raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
+    rows, cols = unpack(f"{UBO}ii", raw_data[:8])
+    return rows, cols, lattice, raw_data
+
+def ReadAnimationBinary(path: str) -> tuple[int, int, int, int, float, float, mmap.mmap]:
     file = open(path, "r")
     raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
     rows, cols, frames, cut, dt, lattice = unpack(f"{UBO}iiiidd", raw_data[:32])
     file.close()
-    return [rows, cols, frames, cut, dt, lattice, raw_data]
+    return rows, cols, frames, cut, dt, lattice, raw_data
 
-def ReadLatticeBinary(path: str) -> list[int, int, float, mmap.mmap]:
+def ReadLatticeBinary(path: str) -> tuple[int, int, float, mmap.mmap]:
     file = open(path, "r")
     raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
     rows, cols, lattice = unpack(f"{UBO}iid", raw_data[:16])
-    return [rows, cols, lattice, raw_data]
+    return rows, cols, lattice, raw_data
 
-def GetFrameFromBinary(rows: int, cols: int, frames: int, raw_data: mmap.mmap, i: int, offset: int=32) -> list[np.array, np.array, np.array]:
+def GetFrameFromBinary(rows: int, cols: int, frames: int, raw_data: mmap.mmap, i: int, offset: int=32) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if i < 0: i = 0
     elif i >= frames: i = frames - 1
     lat_s = rows * cols * VEC_SIZE
@@ -101,7 +113,7 @@ def ReadFile(path: str, sep: str="\t") -> pd.DataFrame:
     return pd.read_table(path, header=None, sep=sep)
 
 
-def GetPosition(rows: int, cols: int, reduce: int, lattice: float) -> list[np.array, np.array, np.array, np.array, float, float]:
+def GetPosition(rows: int, cols: int, reduce: int, lattice: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
     xs, ys = zip(*[[j, i] for i in range(rows) for j in range(cols)])
     xs = np.array(xs) * lattice
     ys = np.array(ys) * lattice
@@ -124,7 +136,7 @@ def GetPosition(rows: int, cols: int, reduce: int, lattice: float) -> list[np.ar
 
     return x, y, x_in, y_in, facx, facy
 
-def GetVecsFromXY(mx_: np.array, my_: np.array, x_in: np.array, y_in: np.array) -> list[np.array, np.array]:
+def GetVecsFromXY(mx_: np.ndarray, my_: np.ndarray, x_in: np.ndarray, y_in: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     mx = mx_[x_in]
     mx = mx[y_in]
 
@@ -132,7 +144,7 @@ def GetVecsFromXY(mx_: np.array, my_: np.array, x_in: np.array, y_in: np.array) 
     my = my[y_in]
     return mx, my
 
-def FixPlot(lx, ly):
+def FixPlot(lx: float, ly: float):
     from matplotlib import rcParams, cycler
     rcParams['font.family'] = 'serif'
     rcParams['font.serif'] = ['Computer Modern']
@@ -179,7 +191,7 @@ def FixPlot(lx, ly):
                      "lines.markeredgewidth": 0.8, 
                      "mathtext.fontset": "cm"})
 
-def FixPlot_(lx, ly):
+def FixPlot_(lx: float, ly: float):
     from matplotlib import rcParams, cycler
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
