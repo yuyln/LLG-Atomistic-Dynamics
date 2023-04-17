@@ -35,11 +35,20 @@ void GradientDescentSingle(Grid *g_in, Grid *g_out, double dt, double alpha, dou
     g_aux.grid = g_min;
     double H_min = Hamiltonian(&g_aux, field);
     for (int i = 0; i < steps; ++i)
-    {
+    { 
+        double local_T = 0;
+
+	if (i >= steps / 2)
+	{
+	    local_T = T;
+	    T *= T_factor;
+        }
+
 	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, T);
+	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
 	double H = 0;
+
         for (int j = 0; j < rows * cols; ++j)
 	{
 	    g_aux.grid = g_c;
@@ -47,11 +56,11 @@ void GradientDescentSingle(Grid *g_in, Grid *g_out, double dt, double alpha, dou
 	    Vec Heff = GradientDescentForce(j, &g_aux, vel, g_c, field, J, alpha, beta);
 
 	    if (T != 0)
-                Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+                Heff = VecAdd(Heff, VecScalar(VecFrom(2.0 * myrandom() - 1.0, 2.0 * myrandom() - 1.0, 2.0 * myrandom() - 1.0), local_T));
 
 	    g_n[j] = VecAdd(
 			    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
-			    VecScalar(Heff, -2.0 * dt * dt / mass)
+			    VecScalar(Heff, -dt * dt / mass)
 			   );
 
 	    g_aux.grid = g_n;
@@ -66,7 +75,6 @@ void GradientDescentSingle(Grid *g_in, Grid *g_out, double dt, double alpha, dou
 	    H_min = H;
 	    memcpy(g_min, g_n, sizeof(Vec) * rows * cols);
 	}
-	T *= T_factor;
     }
 
 
@@ -112,10 +120,25 @@ void GradientDescentMultiple(Grid *g_in, Grid *g_out, double dt, double alpha, d
 
     for (int i = 0; i < steps; ++i)
     {
+        double local_T = 0;
+
+	if (i >= steps / 2)
+	{
+	    local_T = T;
+	    T *= T_factor;
+        }
+
 	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, T);
+	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
 	memset(Hn, 0, n_threads * sizeof(double));
+
+	if (i >= steps / 2)
+	{
+	    local_T = T;
+	    T *= T_factor;
+	}
+
 	double H = 0.0;
 	int j;
 	#pragma omp parallel for num_threads(n_threads)
@@ -126,11 +149,11 @@ void GradientDescentMultiple(Grid *g_in, Grid *g_out, double dt, double alpha, d
 	    Vec Heff = GradientDescentForce(j, &g_aux, vel, g_c, field, J, alpha, beta);
 
 	    if (T != 0)
-	        Heff = VecAdd(Heff, VecScalar(VecFrom(myrandom(), myrandom(), myrandom()), T));
+                Heff = VecAdd(Heff, VecScalar(VecFrom(2.0 * myrandom() - 1.0, 2.0 * myrandom() - 1.0, 2.0 * myrandom() - 1.0), local_T));
 
 	    g_n[j] = VecAdd(
 			    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
-			    VecScalar(Heff, -2.0 * dt * dt / mass)
+			    VecScalar(Heff, -dt * dt / mass)
 			   );
 
 	    g_aux.grid = g_n;
@@ -148,7 +171,6 @@ void GradientDescentMultiple(Grid *g_in, Grid *g_out, double dt, double alpha, d
 	    H_min = H;
 	    memcpy(g_min, g_n, sizeof(Vec) * rows * cols);
 	}
-	T *= T_factor;
     }
 
 
@@ -212,9 +234,17 @@ void GradientDescentGPU(Grid *g_in, Grid *g_out, double dt, double alpha, double
     size_t local = gcd(global, 32);
     for (int i = 0; i < steps; ++i)
     {
-	SetKernelArg(gpu->kernels[4], 8, sizeof(double), &T);
+        double local_T = 0;
+
+	if (i >= steps / 2)
+	{
+	    local_T = T;
+	    T *= T_factor;
+        }
+	SetKernelArg(gpu->kernels[4], 8, sizeof(double), &local_T);
+
 	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, T);
+	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
 	int seed = rand();
 	SetKernelArg(gpu->kernels[4], 10, sizeof(int), &seed);
@@ -243,7 +273,6 @@ void GradientDescentGPU(Grid *g_in, Grid *g_out, double dt, double alpha, double
 	    SetKernelArg(gpu->kernels[5], 1, sizeof(cl_mem), &g_n_buffer);
 	    EnqueueND(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
 	}
-	T *= T_factor;
     }
 
 

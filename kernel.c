@@ -84,9 +84,9 @@ kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, g
         tyche_state state;
         tyche_seed(&state, seed + j);
 
-        double R1 = tyche_double(state);
-        double R2 = tyche_double(state);
-        double R3 = tyche_double(state);
+        double R1 = 2.0 * tyche_double(state) - 1.0;
+        double R2 = 2.0 * tyche_double(state) - 1.0;
+        double R3 = 2.0 * tyche_double(state) - 1.0;
 
     
         Heff = VecAdd(Heff, VecScalar(VecFrom(R1, R2, R3), T));
@@ -94,7 +94,7 @@ kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, g
 
     g_n[j] = VecAdd(
    		    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
-   		    VecScalar(Heff, -2.0 * dt * dt / mass)
+   		    VecScalar(Heff, -dt * dt / mass)
     		   );
 
     GridNormalizeI(j, g_n, g_aux->pinning);

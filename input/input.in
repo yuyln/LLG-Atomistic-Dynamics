@@ -17,8 +17,8 @@ GRADIENT_STEPS: 0
 GRADIENT_DT: 0
 GRADIENT_ALPHA: 0.0
 GRADIENT_BETA: 0.0
-GRADIENT_TEMP: 0.0
-GRADIENT_FACTOR: 0.0
+GRADIENT_TEMP: 10.0
+GRADIENT_FACTOR: 0.9999
 GRADIENT_MASS: 1.0
 
 GSA: 0
@@ -37,7 +37,7 @@ INTEGRATE: 0
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 128
+    ROWS: 112
     COLS: 128
 
 FILE_PINNING: ./input/pinning.in
@@ -45,7 +45,7 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -1.0
+(units of J) DMI: -0.5
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
@@ -66,7 +66,7 @@ DM_TYPE: 1
 PBC_TYPE: 0
 PBC_X: 0.0
 PBC_Y: 0.0
-PBC_Z: 0.0
+PBC_Z: 1.0
     XY -> 0
     X -> 1
     Y -> 2

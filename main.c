@@ -6,9 +6,9 @@
 int main()
 {
     double J_norm = 9.0e-3;
-    double jx = 0.0,
-           jy = 1.0,
-           jz = 0.0;
+    double jx =  0.0,
+           jy = -1.0,
+           jz =  0.0;
     double p = -1.0;
     double beta = 0.0;
     CUR_TYPE cur_type = CUR_STT;
@@ -66,7 +66,6 @@ int main()
     }
 
     DumpGrid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
-    printf("%d\n", s.doing_relax);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
