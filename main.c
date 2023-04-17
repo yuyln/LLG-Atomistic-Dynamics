@@ -5,7 +5,7 @@
 
 int main()
 {
-    double J_norm = 9.0e-3;
+    double J_norm = 1.5e-2;
     double jx =  0.0,
            jy = -1.0,
            jz =  0.0;

@@ -36,7 +36,7 @@ bar.set_ticks([-1, 0, 1])
 if cmd_parser.PLOT_ARROWS:
     mx_, my_ = utils.GetVecsFromXY(mx, my, x_in, y_in)
     vecs = ax.quiver(x, y, mx_ * fac_x, my_ * fac_y,
-                     angles='xy', scale_units='xy', pivot="mid", scale=1.0, width=0.0013, headwidth=3)
+                     angles='xy', scale_units='xy', pivot="mid", scale=1.0 / np.sqrt(2.0), width=0.0013, headwidth=3)
 
 ax.set_xlim([min_x, max_x])
 ax.set_ylim([min_y, max_y])

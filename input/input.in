@@ -32,7 +32,7 @@ GSA: 0
 
 RELAX: 0
 GRADIENT: 1
-INTEGRATE: 0
+INTEGRATE: 1
 
 
 FILE_GRID: ./input/starting.in
@@ -45,7 +45,7 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -0.5
+(units of J) DMI: -1.5
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
@@ -59,7 +59,7 @@ ALPHA: 0.3
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 
-DM_TYPE: 1
+DM_TYPE: 0
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 

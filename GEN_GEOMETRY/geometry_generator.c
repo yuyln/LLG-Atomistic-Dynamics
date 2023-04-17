@@ -17,8 +17,8 @@
 int main(void)
 {
 	FILE *f_out = fopen("./pinning.in", "w");
-	int cols = 272;
-	int rows = 272;
+	int cols = 128;
+	int rows = 112;
 
 	ellipse e = ellipse_center_angle(i_v2d(cols / 2, rows / 2), i_v2d(15, 30), RAD(0));
 	ellipse_discrete_to_file(f_out, e, 0, cols, 0, rows, NULL);
