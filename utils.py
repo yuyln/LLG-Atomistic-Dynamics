@@ -45,6 +45,7 @@ class CMDArgs:
         parser.add_argument("-pinning-skiprows", default=2, nargs="?", type=int)
         parser.add_argument("-anisotropy-sep", default="\t", nargs="?", type=str)
         parser.add_argument("-pinning-sep", default="\t", nargs="?", type=str)
+        parser.add_argument("-batch-size", default=50, nargs="?", type=int)
         self.args = vars(parser.parse_args())
         self.INPUT_FILE    = self.args["input"]
         self.OUTPUT_FILE   = self.args["output"]
@@ -66,6 +67,7 @@ class CMDArgs:
         self.PIN_SKIP      = self.args["pinning_skiprows"]
         self.ANI_SEP       = self.args["anisotropy_sep"]
         self.PIN_SEP       = self.args["pinning_sep"]
+        self.BATCH_S       = self.args["batch_size"]
 
     def print(self):
         pprint.pprint(self.args)

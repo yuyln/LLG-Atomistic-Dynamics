@@ -92,10 +92,27 @@ else:
     ax.set_ylabel("y(nm)")
     bar.set_label("m$\\mathsf{_z}$")
 
+def GetBatchLattices(b_i: int) -> [np.array, np.array, np.array]:
+    mxs = np.zeros([cmd_parser.BATCH_S, rows * cols])
+    mys = np.zeros([cmd_parser.BATCH_S, rows * cols])
+    mzs = np.zeros([cmd_parser.BATCH_S, rows * cols])
+    for i in range(cmd_parser.BATCH_S):
+      mxs[i], mys[i], mzs[i] = utils.GetFrameFromBinary(rows, cols, frames, data, b_i * cmd_parser.BATCH_S + i)  
+    return mxs, mys, mzs
+
+b_mxs, b_mys, b_mzs = GetBatchLattices(0)
 def animate(i):
+    global b_mxs
+    global b_mys
+    global b_mzs
     if (i % (frames / 10) == 0):
         print(f"{i / frames * 100 :.1f}%")
-    mx, my, mz = utils.GetFrameFromBinary(rows, cols, frames, data, i)
+
+    ib = int(i / cmd_parser.BATCH_S)
+    if i % cmd_parser.BATCH_S == 0:
+        b_mxs, b_mys, b_mzs = GetBatchLattices(ib)
+    mx, my, mz = b_mxs[i % cmd_parser.BATCH_S], b_mys[i % cmd_parser.BATCH_S], b_mzs[i % cmd_parser.BATCH_S]
+#    mx, my, mz = utils.GetFrameFromBinary(rows, cols, frames, data, i)
     mz = mz.reshape([rows, cols])
     img.set_array(mz)
     mx_, my_ = utils.GetVecsFromXY(mx, my, x_in, y_in)
