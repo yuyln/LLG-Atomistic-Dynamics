@@ -554,15 +554,15 @@ void IntegrateSimulatorGPU(Simulator *s, Vec field, Current cur, const char* fil
     FILE *fly = mfopen(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax))
     {
-	int steps = (int)(s->n_steps / s->write_cut);
-	int fcut = s->write_cut;
-	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+	    int steps = (int)(s->n_steps / s->write_cut);
+    	int fcut = s->write_cut;
+	    double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
-	fwrite(&fcut, sizeof(int), 1, fly);
-	fwrite(&dt_real, sizeof(double), 1, fly);
-	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+    	fwrite(&fcut, sizeof(int), 1, fly);
+	    fwrite(&dt_real, sizeof(double), 1, fly);
+    	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->velxy_Ez, 0, sizeof(Vec) * s->n_steps / s->write_vel_charge_cut);
@@ -898,7 +898,7 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         fprintf(charge_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
         fprintf(pos_xy, "%e\t%e\t%en", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
         fprintf(avg_mag, "%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->avg_mag[t].x, s->avg_mag[t].y, s->avg_mag[t].z);
-	fprintf(energy, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_Ez[t].z);
+	    fprintf(energy, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_Ez[t].z);
         // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
         // fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
 

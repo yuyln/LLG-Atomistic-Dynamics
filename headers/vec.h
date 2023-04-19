@@ -1,6 +1,11 @@
 #ifndef __VEC
 #define __VEC
 
+#ifndef OPENCLCOMP
+#include <math.h>
+#include <stdlib.h>
+#endif
+
 typedef struct
 {
     double x, y, z;

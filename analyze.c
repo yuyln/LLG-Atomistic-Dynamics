@@ -1,9 +1,113 @@
+#include <funcs.h>
+#include <grid.h>
 #include <helpers.h>
-#include <gsa.h>
 #include <helpers_simulator.h>
+//TODO: add support for windows api 
+//https://learn.microsoft.com/pt-br/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile?redirectedfrom=MSDN
+#include <sys/mman.h>
+
 #define DEF "./output/grid_anim_dump.bin"
 
-int main(int argc, const char** argv)
+//TODO: parse command line argument (the right way)
+
+int main(int argc, const char **argv)
+{
+    GridParam params = {0};
+    GetGridParam("./input/input.in", &params);
+    
+    const char *file_path = "./output/integration_fly.bin";
+    FILE *file = fopen(file_path, "rb");
+    if (!file)
+    {
+        fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char *buffer = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+    fread(buffer, file_size, 1, file);
+    char *ptr = buffer;
+    fclose(file);
+
+    int rows       = *((int*)ptr);
+    ptr += 4;
+    int cols       = *((int*)ptr);
+    ptr += 4;
+    int frames     = *((int*)ptr);
+    ptr += 4;
+    int cut        = *((int*)ptr);
+    ptr += 4;
+    double dt      = *((double*)ptr);
+    ptr += 8;
+    double lattice = *((double*)ptr);
+    ptr += 8;
+    Vec *grid      = ((Vec*)ptr);
+    PBC pbc = params.pbc;
+
+    size_t frame_size = rows * cols;
+
+    printf("rows: %d cols: %d frames: %d cut: %d dt: %e lattice: %e\n", rows, cols, frames, cut, dt, lattice);
+
+    
+    FILE *out_data = fopen("./output/analyze_output.dat", "w");
+
+    int row_stripes = 50;
+    int col_stripes = 1;
+
+    printf("y_stripes: %d x_stripes: %d\n", row_stripes, col_stripes);
+
+    int rows_per_stripe = rows / row_stripes;
+    int cols_per_stripe = cols / col_stripes;
+
+    for (int t = 1; t < frames - 1; ++t)
+    {
+        Vec *gp, *gc, *gn;
+        
+        gc = &grid[frame_size * t];
+        if (t == 0)
+            gp = gc;
+        else
+            gp = &grid[frame_size * (t - 1)];
+
+        if (t == frames - 1)
+            gn = gc;
+        else
+            gn = &grid[frame_size * (t + 1)];
+
+
+        for (int rs = 0; rs < row_stripes; ++rs)
+        {
+            for (int cs = 0; cs < col_stripes; ++cs)
+            {
+                Vec vel = {0};
+                double charge_pr = 0.0;
+                double charge_im = 0.0;
+                for (int row = rs * rows_per_stripe; row < (rs + 1) * rows_per_stripe; ++row)
+                {
+                    for (int col = cs * cols_per_stripe; col < (cs + 1) * cols_per_stripe; ++col)
+                    {
+                        vel = VecAdd(vel, VelWeightedI(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
+                        charge_pr += ChargeI(row * cols + col, gc, rows, cols, pbc);
+                        charge_im += ChargeI_old(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
+                    }
+                }
+                fprintf(out_data, "%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", t * dt * cut, cs * cols_per_stripe * lattice,
+                                                                          rs * rows_per_stripe * lattice, (cs + 1) * cols_per_stripe * lattice,
+                                                                          (rs + 1) * rows_per_stripe * lattice, vel.x / charge_pr, vel.y / charge_pr,
+                                                                          charge_pr, charge_im);
+            }
+        }
+    }
+
+    fclose(out_data);
+
+    munmap(buffer, file_size);
+    return 0;
+}
+
+/*int main2(int argc, const char** argv)
 {
     GridParam params = {0};
     GetGridParam("./input/input.in", &params);
@@ -113,4 +217,4 @@ int main(int argc, const char** argv)
     if (buffer)
         free(buffer);
     return 0;
-}
+}*/
