@@ -4,7 +4,7 @@ PLAT: 0
 DEV: 0
 
 DT: 0.01
-STEPS: 50000
+STEPS: 500000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
@@ -31,7 +31,7 @@ GSA: 0
     STARTTEMP: 2.0
 
 RELAX: 0
-GRADIENT: 1
+GRADIENT: 0
 INTEGRATE: 1
 
 
@@ -45,7 +45,7 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -1.5
+(units of J) DMI: -0.18
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
@@ -55,11 +55,11 @@ SPIN: 1.0
     ANI_Y: 0.0
     ANI_Z: 1.0
 
-ALPHA: 0.3
+ALPHA: 0.04
 GAMMA: 1.760859644e11
 LANDE: 2.002318
 
-DM_TYPE: 0
+DM_TYPE: 1
     R_ij -> 0
     Z_CROSS_R_ij -> 1
 

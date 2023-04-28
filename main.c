@@ -6,11 +6,11 @@
 int main()
 {
     double J_norm = 1.5e-2;
-    double jx =  0.0,
-           jy = -1.0,
+    double jx =  1.0,
+           jy =  0.0,
            jz =  0.0;
     double p = -1.0;
-    double beta = 0.0;
+    double beta = 0.04;
     CUR_TYPE cur_type = CUR_STT;
     double dh = 1.0e-9;
 
@@ -37,6 +37,13 @@ int main()
     {
         GSA(s.gsap, &s.g_old, &s.g_new, field_tesla);
     }
+
+    for (size_t i = 0; i < s.g_old.param.total; ++i)
+        s.g_old.grid[i] = VecNormalize(field_tesla);
+
+    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, 
+                       s.g_old.param.cols / 2, s.g_old.param.rows / 2, 
+                       10, 1, -1);
 
     if (s.use_gpu)
     {
