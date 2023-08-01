@@ -4,7 +4,7 @@ PLAT: 0
 DEV: 0
 
 DT: 0.01
-STEPS: 1000000
+STEPS: 100000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
@@ -45,7 +45,7 @@ FILE_ANISOTROPY: ./input/anisotropy.in
 FILE_REGIONS: ./input/regions.in
 
 EXCHANGE: 1.602176634e-22
-(units of J) DMI: -0.3
+(units of J) DMI: -1.5
 LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0

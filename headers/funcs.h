@@ -13,15 +13,6 @@ inline Current GenCurI(size_t I, GLOBAL GridParam* g, Current base, double norm_
 inline Vec GenFieldI(size_t I, GLOBAL GridParam* g, Vec base, double norm_time)
 {
     UNUSED(I); UNUSED(g); UNUSED(norm_time);
-    size_t x = I % g->cols;
-    double f = (double)x / g->cols;
-    double k = 5.0;
-    double b = 1.0;
-
-    double w = 10.0;
-    double ft = norm_time / g->total_time;
-
-    base = VecScalar(base, (sin(2.0 * M_PI * (k * f - w * ft)) + 2.0) * b);
     return base;
 }
 
@@ -308,25 +299,64 @@ double ChargeI_old(size_t I, GLOBAL Vec* g, int rows, int cols, double dx, doubl
     return 1.0 / (4 * M_PI) * dx * dy * VecDot(VecCross(dgdx, dgdy), g[I]);
 }
 
+double Q_ijk(Vec mi, Vec mj, Vec mk)
+{
+    double num = VecDot(mi, VecCross(mj, mk));
+    double den = 1.0 + VecDot(mi, mj) + VecDot(mi, mk) + VecDot(mj, mk);
+    return 2.0 * atan2(num, den);
+}
 
 double ChargeI(size_t I, GLOBAL Vec* g, int rows, int cols, PBC pbc)
 {
      //https://iopscience.iop.org/article/10.1088/2633-1357/abad0c/pdf
     int col = I % cols;
     int row = (I - col) / cols;
+    #if 0
     Vec m2 = PBCVec(row, col + 1, g, rows, cols, pbc),
         m4 = PBCVec(row + 1, col, g, rows, cols, pbc),
         m3 = PBCVec(row + 1, col + 1, g, rows, cols, pbc),
         m1 = PBCVec(row, col, g, rows, cols, pbc);
-    double num1 = VecDot(m1, VecCross(m2, m4));
+    /*double num1 = VecDot(m1, VecCross(m2, m4));
     double den1 = 1.0 + VecDot(m1, m2) + VecDot(m1, m4) + VecDot(m2, m4);
     double num2 = VecDot(m2, VecCross(m3, m4));
     double den2 = 1.0 + VecDot(m2, m3) + VecDot(m2, m4) + VecDot(m3, m4);
 
     double q_124 = 2.0 * atan2(num1, den1);
-    double q_234 = 2.0 * atan2(num2, den2);
+    double q_234 = 2.0 * atan2(num2, den2);*/
+    double q_124 = Q_ijk(m1, m2, m4);
+    double q_234 = Q_ijk(m2, m3, m4);
+    
 
     return 1.0 / (4.0 * M_PI) * (q_124 + q_234);
+    #else
+    Vec m2 = PBCVec(row, col + 1, g, rows, cols, pbc),
+        m3 = PBCVec(row + 1, col, g, rows, cols, pbc),
+        m4 = PBCVec(row, col - 1, g, rows, cols, pbc),
+        m5 = PBCVec(row - 1, col, g, rows, cols, pbc),
+        m1 = PBCVec(row, col, g, rows, cols, pbc);
+
+    /*double num1 = VecDot(m1, VecCross(m2, m3));
+    double den1 = 1.0 + VecDot(m1, m2) + VecDot(m1, m3) + VecDot(m2, m3);
+    double num2 = VecDot(m1, VecCross(m3, m4));
+    double den2 = 1.0 + VecDot(m1, m3) + VecDot(m1, m4) + VecDot(m3, m4);
+    double num3 = VecDot(m1, VecCross(m4, m5));
+    double den3 = 1.0 + VecDot(m1, m4) + VecDot(m1, m5) + VecDot(m4, m5);
+    double num4 = VecDot(m1, VecCross(m5, m2));
+    double den4 = 1.0 + VecDot(m1, m5) + VecDot(m1, m2) + VecDot(m5, m2);
+
+    double q_123 = 2.0 * atan2(num1, den1);
+    double q_134 = 2.0 * atan2(num2, den2);
+    double q_145 = 2.0 * atan2(num3, den3);
+    double q_152 = 2.0 * atan2(num4, den4);*/
+
+    double q_123 = Q_ijk(m1, m2, m3);
+    double q_134 = Q_ijk(m1, m3, m4);
+    double q_145 = Q_ijk(m1, m4, m5);
+    double q_152 = Q_ijk(m1, m5, m2);
+
+    return 1.0 / (8.0 * M_PI) * (q_123 + q_134 + q_145 + q_152);
+
+    #endif
 }
 
 

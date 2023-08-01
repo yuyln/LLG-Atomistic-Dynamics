@@ -11,7 +11,7 @@ int main()
            jz =  0.0;
     double p = -1.0;
     double beta = 0.0;
-    CUR_TYPE cur_type = CUR_NONE;
+    CUR_TYPE cur_type = CUR_STT;
     double dh = 1.0e-9;
 
     double Hz_norm =  0.5,
