@@ -13,6 +13,15 @@ inline Current GenCurI(size_t I, GLOBAL GridParam* g, Current base, double norm_
 inline Vec GenFieldI(size_t I, GLOBAL GridParam* g, Vec base, double norm_time)
 {
     UNUSED(I); UNUSED(g); UNUSED(norm_time);
+    size_t x = I % g->cols;
+    double f = (double)x / g->cols;
+    double k = 5.0;
+    double b = 1.0;
+
+    double w = 10.0;
+    double ft = norm_time / g->total_time;
+
+    base = VecScalar(base, (sin(2.0 * M_PI * (k * f - w * ft)) + 2.0) * b);
     return base;
 }
 
@@ -211,6 +220,7 @@ Vec dHdSI(size_t I, Vec C, GLOBAL Vec *v, GLOBAL GridParam *param, GLOBAL Region
     return ret;
 }
 
+//TODO: Use SHE current, like on Zhang papers
 Vec dSdTauI(size_t I, GLOBAL Grid* g, Vec field, Vec dS, Current cur, double norm_time)
 {
     Vec S = VecAdd(g->grid[I], dS);

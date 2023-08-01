@@ -57,7 +57,8 @@ kernel void ResetVec(global Vec *v1, global Vec *v2)\n\
 kernel void StepGPU(global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)\n\
 {\n\
 	size_t I = get_global_id(0);\n\
-	g_new->grid[I] = VecAdd(g_old->grid[I], StepI(I, g_old, field, cur, dt, norm_time));\n\
+    Vec dMdt = StepI(I, g_old, field, cur, dt, norm_time);\n\
+	g_new->grid[I] = VecAdd(g_old->grid[I], dMdt);\n\
     GridNormalizeI(I, g_new->grid, g_new->pinning);\n\
 \n\
 	if (i % cut == 0)\n\

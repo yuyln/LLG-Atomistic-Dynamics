@@ -705,7 +705,7 @@ double RealCurToNorm(double density, GridParam params)
     return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
 }
 
-void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int R, double P, double Q)
+void CreateSkyrmionBloch(Vec *g, int rows, int cols, int stride, int cx, int cy, int R, double P, double Q)
 {
     double R2 = R * R;
     for (int i = cy - 2 * R; i < cy + 2 * R; ++i)
@@ -724,23 +724,25 @@ void CreateSkyrmionBloch(Vec *g, int rows, int cols, int cx, int cy, int R, doub
             if (r > (2.0 * R))
                 continue;
             
-            g[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
+            g[il * stride + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
         
             if (r != 0)
             {
-                g[il * cols + jl].x = -dy * P / r * (1.0 - fabs(g[il * cols + jl].z));
-                g[il * cols + jl].y = dx * P / r * (1.0 - fabs(g[il * cols + jl].z));
+                g[il * stride + jl].x = -dy * P / r * (1.0 - fabs(g[il * stride + jl].z));
+                g[il * stride + jl].y = dx * P / r * (1.0 - fabs(g[il * stride + jl].z));
             }
             else
             {
-                g[il * cols + jl].x = 0.0;
-                g[il * cols + jl].y = 0.0;
+                g[il * stride + jl].x = 0.0;
+                g[il * stride + jl].y = 0.0;
             }
+
+            g[il * stride + jl] = VecNormalize(g[il * stride + jl]);
         }
     }
 }
 
-void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int R, double P, double Q)
+void CreateSkyrmionNeel(Vec *g, int rows, int cols, int stride, int cx, int cy, int R, double P, double Q)
 {
     double R2 = R * R;
     for (int i = cy - 2 * R; i < cy + 2 * R; ++i)
@@ -759,23 +761,24 @@ void CreateSkyrmionNeel(Vec *g, int rows, int cols, int cx, int cy, int R, doubl
             if (r > (2.0 * R))
                 continue;
             
-            g[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
+            g[il * stride + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
         
             if (r != 0)
             {
-                g[il * cols + jl].x = dx * P / r * (1.0 - fabs(g[il * cols + jl].z));
-                g[il * cols + jl].y = dy * P / r * (1.0 - fabs(g[il * cols + jl].z));
+                g[il * stride + jl].x = dx * P / r * (1.0 - fabs(g[il * stride + jl].z));
+                g[il * stride + jl].y = dy * P / r * (1.0 - fabs(g[il * stride + jl].z));
             }
             else
             {
-                g[il * cols + jl].x = 0.0;
-                g[il * cols + jl].y = 0.0;
+                g[il * stride + jl].x = 0.0;
+                g[il * stride + jl].y = 0.0;
             }
+            g[il * stride + jl] = VecNormalize(g[il * stride + jl]);
         }
     }
 }
 
-void CreateBimeron(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, double P)
+void CreateBimeron(Vec *g, int rows, int cols, int stride, int cx, int cy, int r, double Q, double P)
 {
     double R2 = r * r;
     for (int i = 0; i < rows; ++i)
@@ -787,18 +790,19 @@ void CreateBimeron(Vec *g, int rows, int cols, int cx, int cy, int r, double Q, 
             double r2 = dx * dx + dy * dy;
             double r = sqrt(r2);
             
-            g[i * cols + j].x = 2.0 * P * (exp(-r2 / R2) - 0.5);
+            g[i * stride + j].x = 2.0 * P * (exp(-r2 / R2) - 0.5);
         
             if (r != 0)
             {
-                g[i * cols + j].z = dx * Q / r * (1.0 - fabs(g[i * cols + j].x));
-                g[i * cols + j].y = dy * Q / r * (1.0 - fabs(g[i * cols + j].x));
+                g[i * stride + j].z = dx * Q / r * (1.0 - fabs(g[i * stride + j].x));
+                g[i * stride + j].y = dy * Q / r * (1.0 - fabs(g[i * stride + j].x));
             }
             else
             {
-                g[i * cols + j].z = 0.0;
-                g[i * cols + j].y = 0.0;
+                g[i * stride + j].z = 0.0;
+                g[i * stride + j].y = 0.0;
             }
+            g[i * stride + j] = VecNormalize(g[i * stride + j]);
         }
     }
 }
@@ -821,18 +825,6 @@ Vec TotalVelocityW(Vec *current, Vec *before, Vec *after, int rows, int cols, do
 
 void WriteSimulatorSimulation(const char* root_path, Simulator* s)
 {
-    // char *out_grid_anim;
-    // size_t out_grid_anim_size = snprintf(NULL, 0, "%s_grid.out", root_path) + 1;
-    // out_grid_anim = (char*)calloc(out_grid_anim_size, 1);
-    // snprintf(out_grid_anim, out_grid_anim_size, "%s_grid.out", root_path);
-    // out_grid_anim[out_grid_anim_size - 1] = '\0';
-
-    // char *out_cm_charge_anim;
-    // size_t out_cm_charge_anim_size = snprintf(NULL, 0, "%s_cm_charge.out", root_path) + 1;
-    // out_cm_charge_anim = (char*)calloc(out_cm_charge_anim_size, 1);
-    // snprintf(out_cm_charge_anim, out_cm_charge_anim_size, "%s_cm_charge.out", root_path);
-    // out_cm_charge_anim[out_cm_charge_anim_size - 1] = '\0';
-
     char *out_charge;
     size_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
     out_charge = (char*)calloc(out_charge_size, 1);
@@ -863,16 +855,12 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
     snprintf(out_energy, out_energy_size, "%s_energy.out", root_path);
     out_energy[out_energy_size - 1] = '\0';
 
-    // FILE* charge_anim = mfopen(out_cm_charge_anim, "w", 0);
-    // FILE* grid_anim = mfopen(out_grid_anim, "w", 0);
     FILE *charge_total = mfopen(out_charge, "w", 0);
     FILE *velocity_total = mfopen(out_velocity, "w", 0);
     FILE *pos_xy = mfopen(out_pos_xy, "w", 0);
     FILE *avg_mag = mfopen(out_avg_mag, "w", 0);
     FILE *energy = mfopen(out_energy, "w", 0);
 
-    // free(out_grid_anim);
-    // free(out_cm_charge_anim);
     free(out_charge);
     free(out_velocity);
     free(out_pos_xy);
@@ -899,25 +887,8 @@ void WriteSimulatorSimulation(const char* root_path, Simulator* s)
         fprintf(pos_xy, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
         fprintf(avg_mag, "%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->avg_mag[t].x, s->avg_mag[t].y, s->avg_mag[t].z);
 	    fprintf(energy, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_Ez[t].z);
-        // Vec charge_center = ChargeCenter(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
-        // fprintf(charge_anim, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge_center.x * s->g_old.param.lattice, charge_center.y * s->g_old.param.lattice);
-
-
-        // double charge = LatticeCharge(&s->grid_out_file[t * s->g_old.param.total], s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
-        // fprintf(charge_total, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, charge);
-
-        // if (t == 0 || t >= (s->n_steps / s->write_cut - 2))
-        //     continue;
-        // Vec vel = TotalVelocityW(&s->grid_out_file[t       * s->g_old.param.total], 
-        //                          &s->grid_out_file[(t - 1) * s->g_old.param.total],
-        //                          &s->grid_out_file[(t + 1) * s->g_old.param.total], 
-        //                          s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, 
-        //                          (double)s->write_cut * s->dt * HBAR / J_abs, s->g_old.param.pbc);
-                                 
-        // fprintf(velocity_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vel.x / charge, vel.y / charge);
     } 
     printf("Done writing charges related output\n");
-    // fclose(charge_anim);
     fclose(charge_total);
     fclose(velocity_total);
     fclose(pos_xy);
@@ -938,7 +909,7 @@ void DumpGrid(const char* file_path, Vec* g, int rows, int cols, double lattice)
     fclose(f);
 }
 
-void CreateNeelTriangularLattice(Vec *g, int rows, int cols, int R, int nx, double P, double Q)
+void CreateNeelTriangularLattice(Vec *g, int rows, int cols, int stride, int R, int nx, double P, double Q)
 {
     double Sl = ((double)cols - 2.0 * R * (double)nx) / (double)nx;
     double S = Sl + 2.0 * R;
@@ -949,14 +920,14 @@ void CreateNeelTriangularLattice(Vec *g, int rows, int cols, int R, int nx, doub
         for (int i = 0; i < nx; ++i) {
             double xc = S / 2.0 + i * S;
             if (j % 2) xc -= S / 2.0;
-            CreateSkyrmionNeel(g, rows, cols, xc, yc, R, P, Q);
+            CreateSkyrmionNeel(g, rows, cols, stride, xc, yc, R, P, Q);
         }
         yc += sqrt(3.0) / 2.0 * S;
         ++j;
     }
 }
 
-void CreateBlochTriangularLattice(Vec *g, int rows, int cols, int R, int nx, double P, double Q)
+void CreateBlochTriangularLattice(Vec *g, int rows, int cols, int stride, int R, int nx, double P, double Q)
 {
     double Sl = ((double)cols - 2.0 * R * (double)nx) / (double)nx;
     double S = Sl + 2.0 * R;
@@ -967,7 +938,7 @@ void CreateBlochTriangularLattice(Vec *g, int rows, int cols, int R, int nx, dou
         for (int i = 0; i < nx; ++i) {
             double xc = S / 2.0 + i * S;
             if (j % 2) xc -= S / 2.0;
-            CreateSkyrmionBloch(g, rows, cols, xc, yc, R, P, Q);
+            CreateSkyrmionBloch(g, rows, cols, stride, xc, yc, R, P, Q);
         }
         yc += sqrt(3.0) / 2.0 * S;
         ++j;

@@ -4,7 +4,7 @@ PLAT: 0
 DEV: 0
 
 DT: 0.01
-STEPS: 500000
+STEPS: 1000000
 WRITE: 0
 WRITE_HUMAN: 0
 WRITE_ON_FLY: 1
@@ -37,7 +37,7 @@ INTEGRATE: 1
 
 FILE_GRID: ./input/starting.in
 RANDOM_START_GRID: 1
-    ROWS: 112
+    ROWS: 128
     COLS: 128
 
 FILE_PINNING: ./input/pinning.in
@@ -50,7 +50,7 @@ LATTICE: 5.0e-10
 CUBIC: 0.0
 SPIN: 1.0
 
-(units of J) ANISOTROPY: 0.0
+(units of J) ANISOTROPY: 0.02
     ANI_X: 0.0
     ANI_Y: 0.0
     ANI_Z: 1.0

@@ -5,13 +5,13 @@
 
 int main()
 {
-    double J_norm = 1.5e-2;
-    double jx =  1.0,
-           jy =  0.0,
+    double J_norm = 5.0e-2;
+    double jx =  0.0,
+           jy =  1.0,
            jz =  0.0;
     double p = -1.0;
-    double beta = 0.3;
-    CUR_TYPE cur_type = CUR_STT;
+    double beta = 0.0;
+    CUR_TYPE cur_type = CUR_NONE;
     double dh = 1.0e-9;
 
     double Hz_norm =  0.5,
@@ -25,10 +25,10 @@ int main()
     Vec field_joule = VecScalar(VecFrom(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     Vec field_tesla = FieldJouleToTesla(field_joule, s.g_old.param.mu_s);
 
+
     for (size_t i = 0; i < s.g_old.param.total; ++i)
         s.g_old.grid[i] = VecNormalize(field_tesla);
-
-    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols / 5, s.g_old.param.rows / 2, 6, 1, -1);
+    CreateSkyrmionNeel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols, s.g_old.param.cols - 12, s.g_old.param.rows - 3, 3, 1.0, -1.0);
 
     Current cur;
 
@@ -66,6 +66,7 @@ int main()
     }
 
     DumpGrid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
+    PrintVecGridToFile("./output/before_integration.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     if (s.use_gpu)
         WriteFullGridBuffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
@@ -86,6 +87,7 @@ int main()
         DumpWriteGrid("./output/grid_anim_dump.bin", &s);
 
     DumpGrid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
+    PrintVecGridToFile("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     WriteSimulatorSimulation("./output/anim", &s);
     FreeSimulator(&s);
     return 0;

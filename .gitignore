@@ -11,6 +11,8 @@ main
 relax
 __pycache__
 prepare
+analyze
+compile_flags.txt
 .git_
 norm_unorm.py
 REMOVED
