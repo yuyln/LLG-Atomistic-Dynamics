@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import sys
 from matplotlib.colors import LinearSegmentedColormap
+import colorsys
 
 VEC_SIZE = 3 * 8 # BYTES
 HBAR = 1.054571817e-34 # J*s
@@ -46,6 +47,10 @@ class CMDArgs:
         parser.add_argument("-anisotropy-sep", default="\t", nargs="?", type=str)
         parser.add_argument("-pinning-sep", default="\t", nargs="?", type=str)
         parser.add_argument("-batch-size", default=50, nargs="?", type=int)
+        parser.add_argument("-HSL", action="store_true")
+        parser.add_argument("-bar-size", default=0.02, type=float)
+        parser.add_argument("-bar-pad", default=0.00, type=float)
+        parser.add_argument("-bar-pos", default="NONE", type=str)
 
         self.args = vars(parser.parse_args())
         self.INPUT_FILE    = self.args["input"]
@@ -69,6 +74,10 @@ class CMDArgs:
         self.ANI_SEP       = self.args["anisotropy_sep"]
         self.PIN_SEP       = self.args["pinning_sep"]
         self.BATCH_S       = self.args["batch_size"]
+        self.HSL           = self.args["HSL"]
+        self.BARSIZE       = self.args["bar_size"]
+        self.BARPAD        = self.args["bar_pad"]
+        self.BARPOS        = self.args["bar_pos"]
 
     def print(self):
         pprint.pprint(self.args)
@@ -108,6 +117,68 @@ def GetFrameFromBinary(rows: int, cols: int, frames: int, raw_data: mmap.mmap, i
     M = np.array(raw_vecs)
     mx, my, mz = M[0::3], M[1::3], M[2::3]
     return mx, my, mz
+
+
+def HSLtoRGB(h: np.ndarray, s: np.ndarray, l: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    H = h 
+    S = s
+    L = l
+    C = (1.0 - np.abs(2.0 * L - 1)) * S
+    X = C * (1.0 - np.abs(((H / 60) % 2) - 1.0))
+    m = L - C / 2.0
+
+    interval1 = 0 <= H
+    interval1[H > 60] = False
+
+    interval2 = 60 <= H
+    interval2[H > 120] = False
+
+    interval3 = 120 <= H
+    interval3[H > 180] = False
+
+    interval4 = 180 <= H
+    interval4[H > 240] = False
+
+    interval5 = 240 <= H
+    interval5[H > 300] = False
+
+    interval6 = 300 <= H
+    interval6[H > 360] = False
+
+    RL = C * interval1 + \
+         X * interval2 + \
+         0 * interval3 + \
+         0 * interval4 + \
+         X * interval5 + \
+         C * interval6
+
+    
+    GL = X * interval1 + \
+         C * interval2 + \
+         C * interval3 + \
+         X * interval4 + \
+         0 * interval5 + \
+         0 * interval6
+
+    BL = 0 * interval1 + \
+         0 * interval2 + \
+         X * interval3 + \
+         C * interval4 + \
+         C * interval5 + \
+         X * interval6
+
+    R = RL / 2.0 + m
+    G = GL / 2.0 + m
+    B = BL / 2.0 + m
+    return R, G, B
+
+def GetHSL(mx: np.ndarray, my: np.ndarray, mz: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    angle = np.arctan2(my, mx)
+    angle += np.pi
+    angle *= 180 / np.pi
+    L = (mz + 1) / 2.0
+    return HSLtoRGB(angle, 1.0, L)
+
 
 def ReadFile(path: str, sep: str="\t") -> pd.DataFrame:
     return pd.read_table(path, header=None, sep=sep)

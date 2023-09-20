@@ -27,12 +27,38 @@ fig = plt.figure()
 fig.set_size_inches(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 ax = fig.add_axes([0.12, 0.12, 0.75, 0.83])
 
-img = ax.imshow(mz.reshape([rows, cols]), cmap=utils.cmap, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
+if cmd_parser.HSL:
+    global img
+    rh, gh, bh = utils.GetHSL(mx, my, mz)
+    RGB = np.zeros([cols, rows, 3], dtype=float)
+    RGB[:, :, 0] = rh.reshape([cols, rows])
+    RGB[:, :, 1] = gh.reshape([cols, rows])
+    RGB[:, :, 2] = bh.reshape([cols, rows])
+    img = ax.imshow(RGB, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
+else:
+    global bar
 
-divider = make_axes_locatable(ax)
-cax1 = divider.append_axes("right", size="5%", pad=0.05)
-bar = plt.colorbar(img, cax=cax1)
-bar.set_ticks([-1, 0, 1])
+    img = ax.imshow(mz.reshape([cols, rows]), cmap=utils.cmap, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
+
+    a = ax.get_position()
+    x0, y0, x1, y1 = a.x0, a.y0, a.x1, a.y1
+    s = cmd_parser.BARSIZE
+    pad = cmd_parser.BARPAD
+
+    divider = make_axes_locatable(ax)
+
+    if cmd_parser.BARPOS != "NONE":
+        cax1 = divider.append_axes(cmd_parser.BARPOS, size="5%", pad=0.05)
+        bar = plt.colorbar(img, cax=cax1)
+        bar.set_ticks([-1, 0, 1])
+    elif cols > rows:
+        cax1 = divider.append_axes("top", size="5%", pad=0.05, orientation="horizontal")
+        bar = plt.colorbar(img, cax=cax1)
+        bar.set_ticks([-1, 0, 1])
+    else:
+        cax1 = divider.append_axes("right", size="5%", pad=0.05)
+        bar = plt.colorbar(img, cax=cax1)
+        bar.set_ticks([-1, 0, 1])
 
 time_text = fig.text(0.5, 0.95, "t=0 ns", verticalalignment="center", horizontalalignment="center", fontsize=28)
 
@@ -54,7 +80,7 @@ r_ = ax.transData.transform([r,0])[0] - ax.transData.transform([0,0])[0]
 r_ = r_ * 72 / fig.dpi
 
 # marker size as the area of a circle
-marker_size = r_ * r_
+marker_size = 4 * r_ * r_
 
 if cmd_parser.PLOT_ANI:
     try:
@@ -81,11 +107,13 @@ if cmd_parser.PLOT_PIN:
 if cmd_parser.USE_LATEX:
     ax.set_xlabel("$x$(nm)")
     ax.set_ylabel("$y$(nm)")
-    bar.set_label("$m_z$")
+    if not cmd_parser.HSL:
+        bar.set_label("$m_z$")
 else:
     ax.set_xlabel("x(nm)")
     ax.set_ylabel("y(nm)")
-    bar.set_label("m$\\mathsf{_z}$")
+    if not cmd_parser.HSL:
+        bar.set_label("m$\\mathsf{_z}$")
 
 def GetBatchLattices(b_i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     mxs = np.zeros([cmd_parser.BATCH_S, rows * cols])
@@ -106,10 +134,22 @@ def animate(i):
     ib = int(i / cmd_parser.BATCH_S)
     if i % cmd_parser.BATCH_S == 0:
         b_mxs, b_mys, b_mzs = GetBatchLattices(ib)
+
     mx, my, mz = b_mxs[i % cmd_parser.BATCH_S], b_mys[i % cmd_parser.BATCH_S], b_mzs[i % cmd_parser.BATCH_S]
-#    mx, my, mz = utils.GetFrameFromBinary(rows, cols, frames, data, i)
-    mz = mz.reshape([rows, cols])
-    img.set_array(mz)
+
+
+    if cmd_parser.HSL:
+        rh, gh, bh = utils.GetHSL(mx, my, mz)
+        RGB = np.zeros([cols, rows, 3], dtype=float)
+        RGB[:, :, 0] = rh.reshape([cols, rows])
+        RGB[:, :, 1] = gh.reshape([cols, rows])
+        RGB[:, :, 2] = bh.reshape([cols, rows])
+        img.set_array(RGB)
+    else:
+        mz = mz.reshape([rows, cols])
+        img.set_array(mz)
+
+
     mx_, my_ = utils.GetVecsFromXY(mx, my, x_in, y_in)
     if cmd_parser.PLOT_ARROWS: vecs.set_UVC(mx_ * fac_x, my_ * fac_y)
     time_text.set_text(f"t={i * dt * cut/ utils.NANO:.1f} ns")
