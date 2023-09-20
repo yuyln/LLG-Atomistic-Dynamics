@@ -29,14 +29,14 @@ ax = fig.add_axes([0.12, 0.12, 0.75, 0.83])
 
 if cmd_parser.HSL:
     rh, gh, bh = utils.GetHSL(mx, my, mz)
-    RGB = np.zeros([cols, rows, 3], dtype=float)
-    RGB[:, :, 0] = rh.reshape([cols, rows])
-    RGB[:, :, 1] = gh.reshape([cols, rows])
-    RGB[:, :, 2] = bh.reshape([cols, rows])
+    RGB = np.zeros([rows, cols, 3], dtype=float)
+    RGB[:, :, 0] = rh.reshape([rows, cols])
+    RGB[:, :, 1] = gh.reshape([rows, cols])
+    RGB[:, :, 2] = bh.reshape([rows, cols])
     img = ax.imshow(RGB, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
 else:
     global bar
-    img = ax.imshow(mz.reshape([cols, rows]), cmap=utils.cmap, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
+    img = ax.imshow(mz.reshape([rows, cols]), cmap=utils.cmap, extent=[min_x, max_x, min_y, max_y], origin="lower", vmin=-1, vmax=1, interpolation=cmd_parser.INTERPOLATION)
 
     a = ax.get_position()
     x0, y0, x1, y1 = a.x0, a.y0, a.x1, a.y1
