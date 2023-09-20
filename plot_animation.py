@@ -140,7 +140,7 @@ def animate(i):
 
     if cmd_parser.HSL:
         rh, gh, bh = utils.GetHSL(mx, my, mz)
-        RGB = np.zeros([rows, rows, 3], dtype=float)
+        RGB = np.zeros([rows, cols, 3], dtype=float)
         RGB[:, :, 0] = rh.reshape([rows, cols])
         RGB[:, :, 1] = gh.reshape([rows, cols])
         RGB[:, :, 2] = bh.reshape([rows, cols])
