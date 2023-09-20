@@ -1,5 +1,6 @@
 #ifndef __PROFILER
 #define __PROFILER
+#ifndef WIN
 #if _POSIX_C_SOURCE < 199309L
 #define _POSIX_C_SOURCE 199310L
 #endif
@@ -102,6 +103,8 @@ void PrintAll(FILE *stream)
     }
 }
 
-#endif
+#endif //GUARD
 
-#endif
+#endif //IMPLE
+
+#endif //WIN

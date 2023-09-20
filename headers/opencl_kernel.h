@@ -103,6 +103,5 @@ kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, g
 \n\
     GridNormalizeI(j, g_n, g_aux->pinning);\n\
     H[j] = HamiltonianI(j, g_n, &g_aux->param, g_aux->ani, g_aux->regions, field);\n\
-}\n\
-";
+}";
 #endif

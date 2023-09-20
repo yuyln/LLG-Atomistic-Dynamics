@@ -1,7 +1,5 @@
 .vscode
 output
-build.bat
-build.sh
 imgs
 videos
 *.exe

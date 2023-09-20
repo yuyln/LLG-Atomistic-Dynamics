@@ -3,11 +3,14 @@
 #include <string.h>
 #include <errno.h>
 
+#define OPENCLWRAPPER_IMPLEMENTATION
+#include <opencl_wrapper.h>
+
 static const char kernel_name[] = "kernel.c";
 
 int main()
 {
-    FILE *kernel = fopen(kernel_name, "r");
+    FILE *kernel = fopen(kernel_name, "rb");
     if (!kernel)
     {
         fprintf(stderr, "Could not open file %s: %s\n", kernel_name, strerror(errno));
