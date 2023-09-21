@@ -2,3 +2,5 @@
 ./headers
 -I
 ./OpenCL/include
+-D
+WIN

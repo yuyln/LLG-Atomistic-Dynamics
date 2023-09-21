@@ -5,11 +5,12 @@ videos
 *.exe
 *.stackdump
 *.out
+*.exe
 main
-relax
-__pycache__
 prepare
 analyze
+relax
+__pycache__
 compile_flags.txt
 .git_
 norm_unorm.py

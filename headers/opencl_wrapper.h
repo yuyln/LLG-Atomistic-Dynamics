@@ -101,7 +101,7 @@ static const char *errors[60] = {
     } Kernel;
 
     //utils
-    int ReadFile(const char *path, char **out);
+    int ReadFileW(const char *path, char **out);
     size_t gcd(size_t a, size_t b);
     // long unsigned int gcd(long unsigned int a, long unsigned int b);
 
@@ -149,7 +149,7 @@ void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file)
     }
 }
 
-int ReadFile(const char *path, char **out)
+int ReadFileW(const char *path, char **out)
 {
     FILE *f = fopen(path, "rb");
     if (f == NULL)

@@ -4,13 +4,13 @@
 #include <grid.h>
 #include <constants.h>
 
-inline Current GenCurI(size_t I, GLOBAL GridParam* g, Current base, double norm_time)
+Current GenCurI(size_t I, GLOBAL GridParam* g, Current base, double norm_time)
 {
     UNUSED(I); UNUSED(g); UNUSED(norm_time);
     return base;
 }
 
-inline Vec GenFieldI(size_t I, GLOBAL GridParam* g, Vec base, double norm_time)
+Vec GenFieldI(size_t I, GLOBAL GridParam* g, Vec base, double norm_time)
 {
     UNUSED(I); UNUSED(g); UNUSED(norm_time);
     return base;
