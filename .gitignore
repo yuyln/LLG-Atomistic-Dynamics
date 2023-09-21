@@ -5,7 +5,7 @@ videos
 *.exe
 *.stackdump
 *.out
-*.exe
+*.dll
 main
 prepare
 analyze
