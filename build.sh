@@ -1,7 +1,7 @@
 #!/bin/sh
 set -xe
 
-CFLAGS="-DRK4 -Wall -Wextra -pedantic -O3 -ggdb -I ./headers"
+CFLAGS="-DRK4 -Wall -Wextra -pedantic -O3 -ggdb"
 LIBS="-lm `pkg-config --static --libs OpenCL` -fopenmp"
 
 gcc $CFLAGS prepare.c -o prepare $LIBS

@@ -1,78 +1,70 @@
 #ifndef __GRID
 #define __GRID
-#include <vec.h>
+#ifndef OPENCLCOMP
+#include "./headers/vec.h"
+#endif
 
-typedef enum
-{
+typedef enum {
     R_ij, Z_CROSS_R_ij
 } DM_TYPE;
 
-typedef enum
-{
-    PBC_XY, PBC_X, PBC_Y, PBC_NONE
+typedef enum {
+    pbc_t_XY, pbc_t_X, pbc_t_Y, pbc_t_NONE
 } PBC_TYPE;
 
-typedef enum
-{
+typedef enum {
     CUR_NONE, CUR_CPP, CUR_STT, CUR_BOTH
 } CUR_TYPE;
 
-typedef struct
-{
-    Vec j;
+typedef struct {
+    v3d j;
     double p, beta, thick;
     CUR_TYPE type;
-} Current;
+} current_t;
 
-typedef struct
-{
-    Vec dir;
+typedef struct {
+    v3d dir;
     PBC_TYPE pbc_type;
-} PBC;
+} pbc_t;
 
-typedef struct
-{
+typedef struct {
     double K_1;
-    Vec dir;
-} Anisotropy;
+    v3d dir;
+} anisotropy_t;
 
-typedef struct
-{
+typedef struct {
     char fixed;
-    Vec dir;
-} Pinning;
+    v3d dir;
+} pinning_t;
 
-typedef struct
-{
+typedef struct {
     int rows, cols;
     size_t total;
     double exchange, dm, lattice, cubic_ani;
     double mu_s, lande, avg_spin, alpha, gamma;
     double total_time; //should not be a grid param, however.........
     DM_TYPE dm_type;
-    PBC pbc;
-} GridParam;
+    pbc_t pbc;
+} grid_param_t;
 
-typedef struct
-{
+typedef struct {
     double exchange_mult, dm_mult, field_mult; //current
     DM_TYPE dm_type;
-} RegionParam;
+} region_param_t;
 
-typedef struct
-{
-    GridParam param;
+typedef struct {
+    grid_param_t param;
     #ifndef OPENCLCOMP
-    Vec *grid;
-    Anisotropy *ani;
-    Pinning *pinning;
-    RegionParam *regions;
+    v3d *grid;
+    anisotropy_t *ani;
+    pinning_t *pinning;
+    region_param_t *regions;
     #else
-    Vec grid[TOTAL];
-    Anisotropy ani[TOTAL];
-    Pinning pinning[TOTAL];
-    RegionParam regions[TOTAL];
+    v3d grid[TOTAL];
+    anisotropy_t ani[TOTAL];
+    pinning_t pinning[TOTAL];
+    region_param_t regions[TOTAL];
     #endif
-} Grid;
+} grid_t;
 
 #endif

@@ -6,78 +6,66 @@
 #include <stdlib.h>
 #endif
 
-typedef struct
-{
+typedef struct {
     double x, y, z;
-} Vec;
+} v3d;
 
-Vec VecFromScalar(double scalar)
-{
-    return (Vec){scalar, scalar, scalar};
+v3d vec_s(double scalar) {
+    return (v3d){scalar, scalar, scalar};
 }
 
-Vec VecFrom(double x, double y, double z)
-{
-    return (Vec){x, y, z};
+v3d vec_c(double x, double y, double z) {
+    return (v3d){x, y, z};
 }
 
-Vec VecAdd(Vec v1, Vec v2)
-{
+v3d vec_add(v3d v1, v3d v2) {
     v1.x += v2.x;
     v1.y += v2.y;
     v1.z += v2.z;
     return v1;
 }
 
-Vec VecSub(Vec v1, Vec v2)
-{
+v3d vec_sub(v3d v1, v3d v2) {
     v1.x -= v2.x;
     v1.y -= v2.y;
     v1.z -= v2.z;
     return v1;
 }
 
-Vec VecScalar(Vec v1, double scalar)
-{
+v3d vec_scalar(v3d v1, double scalar) {
     v1.x *= scalar;
     v1.y *= scalar;
     v1.z *= scalar;
     return v1;
 }
 
-Vec VecNormalize(Vec v)
-{
+v3d vec_normalize(v3d v) {
     double v2 = v.x * v.x + v.y * v.y + v.z * v.z;
-    if (v2 > 0.0)
-    {
+    if (v2 > 0.0) {
         double v1 = 1.0 / sqrt(v2);
-        return VecScalar(v, v1);
+        return vec_scalar(v, v1);
     }
     return v;
 }
 
-Vec VecNormalizeTo(Vec v, double V)
-{
+v3d vec_normalize_to(v3d v, double V) {
     double v2 = v.x * v.x + v.y * v.y + v.z * v.z;
-    if (v2 > 0.0)
-    {
+    if (v2 > 0.0) {
         double v1 = V / sqrt(v2);
-        return VecScalar(v, v1);
+        return vec_scalar(v, v1);
     }
     return v;
 }
 
-Vec VecCross(Vec v1, Vec v2)
-{
-    Vec ret;
+v3d vec_cross(v3d v1, v3d v2) {
+    v3d ret;
     ret.x = v1.y * v2.z - v1.z * v2.y;
     ret.y = v1.z * v2.x - v1.x * v2.z;
     ret.z = v1.x * v2.y - v1.y * v2.x;
     return ret;
 }
 
-double VecDot(Vec v1, Vec v2)
-{
+double vec_dot(v3d v1, v3d v2) {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 #endif

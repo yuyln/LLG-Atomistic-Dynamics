@@ -1,110 +1,122 @@
-#ifndef __PROFILER
-#define __PROFILER
-#ifndef WIN
+#ifndef __PROFILER_H
+#define __PROFILER_H
+
 #if _POSIX_C_SOURCE < 199309L
 #define _POSIX_C_SOURCE 199310L
 #endif
 
-#include <stdio.h>
+#define PROFILER(x) __PROFILER_##x
+#define __PROFILER_TABLE_MAX 1000
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <stdbool.h>
 
-typedef struct Node
-{
-    char *name;
-    size_t i;
+
+typedef struct PROFILER(elem) {
+    char* name;
     struct timespec T1, T2;
-    double dt;
-    struct Node *n;
-} Node;
+    double interval;
+    struct PROFILER(elem)* next;
+} PROFILER(elem);
 
-static Node *nodes;
-static size_t i = 0;
+PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX] = {0};
 
-size_t StartMeasure(const char *name);
-double EndMeasure(const char *name);
-void PrintAll(FILE *stream);
+bool profiler_start_measure(const char* name);
+void EndMeasure(const char* name);
+void DumpMeasures(FILE *file);
 
-#ifdef PROFILER_IMPLEMENTATION
-size_t StartMeasure(const char *name)
-{
-    struct timespec tempt;
-    clock_gettime(CLOCK_REALTIME, &tempt);
+#endif //__PROFILER_H
 
-    if (i == 0)
-    {
-        nodes = (Node*)malloc(sizeof(Node));
-        nodes->i = 0;
-        nodes->T1 = tempt;
-        nodes->name = (char*)name;
-        nodes->n = NULL;
-        nodes->dt = 0.0;
-        return i++;
+
+#ifdef __PROFILER_IMPLEMENTATION
+
+
+static size_t hash(const char *name) {
+    size_t r = 0;
+    for (size_t i = 0; i < strlen(name); ++i) r += (size_t)name[i] + (size_t)name[i] * i;
+    return r % __PROFILER_TABLE_MAX;
+}
+
+static PROFILER(elem) initelem(const char* name) {
+    PROFILER(elem) ret = {0};
+    size_t len = strlen(name);
+    ret.name = (char*)calloc(len + 1, 1);
+    memcpy(ret.name, name, len);
+    ret.name[len] = '\0';
+    ret.next = NULL;
+    clock_gettime(CLOCK_REALTIME, &ret.T1);
+    ret.T2 = (struct timespec){0};
+    return ret;
+}
+
+static bool insert(const char* name) {
+    size_t index = hash(name);
+    if (!PROFILER(table)[index].name) {
+        PROFILER(table)[index] = initelem(name);
+        return true;
     }
+  
+    PROFILER(elem) *head = &PROFILER(table)[index];
+    PROFILER(elem) *last = &PROFILER(table)[index];
+    while (head) {
+        if (strcmp(head->name, name) == 0) return false;
+        last = head;
+        head = head->next;
+    }
+  
+    last->next = calloc(1, sizeof(PROFILER(elem)));  
+    last = last->next;
+    if (!last) return false;
+    *last = initelem(name);
+  
+    return true;
+}
 
+bool profiler_start_measure(const char *name) {
+    return insert(name);
+}
 
-    Node *p = (Node*)malloc(sizeof(Node));
-    p->name = (char*) name;
-    p->i = i;
-    p->n = NULL;
-    p->dt = 0.0;
-    p->T1 = tempt;
+void EndMeasure(const char* name) {
+    size_t index = hash(name);
+    PROFILER(elem) *head = &PROFILER(table)[index];
+    while (head) {
+      if (strcmp(head->name, name) == 0) {
+          clock_gettime(CLOCK_REALTIME, &head->T2);
+          head->interval = (double)(head->T2.tv_sec - head->T1.tv_sec) +
+  			           (head->T2.tv_nsec - head->T1.tv_nsec) * 1.0e-9;
+          break;
+      }
+          head = head->next;
+    }
+}
 
-    Node *p1 = nodes;
+static void FreeList(PROFILER(elem) *head) {
+    if (!head) return;
+    
+    FreeList(head->next);
+    if (head->name) free(head->name);
+    free(head);
+}
 
-    while (p1->n != NULL)
-    {
-        int r = strcmp(name, p1->name);
-        if (r == 0)
-        {
-            p1->T1 = tempt;
-            return p1->i;
+void DumpMeasures(FILE *file) {
+    for (size_t i = 0; i < __PROFILER_TABLE_MAX; ++i) {
+        PROFILER(elem) *head = &PROFILER(table)[i];
+        if (!head->name) continue;
+    
+        while (head) {
+            fprintf(file, "[ %s ] -> %.9e sec\n", head->name, head->interval);
+            head = head->next;
         }
-        p1 = p1->n;
-    }
-    p1->n = p;
-    return i++;
-}
-
-double EndMeasure(const char *name)
-{
-    struct timespec tempt;
-    clock_gettime(CLOCK_REALTIME, &tempt);
-    Node *p = nodes;
-    if (i == 0)
-    {
-        return -1.0;
-    }
-    while (p != NULL)
-    {
-        int r = strcmp(p->name, name);
-        if (r != 0)
-        {
-            p = p->n;
-            continue;
-        }
-        p->T2 = tempt;
-        break;
-    }
-    int dts = p->T2.tv_sec - p->T1.tv_sec;
-    int dtns = p->T2.tv_nsec - p->T1.tv_nsec;
-    p->dt += (double)dts + (double)dtns / 1.0e9;
-    return p->dt;
-}
-
-void PrintAll(FILE *stream)
-{
-    Node *p = nodes;
-    while (p != NULL)
-    {
-        fprintf(stream, "[ %s ] -> [ %.9f ] seg\n", p->name, p->dt);
-        p = p->n;
+    
+        head = &PROFILER(table)[i];
+        FreeList(head->next);
+	
+	free(head->name);
+        memset(head, 0, sizeof(PROFILER(elem)));
     }
 }
 
-#endif //GUARD
-
-#endif //IMPLE
-
-#endif //WIN
+#endif //__PROFILER_IMPLEMENTATION

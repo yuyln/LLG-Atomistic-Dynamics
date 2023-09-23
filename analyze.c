@@ -1,7 +1,7 @@
-#include <funcs.h>
-#include <grid.h>
-#include <helpers.h>
-#include <helpers_simulator.h>
+#include "./headers/funcs.h"
+#include "./headers/grid.h"
+#include "./headers/helpers.h"
+#include "./headers/helpers_simulator.h"
 #include <stdint.h>
 
 #ifdef WIN
@@ -12,8 +12,7 @@ void *map_view = NULL;
 unsigned long lerror = 0;
 #define CHECK_ERROR() do { lerror = GetLastError(); if (lerror != 0) printf("ERROR: %lu\n", GetLastError()); } while(0)
 
-void *memory_map(uint64_t s)
-{
+void *memory_map(uint64_t s) {
     uint32_t size_l, size_h;
     //uint32_t size_l = (uint32_t)(s & 0x00000000ffffffff);
     //uint32_t size_h = (uint32_t)(s & 0xffffffff00000000);
@@ -37,8 +36,7 @@ void *memory_map(uint64_t s)
     return map_view;
 }
 
-void memory_unmap(void *buffer, uint64_t s)
-{
+void memory_unmap(void *buffer, uint64_t s) {
     if (!UnmapViewOfFile(buffer))
         CHECK_ERROR();
 
@@ -51,13 +49,11 @@ void memory_unmap(void *buffer, uint64_t s)
 #else
 #include <sys/mman.h>
 
-void *memory_map(uint64_t s)
-{
+void *memory_map(uint64_t s) {
     return mmap(NULL, s, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 }
 
-void memory_unmap(void *buffer, uint64_t s)
-{
+void memory_unmap(void *buffer, uint64_t s) {
     munmap(buffer, s);
 }
 
@@ -67,15 +63,13 @@ void memory_unmap(void *buffer, uint64_t s)
 
 //TODO: parse command line argument (the right way)
 
-int main(int argc, const char **argv)
-{
-    GridParam params = {0};
-    GetGridParam("./input/input.in", &params);
+int main(int argc, const char **argv) {
+    grid_param_t params = {0};
+    find_grid_param_path("./input/input.in", &params);
     
     const char *file_path = "./output/integration_fly.bin";
     FILE *file = fopen(file_path, "rb");
-    if (!file)
-    {
+    if (!file) {
         fprintf(stderr, "Could not open file %s: %s\n", file_path, strerror(errno));
         exit(1);
     }
@@ -100,8 +94,8 @@ int main(int argc, const char **argv)
     ptr += 8;
     double lattice = *((double*)ptr);
     ptr += 8;
-    Vec *grid      = ((Vec*)ptr);
-    PBC pbc = params.pbc;
+    v3d *grid      = ((v3d*)ptr);
+    pbc_t pbc = params.pbc;
 
     uint64_t frame_size = rows * cols;
 
@@ -118,29 +112,24 @@ int main(int argc, const char **argv)
     int rows_per_stripe = rows / row_stripes;
     int cols_per_stripe = cols / col_stripes;
 
-    for (int t = 1; t < frames - 1; ++t)
-    {
-        Vec *gp, *gc, *gn;
+    for (int t = 1; t < frames - 1; ++t) {
+        v3d *gp, *gc, *gn;
         
         gc = &grid[frame_size * t];
         gp = &grid[frame_size * (t - 1)];
         gn = &grid[frame_size * (t + 1)];
 
 
-        for (int rs = 0; rs < row_stripes; ++rs)
-        {
-            for (int cs = 0; cs < col_stripes; ++cs)
-            {
-                Vec vel = {0};
+        for (int rs = 0; rs < row_stripes; ++rs) {
+            for (int cs = 0; cs < col_stripes; ++cs) {
+                v3d vel = {0};
                 double charge_pr = 0.0;
                 double charge_im = 0.0;
-                for (int row = rs * rows_per_stripe; row < (rs + 1) * rows_per_stripe; ++row)
-                {
-                    for (int col = cs * cols_per_stripe; col < (cs + 1) * cols_per_stripe; ++col)
-                    {
-                        vel = VecAdd(vel, VelWeightedI(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
-                        charge_pr += ChargeI(row * cols + col, gc, rows, cols, pbc);
-                        charge_im += ChargeI_old(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
+                for (int row = rs * rows_per_stripe; row < (rs + 1) * rows_per_stripe; ++row) {
+                    for (int col = cs * cols_per_stripe; col < (cs + 1) * cols_per_stripe; ++col) {
+                        vel = vec_add(vel, velocity_weighted_i(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
+                        charge_pr += charge_I(row * cols + col, gc, rows, cols, pbc);
+                        charge_im += charge_old_I(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
                     }
                 }
                 fprintf(out_data, "%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", t * dt * cut, cs * cols_per_stripe * lattice,

@@ -1,9 +1,10 @@
-#include <random_extern.h>
-#include <grid.h>
-#include <funcs.h>
+#include "./headers/constants.h"
+#include "./headers/vec.h"
+#include "./headers/random_extern.h"
+#include "./headers/grid.h"
+#include "./headers/funcs.h"
 
-kernel void TermalStep(global Grid* g_out, global Grid* g_old, double T, double qV1, double exp1, double exp2, int seed)
-{
+kernel void termal_step(global grid_t* g_out, global grid_t* g_old, double T, double qV1, double exp1, double exp2, int seed) {
     size_t I = get_global_id(0);
 
     tyche_state state;
@@ -30,58 +31,51 @@ kernel void TermalStep(global Grid* g_out, global Grid* g_old, double T, double 
     
     g_out->grid[I].z = g_old->grid[I].z + delta;
 
-    GridNormalizeI(I, g_out->grid, g_out->pinning);
+    grid_normalize(I, g_out->grid, g_out->pinning);
 }
 
-kernel void HamiltonianGPU(global Grid* g, global double* ham_buffer, Vec field)
-{
+kernel void hamiltonian_gpu(global grid_t* g, global double* ham_buffer, v3d field) {
     size_t I = get_global_id(0);
-    ham_buffer[I] = HamiltonianI(I, g->grid, &g->param, g->ani, g->regions, field);
+    ham_buffer[I] = hamiltonian_I(I, g->grid, &g->param, g->ani, g->regions, field);
 }
 
-kernel void Reset(global Grid* g_old, global Grid* g_new)
-{
+kernel void reset_gpu(global grid_t* g_old, global grid_t* g_new) {
     size_t I = get_global_id(0);
     g_old->grid[I] = g_new->grid[I];
 }
 
-kernel void ResetVec(global Vec *v1, global Vec *v2)
-{
+kernel void reset_gpuv3d(global v3d *v1, global v3d *v2) {
     size_t I = get_global_id(0);
     v1[I] = v2[I];
 }
 
-kernel void StepGPU(global Grid *g_old, global Grid *g_new, Vec field, double dt, Current cur, double norm_time, int i, int cut, global Vec* vxvy_Ez_avg_mag_cp_ci, int calc_energy)
-{
+kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global v3d* vxvy_Ez_avg_mag_cp_ci, int calc_energy) {
 	size_t I = get_global_id(0);
-    Vec dMdt = StepI(I, g_old, field, cur, dt, norm_time);
-	g_new->grid[I] = VecAdd(g_old->grid[I], dMdt);
-    GridNormalizeI(I, g_new->grid, g_new->pinning);
+    v3d dMdt = step(I, g_old, field, cur, dt, norm_time);
+	g_new->grid[I] = vec_add(g_old->grid[I], dMdt);
+    grid_normalize(I, g_new->grid, g_new->pinning);
 
-	if (i % cut == 0)
-	{
-		Vec vt = VelWeightedI(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, 
+	if (i % cut == 0) {
+		v3d vt = velocity_weighted(I, g_new->grid, g_old->grid, g_new->grid, g_old->param.rows, g_old->param.cols, 
 					g_old->param.lattice, g_old->param.lattice, 0.5 * dt * HBAR / fabs(g_old->param.exchange), g_old->param.pbc);
 		vxvy_Ez_avg_mag_cp_ci[I].x = vt.x;
 		vxvy_Ez_avg_mag_cp_ci[I].y = vt.y;
 		vxvy_Ez_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = ChargeI(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.pbc);
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = ChargeI_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = charge_I(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.pbc);
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = charge_old_I(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);
 		if (calc_energy)
-			vxvy_Ez_avg_mag_cp_ci[I].z = HamiltonianI(I, g_new->grid, &g_new->param, g_new->ani, g_new->regions, field);
+			vxvy_Ez_avg_mag_cp_ci[I].z = hamiltonian_I(I, g_new->grid, &g_new->param, g_new->ani, g_new->regions, field);
 	}
 }
 
-kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, global Vec *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed, double J, Vec field)
-{
+kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d *g_c, global v3d *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed, double J, v3d field) {
     size_t j = get_global_id(0);
 
 
-    Vec vel = GradientDescentVelocity(g_p[j], g_n[j], dt);
-    Vec Heff = GradientDescentForce(j, g_aux, vel, g_c, field, J, alpha, beta);
+    v3d vel = gradient_descente_velocity(g_p[j], g_n[j], dt);
+    v3d Heff = gradient_descent_force(j, g_aux, vel, g_c, field, J, alpha, beta);
 
-    if (T != 0)
-    {
+    if (T != 0) {
         tyche_state state;
         tyche_seed(&state, seed + j);
 
@@ -90,14 +84,14 @@ kernel void GradientStep(global Grid *g_aux, global Vec *g_p, global Vec *g_c, g
         double R3 = 2.0 * tyche_double(state) - 1.0;
 
     
-        Heff = VecAdd(Heff, VecScalar(VecFrom(R1, R2, R3), T));
+        Heff = vec_add(Heff, vec_scalar(vec_c(R1, R2, R3), T));
     }
 
-    g_n[j] = VecAdd(
-   		    VecSub(VecScalar(g_c[j], 2.0), g_p[j]),
-   		    VecScalar(Heff, -dt * dt / mass)
+    g_n[j] = vec_add(
+   		    vec_sub(vec_scalar(g_c[j], 2.0), g_p[j]),
+   		    vec_scalar(Heff, -dt * dt / mass)
     		   );
 
-    GridNormalizeI(j, g_n, g_aux->pinning);
-    H[j] = HamiltonianI(j, g_n, &g_aux->param, g_aux->ani, g_aux->regions, field);
+    grid_normalize(j, g_n, g_aux->pinning);
+    H[j] = hamiltonian_I(j, g_n, &g_aux->param, g_aux->ani, g_aux->regions, field);
 }
