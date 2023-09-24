@@ -14,8 +14,7 @@
 //     ellipse      #
 // ##################
 
-int main(void)
-{
+int main(void) {
 	FILE *f_out = fopen("./pinning.in", "w");
 	int cols = 128;
 	int rows = 64;

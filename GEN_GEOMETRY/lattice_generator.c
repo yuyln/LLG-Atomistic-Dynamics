@@ -18,8 +18,7 @@
 //     ellipse      #
 // ##################
 
-int main(void)
-{
+int main(void) {
 	FILE *f_out = fopen("./starting.in", "w");
 	int cols = 272 * 4;
 	int rows = 272 / 4;
@@ -40,11 +39,11 @@ int main(void)
         for (int i = 0; i < npin; ++i) {
             if (i == 2) continue;
             double x = d / 2.0 + i * d + (2 * i + 1) * rpin;
-            CreateSkyrmionNeel(grid, rows, cols, x + rpin + rskyr, cy, rskyr, 1.0, -1.0);
+            create_skyrmion_neel(grid, rows, cols, x + rpin + rskyr, cy, rskyr, 1.0, -1.0);
         }
     }
 
-    PrintGrid(f_out, grid, rows, cols);
+    print_grid(f_out, grid, rows, cols);
     free(grid);
     fclose(f_out);
     return 0;

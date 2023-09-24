@@ -62,47 +62,40 @@ bool ellipse_inside(v2d p, ellipse e);
 
 #ifdef __SHAPES_C
 
-v2d i_v2d(double x, double y)
-{
+v2d i_v2d(double x, double y) {
 	return (v2d){x, y};
 }
 
-v2d s_v2d(double x)
-{
+v2d s_v2d(double x) {
 	return (v2d){x, x};
 }
 
-v2d v2d_add(v2d a, v2d b)
-{
+v2d v2d_add(v2d a, v2d b) {
 	a.x += b.x;
 	a.y += b.y;
 	return a;
 }
 
-v2d v2d_sub(v2d a, v2d b)
-{
+v2d v2d_sub(v2d a, v2d b) {
 	a.x -= b.x;
 	a.y -= b.y;
 	return a;
 }
 
-v2d v2d_sca(v2d a, double s)
-{
+v2d v2d_sca(v2d a, double s) {
 	a.x *= s;
 	a.y *= s;
 	return a;
 }
 
-v2d rotate(v2d o, double angle)
-{
+v2d rotate(v2d o, double angle) {
 	v2d ret;
 	ret.x = cos(angle) * o.x - sin(angle) * o.y;
 	ret.y = sin(angle) * o.x + cos(angle) * o.y;
 	return ret;
 }
 
-bool triangle_inside(v2d p, triangle t)
-{
+bool triangle_inside(v2d p, triangle t) {
 	double alpha = ((t.p2.y - t.p3.y) * (p.x - t.p3.x) + (t.p3.x - t.p2.x) * (p.y - t.p3.y)) /
 				   ((t.p2.y - t.p3.y) * (t.p1.x - t.p3.x) + (t.p3.x - t.p2.x) * (t.p1.y - t.p3.y));
 	double beta = ((t.p3.y - t.p1.y) * (p.x - t.p3.x) + (t.p1.x - t.p3.x) * (p.y - t.p3.y)) /
@@ -111,8 +104,7 @@ bool triangle_inside(v2d p, triangle t)
 	return alpha >= 0 && beta >= 0 && gamma >= 0;
 }
 
-triangle triangle_center_angle(v2d center, v2d size, double angle, double rot)
-{
+triangle triangle_center_angle(v2d center, v2d size, double angle, double rot) {
 	triangle ret = {0};
 	v2d p1, p2, p3;
 
@@ -137,8 +129,7 @@ triangle triangle_center_angle(v2d center, v2d size, double angle, double rot)
 	return ret;
 }
 
-void triangle_discrete_to_file(FILE *file, triangle t, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void triangle_discrete_to_file(FILE *file, triangle t, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -174,8 +165,7 @@ void triangle_discrete_to_file(FILE *file, triangle t, int xmin, int xmax, int y
 	}
 }
 
-quad quad_center_angle(v2d center, v2d size, double angle)
-{
+quad quad_center_angle(v2d center, v2d size, double angle) {
 	quad ret = {0};
 	v2d tmp1 = v2d_sub(s_v2d(0), v2d_sca(size, 0.5));
 	v2d tmp2 = v2d_add(s_v2d(0), i_v2d(size.x * 0.5, -size.y * 0.5));
@@ -194,8 +184,7 @@ quad quad_center_angle(v2d center, v2d size, double angle)
 	return ret;
 }
 
-bool quad_inside(v2d p, quad q)
-{
+bool quad_inside(v2d p, quad q) {
 	v2d a = v2d_sub(q.p2, q.p1);
 	v2d b = v2d_sub(q.p3, q.p2);
 	p = v2d_sub(p, q.p1);
@@ -207,8 +196,7 @@ bool quad_inside(v2d p, quad q)
 	return lambda < 1.0f && mu < 1.0f && lambda > 0.0f && mu > 0.0f;
 }
 
-void quad_discrete_to_file(FILE *file, quad q, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void quad_discrete_to_file(FILE *file, quad q, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -248,8 +236,7 @@ void quad_discrete_to_file(FILE *file, quad q, int xmin, int xmax, int ymin, int
 	}
 }
 
-line line_points(v2d p1, v2d p2, double thickness)
-{
+line line_points(v2d p1, v2d p2, double thickness) {
 	line ret = {0};
 	ret.p1 = p1;
 	ret.p2 = p2;
@@ -257,16 +244,14 @@ line line_points(v2d p1, v2d p2, double thickness)
 	return ret;
 }
 
-v2d normal_to_line(line l)
-{
+v2d normal_to_line(line l) {
 	v2d d = v2d_sub(l.p2, l.p1);
 	double N = sqrt(d.x * d.x + d.y * d.y);
 	d = v2d_sca(d, 1.0 / N);
 	return rotate(d, M_PI / 2.0);
 }
 
-double distance2_line_point(v2d p, line l)
-{
+double distance2_line_point(v2d p, line l) {
 	v2d dir = v2d_sub(l.p2, l.p1);
 	double N = sqrt(dir.x * dir.x + dir.y * dir.y);
 	dir = v2d_sca(dir, 1.0 / N);
@@ -291,8 +276,7 @@ double distance2_line_point(v2d p, line l)
 	return distance.x * distance.x + distance.y * distance.y;
 }
 
-void line_discrete_to_file_smooth(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void line_discrete_to_file_smooth(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -325,8 +309,7 @@ void line_discrete_to_file_smooth(FILE *file, line l, int xmin, int xmax, int ym
 	}
 }
 
-void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -360,8 +343,7 @@ void line_discrete_to_file_quad(FILE *file, line l, int xmin, int xmax, int ymin
 	}
 }
 
-void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -394,15 +376,13 @@ void line_discrete_to_file_quad_cut(FILE *file, line l, int xmin, int xmax, int 
 	}
 }
 
-bool line_inside_smooth(v2d p, line l)
-{
+bool line_inside_smooth(v2d p, line l) {
 	double d2 = distance2_line_point(p, l);
 	double R = l.thick / 2.0;
 	return d2 < (R * R);
 }
 
-bool line_inside_quad(v2d p, line l)
-{
+bool line_inside_quad(v2d p, line l) {
 	quad ql = {0};
 	v2d n = normal_to_line(l);
 	ql.p1 = v2d_add(l.p1, v2d_sca(n, l.thick / 2.0));
@@ -412,8 +392,7 @@ bool line_inside_quad(v2d p, line l)
 	return quad_inside(p, ql);
 }
 
-n_side n_side_center_angle(v2d center, v2d l, int n, double rot)
-{
+n_side n_side_center_angle(v2d center, v2d l, int n, double rot) {
 	n_side ret = {0};
 	ret.center = center;
 	ret.l = l;
@@ -457,8 +436,7 @@ n_side n_side_center_angle(v2d center, v2d l, int n, double rot)
 	return ret;
 }
 
-void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -480,8 +458,7 @@ void n_side_discrete_to_file(FILE *file, n_side t, int xmin, int xmax, int ymin,
 	}
 }
 
-bool n_side_inside(v2d p, n_side t)
-{
+bool n_side_inside(v2d p, n_side t) {
 	double deph = 2.0 * M_PI / (double)t.sides;
 	double dt = deph;
 	for (int i = 0; i < t.sides; ++i)
@@ -502,13 +479,11 @@ bool n_side_inside(v2d p, n_side t)
 	return false;
 }
 
-circle circle_center(v2d center, double R)
-{
+circle circle_center(v2d center, double R) {
 	return (circle){.center = center, .R = R};
 }
 
-void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -535,20 +510,17 @@ void circle_discrete_to_file(FILE *file, circle c, int xmin, int xmax, int ymin,
 	}
 }
 
-bool circle_inside(v2d p, circle c)
-{
+bool circle_inside(v2d p, circle c) {
 	double dx = c.center.x - p.x;
 	double dy = c.center.y - p.y;
 	return dx * dx + dy * dy <= c.R * c.R;
 }
 
-ellipse ellipse_center_angle(v2d center, v2d ab, double angle)
-{
+ellipse ellipse_center_angle(v2d center, v2d ab, double angle) {
 	return (ellipse){.center = center, .ab = ab, .angle = angle};
 }
 
-void ellipse_discrete_to_file(FILE *file, ellipse e, int xmin, int xmax, int ymin, int ymax, const char *format)
-{
+void ellipse_discrete_to_file(FILE *file, ellipse e, int xmin, int xmax, int ymin, int ymax, const char *format) {
 	const char *format_ = format;
 	if (!format_)
 	{
@@ -580,8 +552,7 @@ void ellipse_discrete_to_file(FILE *file, ellipse e, int xmin, int xmax, int ymi
 	}
 }
 
-bool ellipse_inside(v2d p, ellipse e)
-{
+bool ellipse_inside(v2d p, ellipse e) {
 	p = rotate(v2d_sub(p, e.center), -e.angle);
 	double x2 = p.x * p.x;
 	double y2 = p.y * p.y;
