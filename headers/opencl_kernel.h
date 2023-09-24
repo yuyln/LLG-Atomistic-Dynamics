@@ -47,7 +47,7 @@ kernel void reset_gpu(global grid_t* g_old, global grid_t* g_new) {\n\
     g_old->grid[I] = g_new->grid[I];\n\
 }\n\
 \n\
-kernel void reset_gpuv3d(global v3d *v1, global v3d *v2) {\n\
+kernel void reset_v3d_gpu(global v3d *v1, global v3d *v2) {\n\
     size_t I = get_global_id(0);\n\
     v1[I] = v2[I];\n\
 }\n\
@@ -55,7 +55,7 @@ kernel void reset_gpuv3d(global v3d *v1, global v3d *v2) {\n\
 kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global v3d* vxvy_Ez_avg_mag_cp_ci, int calc_energy) {\n\
 	size_t I = get_global_id(0);\n\
     v3d dMdt = step(I, g_old, field, cur, dt, norm_time);\n\
-	g_new->grid[I] = vec_add(g_old->grid[I], dMdt);\n\
+	g_new->grid[I] = v3d_add(g_old->grid[I], dMdt);\n\
     grid_normalize(I, g_new->grid, g_new->pinning);\n\
 \n\
 	if (i % cut == 0) {\n\
@@ -64,8 +64,8 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
 		vxvy_Ez_avg_mag_cp_ci[I].x = vt.x;\n\
 		vxvy_Ez_avg_mag_cp_ci[I].y = vt.y;\n\
 		vxvy_Ez_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];\n\
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = charge_I(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.pbc);\n\
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = charge_old_I(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = charge(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.pbc);\n\
+		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = charge_old(I, g_new->grid, g_old->param.rows, g_old->param.cols, g_old->param.lattice, g_old->param.lattice, g_old->param.pbc);\n\
 		if (calc_energy)\n\
 			vxvy_Ez_avg_mag_cp_ci[I].z = hamiltonian_I(I, g_new->grid, &g_new->param, g_new->ani, g_new->regions, field);\n\
 	}\n\
@@ -87,12 +87,12 @@ kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d 
         double R3 = 2.0 * tyche_double(state) - 1.0;\n\
 \n\
     \n\
-        Heff = vec_add(Heff, vec_scalar(vec_c(R1, R2, R3), T));\n\
+        Heff = v3d_add(Heff, v3d_scalar(v3d_c(R1, R2, R3), T));\n\
     }\n\
 \n\
-    g_n[j] = vec_add(\n\
-   		    vec_sub(vec_scalar(g_c[j], 2.0), g_p[j]),\n\
-   		    vec_scalar(Heff, -dt * dt / mass)\n\
+    g_n[j] = v3d_add(\n\
+   		    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),\n\
+   		    v3d_scalar(Heff, -dt * dt / mass)\n\
     		   );\n\
 \n\
     grid_normalize(j, g_n, g_aux->pinning);\n\

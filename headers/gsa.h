@@ -93,7 +93,7 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
     grid_free(&g_old);
 }
 
-void gsagpu_t(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *gpu) {
+void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *gpu) {
     grid_t g_min = grid_init_null(),
          g_old = grid_init_null(); {
         printf("qA: %e\n", param.qA);

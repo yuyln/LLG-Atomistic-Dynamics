@@ -18,8 +18,8 @@ int main() {
            Hx_norm =  0.0;
 
     simulator_t s = init_simulator("./input/input.in");
-    Exportsimulator_tFile(&s, "./output/export_sim.out");
-    printf("grid_t size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
+    export_simulator_path(&s, "./output/export_sim.out");
+    printf("Grid size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
 
     v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     v3d field_tesla = field_joule_to_tesla(field_joule, s.g_old.param.mu_s);
@@ -32,7 +32,7 @@ int main() {
     current_t cur;
 
     if (s.use_gpu && s.do_gsa) {
-        gsagpu_t(s.gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
+        gsa_gpu(s.gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
         grid_copy(&s.g_old, &s.g_new);
         full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
         full_grid_write_buffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
@@ -62,13 +62,13 @@ int main() {
     }
 
     dump_v3d_grid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
-    print_v3d_grid_to_file("./output/before_integration.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    print_v3d_grid_path("./output/before_integration.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     if (s.use_gpu)
         full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
     printf("-------------------------------------\n");
     printf("Real values:\n");
-    printf("current_t  || Normalized: %.5e Real: %.5e A/m^2\n", J_norm, current_normalized_to_real(J_norm, s.g_old.param));
+    printf("current  || Normalized: %.5e Real: %.5e A/m^2\n", J_norm, current_normalized_to_real(J_norm, s.g_old.param));
     printf("Field    || Normalized: (%.5e, %.5e, %.5e) Real: (%.5e, %.5e, %.5e) T\n", field_joule.x, field_joule.y, field_joule.z,
                                                                                       field_tesla.x, field_tesla.y, field_tesla.z);
     printf("                       =(%.5e, %.5e, %.5e)D^2/J\n", Hx_norm, Hy_norm, Hz_norm);
@@ -83,7 +83,7 @@ int main() {
         dump_write_grid("./output/grid_anim_dump.bin", &s);
 
     dump_v3d_grid("./output/end.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
-    print_v3d_grid_to_file("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    print_v3d_grid_path("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     write_simulation_data("./output/anim", &s);
     free_simulator(&s);
     return 0;

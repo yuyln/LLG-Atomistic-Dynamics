@@ -81,7 +81,7 @@ static const char *errors[60] = {
                             };
 
 #define clw_print_cl_error(file, err, message, ...) {                                                                         \
-                                            if (err != 0)                                                                     \
+                                            if (err != 0) {                                                                   \
                                                 fprintf((file), "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);  \
                                                 int err_ = abs((err));                                                        \
                                                 if (err_ >= 30)                                                               \
@@ -90,7 +90,8 @@ static const char *errors[60] = {
                                                 fprintf((file), (message), ##__VA_ARGS__);                                    \
                                                 fprintf((file), "\n");                                                        \
                                                 exit((err));                                                                  \
-                                            }
+                                            }                                                                                 \
+                                        }
 
     typedef struct {
         cl_kernel kernel;

@@ -164,26 +164,26 @@ int find_rows_in_file(const char *path) {
 v3d* init_v3d_grid_from_file(const char* path, int *rows, int *cols) {
     int rows_ = find_rows_in_file(path);
     *rows = rows_;
-    parse_start(path);
+    parser_start(path, NULL);
 
-    int cols_ = parser_global_n / (3 * rows_);
+    int cols_ = global_parser_context.n / (3 * rows_);
     *cols = cols_;
     v3d* ret = (v3d*)calloc(rows_ * cols_, sizeof(v3d));
-    for (size_t I = 0; I < parser_global_n; I += 3) {
+    for (size_t I = 0; I < global_parser_context.n; I += 3) {
         int j = (I / 3) % cols_;
         int i = rows_ - 1 - (I / 3 - j) / cols_;
-        ret[i * cols_ + j] = vec_normalize(vec_c(strtod(parser_global_state[I], NULL),
-                                                  strtod(parser_global_state[I + 1], NULL),
-                                                  strtod(parser_global_state[I + 2], NULL)));
+        ret[i * cols_ + j] = v3d_normalize(v3d_c(strtod(global_parser_context.state[I], NULL),
+                                                  strtod(global_parser_context.state[I + 1], NULL),
+                                                  strtod(global_parser_context.state[I + 2], NULL)));
     }
-    parse_end();
+    parser_end(NULL);
     return ret;
 }
 
 v3d* init_v3d_grid_random(size_t rows, size_t cols) {
     v3d* ret = (v3d*)calloc(rows * cols, sizeof(v3d));
     for (size_t I = 0; I < rows * cols; ++I)
-        ret[I] = vec_normalize(vec_c(random_range(-1.0, 1.0), 
+        ret[I] = v3d_normalize(v3d_c(random_range(-1.0, 1.0), 
                                       random_range(-1.0, 1.0), 
                                       random_range(-1.0, 1.0)));
     return ret;
@@ -215,11 +215,11 @@ grid_t init_grid_random(int rows, int cols) {
 
 size_t find_grid_size_bytes(const grid_t* g) {
     size_t param = sizeof(grid_param_t);
-    size_t grid_vec = g->param.total * sizeof(v3d);
+    size_t grid_v3d = g->param.total * sizeof(v3d);
     size_t grid_pinning = g->param.total * sizeof(pinning_t);
     size_t grid_ani = g->param.total * sizeof(anisotropy_t);
     size_t grid_regions = g->param.total * sizeof(region_param_t);
-    return param + grid_vec + grid_pinning + grid_ani + grid_regions;
+    return param + grid_v3d + grid_pinning + grid_ani + grid_regions;
 }
 
 void print_v3d_grid(FILE* f, v3d* v, int rows, int cols) {
@@ -240,7 +240,7 @@ void print_v3d_grid(FILE* f, v3d* v, int rows, int cols) {
     fprintf(f, "%.15f\t%.15f\t%.15f", v[row * cols + col].x, v[row * cols + col].y, v[row * cols + col].z);
 }
 
-void print_v3d_gridToFile(const char* path, v3d* v, int rows, int cols) {
+void print_v3d_grid_path(const char* path, v3d* v, int rows, int cols) {
     FILE *f = file_open(path, "wb", 1);
 
     print_v3d_grid(f, v, rows, cols);
@@ -249,44 +249,44 @@ void print_v3d_gridToFile(const char* path, v3d* v, int rows, int cols) {
 }
 
 void find_grid_param_path(const char* path, grid_param_t* g) {
-    parse_start(path);
+    parser_start(path, NULL);
 
-    g->exchange = parser_get_double("EXCHANGE");
-    g->dm = parser_get_double("DMI") * g->exchange;
-    g->lattice = parser_get_double("LATTICE");
-    g->cubic_ani = parser_get_double("CUBIC");
-    g->lande = parser_get_double("LANDE");
-    g->avg_spin = parser_get_double("SPIN");
+    g->exchange = parser_get_double("EXCHANGE", 0, NULL);
+    g->dm = parser_get_double("DMI", 0, NULL) * g->exchange;
+    g->lattice = parser_get_double("LATTICE", 0, NULL);
+    g->cubic_ani = parser_get_double("CUBIC", 0, NULL);
+    g->lande = parser_get_double("LANDE", 0, NULL);
+    g->avg_spin = parser_get_double("SPIN", 0, NULL);
     g->mu_s = g->lande * MU_B * g->avg_spin;
-    g->alpha = parser_get_double("ALPHA");
-    g->gamma = parser_get_double("GAMMA");
+    g->alpha = parser_get_double("ALPHA", 0, NULL);
+    g->gamma = parser_get_double("GAMMA", 0, NULL);
 
-    if (parser_get_int("DM_TYPE", 10) > 1 || parser_get_int("DM_TYPE", 10) < 0) {
+    if (parser_get_int("DM_TYPE", 10, 0, NULL) > 1 || parser_get_int("DM_TYPE", 10, 0, NULL) < 0) {
         fprintf(stderr, "Invalid DM\n");
         exit(1);
     }
-    g->dm_type = parser_get_int("DM_TYPE", 10);
+    g->dm_type = parser_get_int("DM_TYPE", 10, 0, NULL);
 
 
-    if (parser_get_int("PBC_TYPE", 10) > 3 || parser_get_int("PBC_TYPE", 10) < 0) {
-        fprintf(stderr, "Invalid pbc_t\n");
+    if (parser_get_int("PBC_TYPE", 10, 0, NULL) > 3 || parser_get_int("PBC_TYPE", 10, 0, NULL) < 0) {
+        fprintf(stderr, "Invalid PBC\n");
         exit(1);
     }
-    g->pbc.pbc_type = parser_get_int("PBC_TYPE", 10);
-    g->pbc.dir.x = parser_get_double("pbc_t_X");
-    g->pbc.dir.y = parser_get_double("pbc_t_Y");
-    g->pbc.dir.z = parser_get_double("pbc_t_Z");
+    g->pbc.pbc_type = parser_get_int("PBC_TYPE", 10, 0, NULL);
+    g->pbc.dir.x = parser_get_double("PBC_X", 0, NULL);
+    g->pbc.dir.y = parser_get_double("PBC_Y", 0, NULL);
+    g->pbc.dir.z = parser_get_double("PBC_Z", 0, NULL);
 
 
-    parse_end();
+    parser_end(NULL);
 }
 
 v3d field_joule_to_tesla(v3d field, double mu_s) {
-    return vec_scalar(field, 1.0 / mu_s);
+    return v3d_scalar(field, 1.0 / mu_s);
 }
 
 v3d field_tesla_to_joule(v3d field, double mu_s) {
-    return vec_scalar(field, mu_s);
+    return v3d_scalar(field, mu_s);
 }
 
 void full_grid_write_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
@@ -353,14 +353,14 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         size_t t = i / s->write_vel_charge_cut;
         for (size_t I = 0; I < s->g_old.param.total; ++I) {
-            s->g_new.grid[I] = vec_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
+            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
             grid_normalize(I, s->g_new.grid, s->g_new.pinning);
 
             if (i % s->write_vel_charge_cut == 0) {
                 size_t x = I % s->g_old.param.cols;
                 size_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge_I(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                double charge_i_old = charge_old_I(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * charge_i;
                 s->pos_xy[t].y += (double)y * s->g_old.param.lattice * charge_i;
 
@@ -370,7 +370,7 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
                 s->velxy_Ez[t].x += vt.x;
                 s->velxy_Ez[t].y += vt.y;
 
-                s->avg_mag[t] = vec_add(s->avg_mag[t], s->g_new.grid[I]);
+                s->avg_mag[t] = v3d_add(s->avg_mag[t], s->g_new.grid[I]);
 
                 s->chpr_chim[t].x = charge_i;
                 s->chpr_chim[t].y = charge_i_old;
@@ -384,7 +384,7 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
             s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = vec_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
+            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
 
         if (i % s->write_cut == 0) {
@@ -442,15 +442,15 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
         int I = 0; //For Visual Studio not complain
         #pragma omp parallel for num_threads(s->n_cpu)
         for (I = 0; I < s->g_old.param.total; ++I) {
-            s->g_new.grid[I] = vec_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
+            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
             grid_normalize(I, s->g_new.grid, s->g_new.pinning);
 
             if (i % s->write_vel_charge_cut == 0) {
                 int nt = omp_get_thread_num();
                 size_t x = I % s->g_old.param.cols;
                 size_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge_I(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                double charge_i_old = charge_old_I(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 pos_xy_thread[nt].x += (double)x * s->g_old.param.lattice * charge_i;
                 pos_xy_thread[nt].y += (double)y * s->g_old.param.lattice * charge_i;
 
@@ -459,19 +459,19 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
                 velxy_thread[nt].x += vt.x;
                 velxy_thread[nt].y += vt.y;
 
-                avg_mag_thread[nt] = vec_add(avg_mag_thread[nt], s->g_new.grid[I]);
+                avg_mag_thread[nt] = v3d_add(avg_mag_thread[nt], s->g_new.grid[I]);
 
-                chpr_chim_thread[nt] = vec_add(chpr_chim_thread[nt], vec_c(charge_i, charge_i_old, 0.0));
+                chpr_chim_thread[nt] = v3d_add(chpr_chim_thread[nt], v3d_c(charge_i, charge_i_old, 0.0));
             }
         }
         
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
         if (i % s->write_vel_charge_cut == 0)  {
             for (size_t k = 0; k < s->n_cpu; ++k) {
-                s->velxy_Ez[t] = vec_add(s->velxy_Ez[t], velxy_thread[k]);
-                s->pos_xy[t] = vec_add(s->pos_xy[t], pos_xy_thread[k]);
-                s->avg_mag[t] = vec_add(s->avg_mag[t], avg_mag_thread[k]);
-                s->chpr_chim[t] = vec_add(s->chpr_chim[t], chpr_chim_thread[k]);
+                s->velxy_Ez[t] = v3d_add(s->velxy_Ez[t], velxy_thread[k]);
+                s->pos_xy[t] = v3d_add(s->pos_xy[t], pos_xy_thread[k]);
+                s->avg_mag[t] = v3d_add(s->avg_mag[t], avg_mag_thread[k]);
+                s->chpr_chim[t] = v3d_add(s->chpr_chim[t], chpr_chim_thread[k]);
             }
 
             // Moved to export phase
@@ -479,7 +479,7 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
             s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = vec_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
+            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
         
         if (i % s->write_cut == 0) {
@@ -591,9 +591,9 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
                 s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
 
-                s->avg_mag[t] = vec_add(s->avg_mag[t], vxvy_Ez_avg_mag_chpr_chim[s->g_old.param.total + k]);
+                s->avg_mag[t] = v3d_add(s->avg_mag[t], vxvy_Ez_avg_mag_chpr_chim[s->g_old.param.total + k]);
 
-                s->chpr_chim[t] = vec_add(s->chpr_chim[t], vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k]);
+                s->chpr_chim[t] = v3d_add(s->chpr_chim[t], vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k]);
             }
 
             // Moved to export phase
@@ -601,7 +601,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
             s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
             s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = vec_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
+            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
         
         if (i % s->write_cut == 0) {
@@ -668,7 +668,7 @@ void create_skyrmion_bloch(v3d *g, int rows, int cols, int stride, int cx, int c
                 g[il * stride + jl].y = 0.0;
             }
 
-            g[il * stride + jl] = vec_normalize(g[il * stride + jl]);
+            g[il * stride + jl] = v3d_normalize(g[il * stride + jl]);
         }
     }
 }
@@ -699,7 +699,7 @@ void create_skyrmion_neel(v3d *g, int rows, int cols, int stride, int cx, int cy
                 g[il * stride + jl].x = 0.0;
                 g[il * stride + jl].y = 0.0;
             }
-            g[il * stride + jl] = vec_normalize(g[il * stride + jl]);
+            g[il * stride + jl] = v3d_normalize(g[il * stride + jl]);
         }
     }
 }
@@ -723,22 +723,22 @@ void create_bimeron(v3d *g, int rows, int cols, int stride, int cx, int cy, int 
                 g[i * stride + j].z = 0.0;
                 g[i * stride + j].y = 0.0;
             }
-            g[i * stride + j] = vec_normalize(g[i * stride + j]);
+            g[i * stride + j] = v3d_normalize(g[i * stride + j]);
         }
     }
 }
 
 v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
-    v3d ret = vec_s(0.0);
+    v3d ret = v3d_s(0.0);
     for (size_t I = 0; I < (size_t)(rows * cols); ++I)
-        ret = vec_add(ret, velocity(I, current, before, after, rows, cols, dx, dy, dt, pbc));
-    return vec_scalar(ret, dx * dy);
+        ret = v3d_add(ret, velocity(I, current, before, after, rows, cols, dx, dy, dt, pbc));
+    return v3d_scalar(ret, dx * dy);
 }
 
 v3d total_velocityW(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
-    v3d ret = vec_s(0.0);
+    v3d ret = v3d_s(0.0);
     for (size_t I = 0; I < (size_t)(rows * cols); ++I)
-        ret = vec_add(ret, velocity_weighted(I, current, before, after, rows, cols, dx, dy, dt, pbc));
+        ret = v3d_add(ret, velocity_weighted(I, current, before, after, rows, cols, dx, dy, dt, pbc));
     return ret;
 }
 

@@ -2,7 +2,6 @@
 #define __GRADIENT_DESCENT_H
 
 #include "./headers/opencl_wrapper.h"
-#include "./headers/vec.h"
 #include "./headers/grid.h"
 #include "./headers/funcs.h"
 #include "./headers/helpers.h"
@@ -51,11 +50,11 @@ void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alph
 	    v3d Heff = gradient_descent_force(j, &g_aux, vel, g_c, field, J, alpha, beta);
 
 	    if (T != 0)
-                Heff = vec_add(Heff, vec_scalar(vec_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
+                Heff = v3d_add(Heff, v3d_scalar(v3d_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
 
-	    g_n[j] = vec_add(
-			    vec_sub(vec_scalar(g_c[j], 2.0), g_p[j]),
-			    vec_scalar(Heff, -dt * dt / mass)
+	    g_n[j] = v3d_add(
+			    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
+			    v3d_scalar(Heff, -dt * dt / mass)
 			   );
 
 	    g_aux.grid = g_n;
@@ -138,11 +137,11 @@ void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double al
 	    v3d Heff = gradient_descent_force(j, &g_aux, vel, g_c, field, J, alpha, beta);
 
 	    if (T != 0)
-                Heff = vec_add(Heff, vec_scalar(vec_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
+                Heff = v3d_add(Heff, v3d_scalar(v3d_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
 
-	    g_n[j] = vec_add(
-			    vec_sub(vec_scalar(g_c[j], 2.0), g_p[j]),
-			    vec_scalar(Heff, -dt * dt / mass)
+	    g_n[j] = v3d_add(
+			    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
+			    v3d_scalar(Heff, -dt * dt / mass)
 			   );
 
 	    g_aux.grid = g_n;

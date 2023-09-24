@@ -17,7 +17,7 @@ static const char *kernels[] = {"termal_step", "hamiltonian_gpu", "reset_gpu", "
 
 void Freegpu_t(gpu_t *g) {
     for (size_t i = 0; i < g->n_kernels; ++i) {
-        clw_print_cl_error(stderr, clReleasekernel_t(g->kernels[i].kernel), "Error releasing kernel %s", g->kernels[i].name);
+        clw_print_cl_error(stderr, clReleaseKernel(g->kernels[i].kernel), "Error releasing kernel %s", g->kernels[i].name);
     }
 
     if (g->kernels)
@@ -48,28 +48,28 @@ simulator_t init_simulator(const char *path) {
     region_default.field_mult = 1.0;
     region_default.dm_type = param_tmp.dm_type;
 
-    parse_start(path);
+    parser_start(path, NULL);
 
-    ret.dt = parser_get_double("DT");
-    ret.n_steps = (size_t)GetValueULLInt("STEPS", 10);
+    ret.dt = parser_get_double("DT", 0, NULL);
+    ret.n_steps = (size_t)parser_get_ull("STEPS", 10, 0, NULL);
 
-    ret.write_to_file = (bool)parser_get_int("WRITE", 10);
-    ret.write_cut = (size_t)GetValueULLInt("CUT", 10);
-    ret.write_vel_charge_cut = (size_t)GetValueULLInt("CUT_FOR_VEL_CHARGE", 10);
-    ret.do_gsa = (bool)parser_get_int("gsa", 10);
-    ret.do_relax = (bool)parser_get_int("RELAX", 10);
-    ret.do_integrate = (bool)parser_get_int("INTEGRATE", 10);
-    ret.calculate_energy = (bool)parser_get_int("CALCULATE_ENERGY", 10);
-    ret.write_human = (bool)parser_get_int("WRITE_HUMAN", 10);
-    ret.write_on_fly = (bool)parser_get_int("WRITE_ON_FLY", 10);
-    ret.do_gradient = (bool)parser_get_int("GRADIENT", 10);
-    ret.gradient_steps = parser_get_int("GRADIENT_STEPS", 10);
-    ret.dt_gradient = parser_get_double("GRADIENT_DT");
-    ret.alpha_gradient = parser_get_double("GRADIENT_ALPHA");
-    ret.beta_gradient = parser_get_double("GRADIENT_BETA");
-    ret.temp_gradient = parser_get_double("GRADIENT_TEMP");
-    ret.factor_gradient = parser_get_double("GRADIENT_FACTOR");
-    ret.mass_gradient = parser_get_double("GRADIENT_MASS");
+    ret.write_to_file = (bool)parser_get_int("WRITE", 10, 0, NULL);
+    ret.write_cut = (size_t)parser_get_ull("CUT", 10, 0, NULL);
+    ret.write_vel_charge_cut = (size_t)parser_get_ull("CUT_FOR_VEL_CHARGE", 10, 0, NULL);
+    ret.do_gsa = (bool)parser_get_int("GSA", 10, 0, NULL);
+    ret.do_relax = (bool)parser_get_int("RELAX", 10, 0, NULL);
+    ret.do_integrate = (bool)parser_get_int("INTEGRATE", 10, 0, NULL);
+    ret.calculate_energy = (bool)parser_get_int("CALCULATE_ENERGY", 10, 0, NULL);
+    ret.write_human = (bool)parser_get_int("WRITE_HUMAN", 10, 0, NULL);
+    ret.write_on_fly = (bool)parser_get_int("WRITE_ON_FLY", 10, 0, NULL);
+    ret.do_gradient = (bool)parser_get_int("GRADIENT", 10, 0, NULL);
+    ret.gradient_steps = parser_get_int("GRADIENT_STEPS", 10, 0, NULL);
+    ret.dt_gradient = parser_get_double("GRADIENT_DT", 0, NULL);
+    ret.alpha_gradient = parser_get_double("GRADIENT_ALPHA", 0, NULL);
+    ret.beta_gradient = parser_get_double("GRADIENT_BETA", 0, NULL);
+    ret.temp_gradient = parser_get_double("GRADIENT_TEMP", 0, NULL);
+    ret.factor_gradient = parser_get_double("GRADIENT_FACTOR", 0, NULL);
+    ret.mass_gradient = parser_get_double("GRADIENT_MASS", 0, NULL);
 
     if (ret.gradient_steps == 0)
 	ret.gradient_steps = ret.n_steps;
@@ -77,48 +77,48 @@ simulator_t init_simulator(const char *path) {
 	ret.dt_gradient = ret.dt;
 
     if (ret.do_gsa) {
-        ret.gsap.qA = parser_get_double("qA");
-        ret.gsap.qV = parser_get_double("qV");
-        ret.gsap.qT = parser_get_double("qT");
-        ret.gsap.outer_loop = GetValueULLInt("OUTER", 10);
-        ret.gsap.inner_loop = GetValueULLInt("INNER", 10);
-        ret.gsap.print_param = GetValueULLInt("PRINTPARAM", 10);
-        ret.gsap.T0 = parser_get_double("STARTTEMP");
+        ret.gsap.qA = parser_get_double("qA", 0, NULL);
+        ret.gsap.qV = parser_get_double("qV", 0, NULL);
+        ret.gsap.qT = parser_get_double("qT", 0, NULL);
+        ret.gsap.outer_loop = parser_get_ull("OUTER", 10, 0, NULL);
+        ret.gsap.inner_loop = parser_get_ull("INNER", 10, 0, NULL);
+        ret.gsap.print_param = parser_get_ull("PRINTPARAM", 10, 0, NULL);
+        ret.gsap.T0 = parser_get_double("STARTTEMP", 0, NULL);
     }
 
-    ret.n_cpu = (size_t)GetValueULLInt("CPU", 10);
+    ret.n_cpu = (size_t)parser_get_ull("CPU", 10, 0, NULL);
 
-    bool start_random = (bool)parser_get_int("RANDOM_START_GRID", 10);
-    char *local_file_dir = strdup(parser_global_state[FindIndexOfTag("FILE_GRID") + 1]);
+    bool start_random = (bool)parser_get_int("RANDOM_START_GRID", 10, 0, NULL);
+    char *local_file_dir = strdup(global_parser_context.state[parser_find_index_of_tag("FILE_GRID", NULL) + 1]);
 
-    if (FindIndexOfTag("FILE_ANISOTROPY") < 0) {
+    if (parser_find_index_of_tag("FILE_ANISOTROPY", NULL) < 0) {
         fprintf(stderr, "Must provide path do anisotropy file, even if its empty");
         exit(1);
     }
 
-    if (FindIndexOfTag("FILE_PINNING") < 0) {
+    if (parser_find_index_of_tag("FILE_PINNING", NULL) < 0) {
         fprintf(stderr, "Must provide path do pinning file, even if its empty");
         exit(1);
     }
 
-    if (FindIndexOfTag("FILE_REGIONS") < 0) {
+    if (parser_find_index_of_tag("FILE_REGIONS", NULL) < 0) {
         fprintf(stderr, "Must provide path do regions file, even if its empty");
         exit(1);
     }
 
-    char *local_file_ani_dir = strdup(parser_global_state[FindIndexOfTag("FILE_ANISOTROPY") + 1]);
-    char *local_file_pin_dir = strdup(parser_global_state[FindIndexOfTag("FILE_PINNING") + 1]);
-    char *local_file_regions_dir = strdup(parser_global_state[FindIndexOfTag("FILE_REGIONS") + 1]);
+    char *local_file_ani_dir = strdup(global_parser_context.state[parser_find_index_of_tag("FILE_ANISOTROPY", NULL) + 1]);
+    char *local_file_pin_dir = strdup(global_parser_context.state[parser_find_index_of_tag("FILE_PINNING", NULL) + 1]);
+    char *local_file_regions_dir = strdup(global_parser_context.state[parser_find_index_of_tag("FILE_REGIONS", NULL) + 1]);
 
     anisotropy_t global_ani;
-    global_ani.K_1 = parser_get_double("ANISOTROPY") * param_tmp.exchange;
-    global_ani.dir.x = parser_get_double("ANI_X");
-    global_ani.dir.y = parser_get_double("ANI_Y");
-    global_ani.dir.z = parser_get_double("ANI_Z");
+    global_ani.K_1 = parser_get_double("ANISOTROPY", 0, NULL) * param_tmp.exchange;
+    global_ani.dir.x = parser_get_double("ANI_X", 0, NULL);
+    global_ani.dir.y = parser_get_double("ANI_Y", 0, NULL);
+    global_ani.dir.z = parser_get_double("ANI_Z", 0, NULL);
     global_ani.dir = v3d_normalize(global_ani.dir);
 
     if (start_random)
-        ret.g_old = init_grid_random(parser_get_int("ROWS", 10), parser_get_int("COLS", 10));
+        ret.g_old = init_grid_random(parser_get_int("ROWS", 10, 0, NULL), parser_get_int("COLS", 10, 0, NULL));
     else
         ret.g_old = init_grid_from_file(local_file_dir);
 
@@ -128,66 +128,67 @@ simulator_t init_simulator(const char *path) {
         ret.g_old.ani[i] = global_ani;
         ret.g_old.regions[i] = region_default;
     }
+    parser_end(NULL);
 
-    parse_start(local_file_ani_dir);
+    parser_start(local_file_ani_dir, NULL);
 
-    int index_data = FindIndexOfTag("Data");
+    int index_data = parser_find_index_of_tag("Data", NULL);
     if (index_data < 0) {
         fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_ani_dir);
         exit(1);
     }
-    for (size_t I = index_data + 1; I < parser_global_n; I += 6) {
-        int row = strtol(parser_global_state[I], NULL, 10);
-        int col = strtol(parser_global_state[I + 1], NULL, 10);
+    for (size_t I = index_data + 1; I < global_parser_context.n; I += 6) {
+        int row = strtol(global_parser_context.state[I], NULL, 10);
+        int col = strtol(global_parser_context.state[I + 1], NULL, 10);
 	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
 	    continue;
-        double dir_x = strtod(parser_global_state[I + 2], NULL);
-        double dir_y = strtod(parser_global_state[I + 3], NULL);
-        double dir_z = strtod(parser_global_state[I + 4], NULL);
-        double K_1 = strtod(parser_global_state[I + 5], NULL) * param_tmp.exchange;
+        double dir_x = strtod(global_parser_context.state[I + 2], NULL);
+        double dir_y = strtod(global_parser_context.state[I + 3], NULL);
+        double dir_z = strtod(global_parser_context.state[I + 4], NULL);
+        double K_1 = strtod(global_parser_context.state[I + 5], NULL) * param_tmp.exchange;
         ret.g_old.ani[row * ret.g_old.param.cols + col] = (anisotropy_t){K_1, v3d_c(dir_x, dir_y, dir_z)};
     }
 
-    parse_end();
+    parser_end(NULL);
 
-    parse_start(local_file_pin_dir);
+    parser_start(local_file_pin_dir, NULL);
 
-    index_data = FindIndexOfTag("Data");
+    index_data = parser_find_index_of_tag("Data", NULL);
     if (index_data < 0) {
         fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_pin_dir);
         exit(1);
     }
-    for (size_t I = index_data + 1; I < parser_global_n; I += 5) {
-        int row = strtol(parser_global_state[I], NULL, 10);
-        int col = strtol(parser_global_state[I + 1], NULL, 10);
+    for (size_t I = index_data + 1; I < global_parser_context.n; I += 5) {
+        int row = strtol(global_parser_context.state[I], NULL, 10);
+        int col = strtol(global_parser_context.state[I + 1], NULL, 10);
 	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
 	    continue;
-        double dir_x = strtod(parser_global_state[I + 2], NULL);
-        double dir_y = strtod(parser_global_state[I + 3], NULL);
-        double dir_z = strtod(parser_global_state[I + 4], NULL);
+        double dir_x = strtod(global_parser_context.state[I + 2], NULL);
+        double dir_y = strtod(global_parser_context.state[I + 3], NULL);
+        double dir_z = strtod(global_parser_context.state[I + 4], NULL);
         ret.g_old.pinning[row * ret.g_old.param.cols + col] = (pinning_t){1, v3d_c(dir_x, dir_y, dir_z)};
     }
 
-    parse_end();
+    parser_end(NULL);
 
-    parse_start(local_file_regions_dir);
-    index_data = FindIndexOfTag("Data");
+    parser_start(local_file_regions_dir, NULL);
+    index_data = parser_find_index_of_tag("Data", NULL);
     if (index_data < 0) {
         fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_regions_dir);
         exit(1);
     }
 
-    for (size_t I = index_data + 1; I < parser_global_n; I += 6) {
-        int row = strtol(parser_global_state[I], NULL, 10);
-        int col = strtol(parser_global_state[I + 1], NULL, 10);
+    for (size_t I = index_data + 1; I < global_parser_context.n; I += 6) {
+        int row = strtol(global_parser_context.state[I], NULL, 10);
+        int col = strtol(global_parser_context.state[I + 1], NULL, 10);
 	if (row < 0 || row >= ret.g_old.param.rows || col < 0 || col >= ret.g_old.param.cols)
 	    continue;
-        ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(parser_global_state[I + 2], NULL);
-        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(parser_global_state[I + 3], NULL);
-        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(parser_global_state[I + 4], NULL, 10);
-        ret.g_old.regions[row * ret.g_old.param.cols + col].field_mult = strtod(parser_global_state[I + 5], NULL);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(global_parser_context.state[I + 2], NULL);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(global_parser_context.state[I + 3], NULL);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(global_parser_context.state[I + 4], NULL, 10);
+        ret.g_old.regions[row * ret.g_old.param.cols + col].field_mult = strtod(global_parser_context.state[I + 5], NULL);
     }
-    parse_end();
+    parser_end(NULL);
 
     ret.grid_out_file = (v3d *)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(v3d));
     ret.velxy_Ez = (v3d *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(v3d));
@@ -199,14 +200,14 @@ simulator_t init_simulator(const char *path) {
     free(local_file_ani_dir);
     free(local_file_pin_dir);
     free(local_file_regions_dir);
-    parse_start(path);
+    parser_start(path, NULL);
 
     ret.g_old.param.total_time = ret.dt * ret.n_steps;
     grid_copy(&ret.g_new, &ret.g_old);
-    ret.use_gpu = (bool)parser_get_int("gpu_t", 10);
+    ret.use_gpu = (bool)parser_get_int("GPU", 10, 0, NULL);
     if (ret.use_gpu) {
-        ret.gpu.i_plat = parser_get_int("PLAT", 10);
-        ret.gpu.i_dev = parser_get_int("DEV", 10);
+        ret.gpu.i_plat = parser_get_int("PLAT", 10, 0, NULL);
+        ret.gpu.i_dev = parser_get_int("DEV", 10, 0, NULL);
         ret.gpu.plats = clw_init_platforms(&ret.gpu.n_plats);
 
         for (size_t i = 0; i < ret.gpu.n_plats; ++i)
@@ -241,7 +242,7 @@ simulator_t init_simulator(const char *path) {
         ret.gpu.kernels = clw_init_kernels(ret.gpu.program, kernels, kernels_n);
     }
 
-    parse_end();
+    parser_end(NULL);
 
 #if !(defined(RK4) || defined(RK2) || defined(EULER))
     fprintf(stderr, "Invalid integration\n");
@@ -343,7 +344,7 @@ void DumpWriteChargegrid_t(const char *file_path, simulator_t *s) {
     double *charge_total = calloc(s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut, sizeof(double));
     for (int i = 0; i < n_steps; ++i) {
         for (size_t I = 0; I < (size_t)(rows * cols); ++I) {
-            charge_total[i * rows * cols + I] = charge_I(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.pbc);
+            charge_total[i * rows * cols + I] = charge(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.pbc);
         }
     }
     fwrite(charge_total, ss, 1, f);

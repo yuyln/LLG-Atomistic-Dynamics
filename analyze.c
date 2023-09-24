@@ -1,3 +1,4 @@
+#include "./headers/vec.h"
 #include "./headers/funcs.h"
 #include "./headers/grid.h"
 #include "./headers/helpers.h"
@@ -127,9 +128,9 @@ int main(int argc, const char **argv) {
                 double charge_im = 0.0;
                 for (int row = rs * rows_per_stripe; row < (rs + 1) * rows_per_stripe; ++row) {
                     for (int col = cs * cols_per_stripe; col < (cs + 1) * cols_per_stripe; ++col) {
-                        vel = vec_add(vel, velocity_weighted_i(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
-                        charge_pr += charge_I(row * cols + col, gc, rows, cols, pbc);
-                        charge_im += charge_old_I(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
+                        vel = v3d_add(vel, velocity_weighted(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
+                        charge_pr += charge(row * cols + col, gc, rows, cols, pbc);
+                        charge_im += charge_old(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
                     }
                 }
                 fprintf(out_data, "%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", t * dt * cut, cs * cols_per_stripe * lattice,

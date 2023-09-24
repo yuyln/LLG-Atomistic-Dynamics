@@ -32,7 +32,7 @@ double parser_get_double(const char* tag, double def, parser_context* context);
 float parser_get_float(const char* tag, float def, parser_context* context);
 long int parser_get_int(const char* tag, int base, long int def, parser_context* context);
 unsigned long int parser_get_uint(const char* tag, int base, unsigned long int def, parser_context* context);
-unsigned long long int parser_ull(const char* tag, int base, unsigned long long int def, parser_context* context);
+unsigned long long int parser_get_ull(const char* tag, int base, unsigned long long int def, parser_context* context);
 
 #endif //PARSER_H
 
@@ -90,8 +90,8 @@ void parser_start(const char* file_path, parser_context* context) {
         parser_start(file_path, &global_parser_context);
         return;
     }
-
-    if (context->file_str || context->state || context->n || context->file_name) parser_end(context);
+    if (context->file_str || context->state || context->n || context->file_name)
+        parser_end(context);
 
     FILE *file = parser_file_open(file_path, "rb", 0);
     fseek(file, 0, SEEK_SET);
@@ -177,8 +177,8 @@ unsigned long int parser_get_uint(const char* tag, int base, unsigned long int d
     return strtoul(context->state[i_tag + 1], NULL, base);
 }
 
-unsigned long long int parser_ull(const char* tag, int base, unsigned long long int def, parser_context* context) {
-    if (!context) return parser_ull(tag, base, def, &global_parser_context);
+unsigned long long int parser_get_ull(const char* tag, int base, unsigned long long int def, parser_context* context) {
+    if (!context) return parser_get_ull(tag, base, def, &global_parser_context);
     long int i_tag = parser_find_index_of_tag(tag, context);
     if (i_tag < 0) {
         fprintf(stderr, "Could not find tag %s using default value %llu\n", tag, def);
