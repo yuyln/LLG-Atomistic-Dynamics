@@ -309,7 +309,7 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
     g->pbc.pbc_type = parser_get_int("PBC_TYPE", 10, 0, &ctx);
     if (g->pbc.pbc_type > 3 || g->pbc.pbc_type < 0) {
         fprintf(stderr, "Invalid PBC, falling back to XY\n");
-        g->pbc.pbc_type = pbc_t_XY;
+        g->pbc.pbc_type = PBC_XY;
     }
 
     g->pbc.dir.x = parser_get_double("PBC_X", 0, &ctx);

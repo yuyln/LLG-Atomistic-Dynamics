@@ -12,7 +12,7 @@ typedef enum {
 } DM_TYPE;
 
 typedef enum {
-    pbc_t_XY, pbc_t_X, pbc_t_Y, pbc_t_NONE
+    PBC_XY, PBC_X, PBC_Y, PBC_NONE
 } PBC_TYPE;
 
 typedef enum {

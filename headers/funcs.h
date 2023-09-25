@@ -36,12 +36,12 @@ v3d bilinear_interpolation(v3d v00, v3d v10, v3d v11, v3d v01, double u, double 
 
 v3d get_pbc_v3d(int row, int col, const GLOBAL v3d* v, int rows, int cols, pbc_t pbc) {
     switch (pbc.pbc_type) {
-    case pbc_t_NONE:
+    case PBC_NONE:
         if (row >= rows || row < 0 || col >= cols || col < 0)
             return pbc.dir;
         break;
     
-    case pbc_t_X:
+    case PBC_X:
         if (row >= rows || row < 0)
             return pbc.dir;
         if (col >= cols)
@@ -50,7 +50,7 @@ v3d get_pbc_v3d(int row, int col, const GLOBAL v3d* v, int rows, int cols, pbc_t
             col = (col * (1 - cols)) % cols;
         break;
 
-    case pbc_t_Y:
+    case PBC_Y:
         if (col >= cols || col < 0)
             return pbc.dir;
         
@@ -60,7 +60,7 @@ v3d get_pbc_v3d(int row, int col, const GLOBAL v3d* v, int rows, int cols, pbc_t
             row = (row * (1 - rows)) % rows;
         break;
     
-    case pbc_t_XY:
+    case PBC_XY:
         if (col >= cols)
             col = col % cols;
         else if (col < 0)
