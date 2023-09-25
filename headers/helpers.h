@@ -10,21 +10,23 @@
 #include <errno.h>
 #include <omp.h>
 #include <time.h>
+#include <stdint.h>
+#include <assert.h>
 
-#include "./headers/vec.h"
-#include "./headers/constants.h"
-#include "./headers/grid.h"
-#include "./headers/funcs.h"
-#include "./headers/opencl_kernel.h"
+#include "vec.h"
+#include "constants.h"
+#include "grid.h"
+#include "funcs.h"
+#include "opencl_kernel.h"
 
 #define _PARSER_IMPLEMENTATION
-#include "./headers/parserL.h"
+#include "parserL.h"
 
 #define OPENCLWRAPPER_IMPLEMENTATION
-#include "./headers/opencl_wrapper.h"
+#include "opencl_wrapper.h"
 
 #define PROFILER_IMPLEMENTATION
-#include "./headers/profiler.h"
+#include "profiler.h"
 
 #if __STDC_VERSION__ > 201603L
 #define mynodiscard [[nodiscard]]
@@ -34,24 +36,24 @@
 
 typedef struct {
     double qA, qT, qV, T0;
-    size_t inner_loop, outer_loop, print_param;
+    uint64_t inner_loop, outer_loop, print_param;
 } gsa_param_t;
 
 typedef struct gpu_t {
-    cl_platform_id *plats; size_t n_plats; int i_plat;
-    cl_device_id *devs; size_t n_devs; int i_dev;
+    cl_platform_id *plats; uint64_t n_plats; int i_plat;
+    cl_device_id *devs; uint64_t n_devs; int i_dev;
     cl_context ctx;
     cl_command_queue queue;
     cl_program program;
-    kernel_t *kernels; size_t n_kernels;
+    kernel_t *kernels; uint64_t n_kernels;
 } gpu_t;
 
 typedef struct simulator_t {
-    size_t n_steps, relax_steps, gradient_steps;
+    uint64_t n_steps, relax_steps, gradient_steps;
     double dt, dt_gradient, alpha_gradient, beta_gradient, temp_gradient, factor_gradient, mass_gradient;
-    size_t n_cpu;
-    size_t write_cut;
-    size_t write_vel_charge_cut;
+    uint64_t n_cpu;
+    uint64_t write_cut;
+    uint64_t write_vel_charge_cut;
     bool write_to_file, use_gpu, do_gsa, do_relax, doing_relax, do_integrate, write_human, write_on_fly, calculate_energy, do_gradient;
     gsa_param_t gsap;
     gpu_t gpu;
@@ -65,7 +67,8 @@ FILE* file_open(const char* name, const char* mode, int exit_) {
     FILE *f = fopen(name, mode);
     if (!f) {
         fprintf(stderr, "Could not open file %s: %s\n", name, strerror(errno));
-        if (exit_) exit(exit_);
+        if (exit_)
+            exit(exit_);
     }
     return f;
 }
@@ -138,7 +141,7 @@ int find_rows_in_file(const char *path) {
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
 
-    size_t file_size = ftell(f);
+    uint64_t file_size = ftell(f);
     char* file_data = (char*)malloc(file_size + 1);
 
     fseek(f, 0, SEEK_SET);
@@ -161,28 +164,62 @@ int find_rows_in_file(const char *path) {
     return rows;
 }
 
-v3d* init_v3d_grid_from_file(const char* path, int *rows, int *cols) {
-    int rows_ = find_rows_in_file(path);
-    *rows = rows_;
-    parser_start(path, NULL);
-
-    int cols_ = global_parser_context.n / (3 * rows_);
-    *cols = cols_;
-    v3d* ret = (v3d*)calloc(rows_ * cols_, sizeof(v3d));
-    for (size_t I = 0; I < global_parser_context.n; I += 3) {
-        int j = (I / 3) % cols_;
-        int i = rows_ - 1 - (I / 3 - j) / cols_;
-        ret[i * cols_ + j] = v3d_normalize(v3d_c(strtod(global_parser_context.state[I], NULL),
-                                                  strtod(global_parser_context.state[I + 1], NULL),
-                                                  strtod(global_parser_context.state[I + 2], NULL)));
-    }
-    parser_end(NULL);
+v3d* init_v3d_grid_from_file_bin(const char* path, int *rows, int *cols) {
+    printf("Reading Grid from Binary format\n");
+    FILE *f = file_open(path, "rb", 1);
+    char binary[6] = {0};
+    fread(binary, sizeof(binary), 1, f);
+    fread(rows, sizeof(int), 1, f);
+    fread(cols, sizeof(int), 1, f);
+    uint64_t start = ftell(f);
+    fseek(f, 0, SEEK_END);
+    uint64_t end = ftell(f);
+    fseek(f, start, SEEK_SET);
+    uint64_t size = (*rows) * (*cols) * sizeof(v3d);
+    v3d *ret = (v3d*)calloc(size, 1);
+    assert(size == (end - start));
+    fread(ret, size, 1, f);
+    fclose(f);
+    for (uint64_t I = 0; I < (uint64_t)((*rows) * (*cols)); ++I)
+        ret[I] = v3d_normalize(ret[I]);
     return ret;
 }
 
-v3d* init_v3d_grid_random(size_t rows, size_t cols) {
+v3d* init_v3d_grid_from_file_human(const char* path, int *rows, int *cols) {
+    printf("Reading Grid from Human format\n");
+    int rows_ = find_rows_in_file(path);
+    *rows = rows_;
+    parser_context ctx = parser_init_context(global_parser_context.seps);
+    parser_start(path, &ctx);
+
+    int cols_ = ctx.n / (3 * rows_);
+    *cols = cols_;
+    v3d* ret = (v3d*)calloc(rows_ * cols_, sizeof(v3d));
+    for (uint64_t I = 0; I < ctx.n; I += 3) {
+        int j = (I / 3) % cols_;
+        int i = rows_ - 1 - (I / 3 - j) / cols_;
+        ret[i * cols_ + j] = v3d_normalize(v3d_c(strtod(ctx.state[I], NULL),
+                                                 strtod(ctx.state[I + 1], NULL),
+                                                 strtod(ctx.state[I + 2], NULL)));
+    }
+    parser_end(&ctx);
+    return ret;
+}
+
+v3d* init_v3d_grid_from_file(const char* path, int *rows, int *cols) {
+    FILE *f = file_open(path, "rb", 1);
+    char binary[6] = "BINARY";
+    char buffer[6] = {0};
+    fread(buffer, sizeof(binary), 1, f);
+    fclose(f);
+    if (memcmp(binary, buffer, sizeof(binary)) == 0)
+        return init_v3d_grid_from_file_bin(path, rows, cols);
+    return init_v3d_grid_from_file_human(path, rows, cols);
+}
+
+v3d* init_v3d_grid_random(uint64_t rows, uint64_t cols) {
     v3d* ret = (v3d*)calloc(rows * cols, sizeof(v3d));
-    for (size_t I = 0; I < rows * cols; ++I)
+    for (uint64_t I = 0; I < rows * cols; ++I)
         ret[I] = v3d_normalize(v3d_c(random_range(-1.0, 1.0), 
                                       random_range(-1.0, 1.0), 
                                       random_range(-1.0, 1.0)));
@@ -213,12 +250,12 @@ grid_t init_grid_random(int rows, int cols) {
     return ret;
 }
 
-size_t find_grid_size_bytes(const grid_t* g) {
-    size_t param = sizeof(grid_param_t);
-    size_t grid_v3d = g->param.total * sizeof(v3d);
-    size_t grid_pinning = g->param.total * sizeof(pinning_t);
-    size_t grid_ani = g->param.total * sizeof(anisotropy_t);
-    size_t grid_regions = g->param.total * sizeof(region_param_t);
+uint64_t find_grid_size_bytes(const grid_t* g) {
+    uint64_t param = sizeof(grid_param_t);
+    uint64_t grid_v3d = g->param.total * sizeof(v3d);
+    uint64_t grid_pinning = g->param.total * sizeof(pinning_t);
+    uint64_t grid_ani = g->param.total * sizeof(anisotropy_t);
+    uint64_t grid_regions = g->param.total * sizeof(region_param_t);
     return param + grid_v3d + grid_pinning + grid_ani + grid_regions;
 }
 
@@ -249,36 +286,38 @@ void print_v3d_grid_path(const char* path, v3d* v, int rows, int cols) {
 }
 
 void find_grid_param_path(const char* path, grid_param_t* g) {
-    parser_start(path, NULL);
+    parser_context ctx = parser_init_context(global_parser_context.seps);
+    parser_start(path, &ctx);
 
-    g->exchange = parser_get_double("EXCHANGE", 0, NULL);
-    g->dm = parser_get_double("DMI", 0, NULL) * g->exchange;
-    g->lattice = parser_get_double("LATTICE", 0, NULL);
-    g->cubic_ani = parser_get_double("CUBIC", 0, NULL);
-    g->lande = parser_get_double("LANDE", 0, NULL);
-    g->avg_spin = parser_get_double("SPIN", 0, NULL);
+    g->exchange = parser_get_double("EXCHANGE", QE * 1.0e-3, &ctx);
+    g->dm = parser_get_double("DMI", -0.18, &ctx) * fabs(g->exchange);
+    g->lattice = parser_get_double("LATTICE", 5.0e-10, &ctx);
+    g->cubic_ani = parser_get_double("CUBIC", 0, &ctx) * fabs(g->exchange);
+    g->lande = parser_get_double("LANDE", 2.002318, &ctx);
+    g->avg_spin = parser_get_double("SPIN", 1, &ctx);
     g->mu_s = g->lande * MU_B * g->avg_spin;
-    g->alpha = parser_get_double("ALPHA", 0, NULL);
-    g->gamma = parser_get_double("GAMMA", 0, NULL);
+    g->alpha = parser_get_double("ALPHA", 0.3, &ctx);
+    g->gamma = parser_get_double("GAMMA", 1.760859644e11, &ctx);
 
-    if (parser_get_int("DM_TYPE", 10, 0, NULL) > 1 || parser_get_int("DM_TYPE", 10, 0, NULL) < 0) {
-        fprintf(stderr, "Invalid DM\n");
-        exit(1);
+    g->dm_type = parser_get_int("DM_TYPE", 10, 1, &ctx);
+    if (g->dm_type > 1 || g->dm_type < 0) {
+        fprintf(stderr, "Invalid DM, falling back to Z_CROSS_R_ij\n");
+        g->dm_type = Z_CROSS_R_ij;
     }
-    g->dm_type = parser_get_int("DM_TYPE", 10, 0, NULL);
 
 
-    if (parser_get_int("PBC_TYPE", 10, 0, NULL) > 3 || parser_get_int("PBC_TYPE", 10, 0, NULL) < 0) {
-        fprintf(stderr, "Invalid PBC\n");
-        exit(1);
+    g->pbc.pbc_type = parser_get_int("PBC_TYPE", 10, 0, &ctx);
+    if (g->pbc.pbc_type > 3 || g->pbc.pbc_type < 0) {
+        fprintf(stderr, "Invalid PBC, falling back to XY\n");
+        g->pbc.pbc_type = pbc_t_XY;
     }
-    g->pbc.pbc_type = parser_get_int("PBC_TYPE", 10, 0, NULL);
-    g->pbc.dir.x = parser_get_double("PBC_X", 0, NULL);
-    g->pbc.dir.y = parser_get_double("PBC_Y", 0, NULL);
-    g->pbc.dir.z = parser_get_double("PBC_Z", 0, NULL);
+
+    g->pbc.dir.x = parser_get_double("PBC_X", 0, &ctx);
+    g->pbc.dir.y = parser_get_double("PBC_Y", 0, &ctx);
+    g->pbc.dir.z = parser_get_double("PBC_Z", 0, &ctx);
 
 
-    parser_end(NULL);
+    parser_end(&ctx);
 }
 
 v3d field_joule_to_tesla(v3d field, double mu_s) {
@@ -290,7 +329,7 @@ v3d field_tesla_to_joule(v3d field, double mu_s) {
 }
 
 void full_grid_write_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
-    size_t off = 0;
+    uint64_t off = 0;
     clw_write_buffer(buffer, &g->param, sizeof(grid_param_t), off, q);
     off += sizeof(grid_param_t);
     clw_write_buffer(buffer, g->grid, sizeof(v3d) * g->param.total, off, q);
@@ -308,7 +347,7 @@ void write_v3d_grid_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
 }
 
 void read_full_grid_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
-    size_t off = 0;
+    uint64_t off = 0;
     clw_read_buffer(buffer, &g->param, sizeof(grid_param_t), off, q);
     off += sizeof(grid_param_t);
     clw_read_buffer(buffer, g->grid, sizeof(v3d) * g->param.total, off, q);
@@ -345,20 +384,20 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
     memset(s->avg_mag, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
     memset(s->chpr_chim, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
     
-    for (size_t i = 0; i < s->n_steps; ++i) {
+    for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0) {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
             fflush(stdout);
         }
         double norm_time = (double)i * s->dt * (!s->doing_relax);
-        size_t t = i / s->write_vel_charge_cut;
-        for (size_t I = 0; I < s->g_old.param.total; ++I) {
+        uint64_t t = i / s->write_vel_charge_cut;
+        for (uint64_t I = 0; I < s->g_old.param.total; ++I) {
             s->g_new.grid[I] = v3d_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
             grid_normalize(I, s->g_new.grid, s->g_new.pinning);
 
             if (i % s->write_vel_charge_cut == 0) {
-                size_t x = I % s->g_old.param.cols;
-                size_t y = (I - x) / s->g_old.param.cols;
+                uint64_t x = I % s->g_old.param.cols;
+                uint64_t y = (I - x) / s->g_old.param.cols;
                 double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
                 double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * charge_i;
@@ -423,9 +462,9 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
     v3d *avg_mag_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
     v3d *chpr_chim_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
 
-    for (size_t i = 0; i < s->n_steps; ++i) {
+    for (uint64_t i = 0; i < s->n_steps; ++i) {
         double norm_time = (double)i * s->dt * (!s->doing_relax);
-        size_t t = i / s->write_vel_charge_cut;
+        uint64_t t = i / s->write_vel_charge_cut;
 
         if (i % s->write_vel_charge_cut == 0) {
             memset(velxy_thread, 0, sizeof(v3d) * s->n_cpu);
@@ -447,8 +486,8 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
 
             if (i % s->write_vel_charge_cut == 0) {
                 int nt = omp_get_thread_num();
-                size_t x = I % s->g_old.param.cols;
-                size_t y = (I - x) / s->g_old.param.cols;
+                uint64_t x = I % s->g_old.param.cols;
+                uint64_t y = (I - x) / s->g_old.param.cols;
                 double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
                 double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
                 pos_xy_thread[nt].x += (double)x * s->g_old.param.lattice * charge_i;
@@ -467,7 +506,7 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
         
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
         if (i % s->write_vel_charge_cut == 0)  {
-            for (size_t k = 0; k < s->n_cpu; ++k) {
+            for (uint64_t k = 0; k < s->n_cpu; ++k) {
                 s->velxy_Ez[t] = v3d_add(s->velxy_Ez[t], velxy_thread[k]);
                 s->pos_xy[t] = v3d_add(s->pos_xy[t], pos_xy_thread[k]);
                 s->avg_mag[t] = v3d_add(s->avg_mag[t], avg_mag_thread[k]);
@@ -529,8 +568,8 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     clw_set_kernel_arg(s->gpu.kernels[3], 7, sizeof(int), &s->write_vel_charge_cut);
     clw_set_kernel_arg(s->gpu.kernels[3], 9, sizeof(int), &s->calculate_energy);
 
-    size_t global = s->g_old.param.total;
-    size_t local = gcd(global, 32);
+    uint64_t global = s->g_old.param.total;
+    uint64_t local = gcd(global, 32);
 
     v3d* vxvy_Ez_avg_mag_chpr_chim = (v3d*)calloc(3 * s->g_old.param.total, sizeof(v3d));
     memset(vxvy_Ez_avg_mag_chpr_chim, 1, sizeof(v3d) * s->g_old.param.total * 3);
@@ -541,7 +580,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
 
     clw_set_kernel_arg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_Ez_avg_mag_chpr_chim_buffer);
 
-    for (size_t i = 0; i < s->n_steps; ++i) {
+    for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 100) == 0) {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
             fflush(stdout);
@@ -556,7 +595,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
 
         if (i % s->write_vel_charge_cut == 0) {
-            size_t t = i / s->write_vel_charge_cut;
+            uint64_t t = i / s->write_vel_charge_cut;
 
             /*
                 So, reading the gpu_t this frequent is BAAAD
@@ -581,9 +620,9 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
                 but it is what it is and it isn't what it isn't
             */
             clw_read_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
-            for (size_t k = 0; k < s->g_old.param.total; ++k) {
-                size_t x = k % s->g_old.param.cols;
-                size_t y = (k - x) / s->g_old.param.cols;
+            for (uint64_t k = 0; k < s->g_old.param.total; ++k) {
+                uint64_t x = k % s->g_old.param.cols;
+                uint64_t y = (k - x) / s->g_old.param.cols;
                 s->velxy_Ez[t].x += vxvy_Ez_avg_mag_chpr_chim[k].x;
                 s->velxy_Ez[t].y += vxvy_Ez_avg_mag_chpr_chim[k].y;
 		s->velxy_Ez[t].z += vxvy_Ez_avg_mag_chpr_chim[k].z;
@@ -605,7 +644,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         }
         
         if (i % s->write_cut == 0) {
-            size_t t = i / s->write_cut;
+            uint64_t t = i / s->write_cut;
             if (s->write_to_file) {
                 read_v3d_grid_buffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
                 memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(v3d) * s->g_old.param.total);
@@ -730,45 +769,45 @@ void create_bimeron(v3d *g, int rows, int cols, int stride, int cx, int cy, int 
 
 v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
     v3d ret = v3d_s(0.0);
-    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+    for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
         ret = v3d_add(ret, velocity(I, current, before, after, rows, cols, dx, dy, dt, pbc));
     return v3d_scalar(ret, dx * dy);
 }
 
 v3d total_velocityW(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
     v3d ret = v3d_s(0.0);
-    for (size_t I = 0; I < (size_t)(rows * cols); ++I)
+    for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
         ret = v3d_add(ret, velocity_weighted(I, current, before, after, rows, cols, dx, dy, dt, pbc));
     return ret;
 }
 
 void write_simulation_data(const char* root_path, simulator_t* s) {
     char *out_charge;
-    size_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
+    uint64_t out_charge_size = snprintf(NULL, 0, "%s_charge.out", root_path) + 1;
     out_charge = (char*)calloc(out_charge_size, 1);
     snprintf(out_charge, out_charge_size, "%s_charge.out", root_path);
     out_charge[out_charge_size - 1] = '\0';
 
     char *out_velocity;
-    size_t out_velocity_size = snprintf(NULL, 0, "%s_velocity.out", root_path) + 1;
+    uint64_t out_velocity_size = snprintf(NULL, 0, "%s_velocity.out", root_path) + 1;
     out_velocity = (char*)calloc(out_velocity_size, 1);
     snprintf(out_velocity, out_velocity_size, "%s_velocity.out", root_path);
     out_velocity[out_velocity_size - 1] = '\0';
 
     char *out_pos_xy;
-    size_t out_pos_xy_size = snprintf(NULL, 0, "%s_pos_xy.out", root_path) + 1;
+    uint64_t out_pos_xy_size = snprintf(NULL, 0, "%s_pos_xy.out", root_path) + 1;
     out_pos_xy = (char*)calloc(out_pos_xy_size, 1);
     snprintf(out_pos_xy, out_pos_xy_size, "%s_pos_xy.out", root_path);
     out_pos_xy[out_pos_xy_size - 1] = '\0';
 
     char *out_avg_mag;
-    size_t out_avg_mag_size = snprintf(NULL, 0, "%s_avg_mag.out", root_path) + 1;
+    uint64_t out_avg_mag_size = snprintf(NULL, 0, "%s_avg_mag.out", root_path) + 1;
     out_avg_mag = (char*)calloc(out_avg_mag_size, 1);
     snprintf(out_avg_mag, out_avg_mag_size, "%s_avg_mag.out", root_path);
     out_avg_mag[out_avg_mag_size - 1] = '\0';
 
     char *out_energy;
-    size_t out_energy_size = snprintf(NULL, 0, "%s_energy.out", root_path) + 1;
+    uint64_t out_energy_size = snprintf(NULL, 0, "%s_energy.out", root_path) + 1;
     out_energy = (char*)calloc(out_energy_size, 1);
     snprintf(out_energy, out_energy_size, "%s_energy.out", root_path);
     out_energy[out_energy_size - 1] = '\0';
@@ -787,13 +826,13 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
 
     double J_abs = fabs(s->g_old.param.exchange);
     printf("Writing charges related output\n");
-    for (size_t i = 0; i < s->n_steps; ++i) {
+    for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
         if (i % s->write_vel_charge_cut)
             continue;
 
-        size_t t = i / s->write_vel_charge_cut;
+        uint64_t t = i / s->write_vel_charge_cut;
         double vx, vy, chpr, chim;
         vx = s->velxy_Ez[t].x;
         vy = s->velxy_Ez[t].y;

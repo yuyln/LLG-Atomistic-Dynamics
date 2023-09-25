@@ -100,41 +100,41 @@ static const char *errors[60] = {
 
     //utils
     int clw_read_file(const char *path, char **out);
-    size_t gcd(size_t a, size_t b);
+    uint64_t gcd(uint64_t a, uint64_t b);
     // long unsigned int gcd(long unsigned int a, long unsigned int b);
 
     //buffer related
-    cl_mem clw_create_buffer(size_t size, cl_context context, cl_mem_flags flags);
-    void clw_read_buffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q);
-    void clw_write_buffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q);
+    cl_mem clw_create_buffer(uint64_t size, cl_context context, cl_mem_flags flags);
+    void clw_read_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
+    void clw_write_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
 
     //init related
-    cl_platform_id* clw_init_platforms(size_t *n);
-    cl_device_id* clw_init_devices(cl_platform_id plat, size_t *n);
-    cl_context clw_init_context(cl_device_id *devices, size_t ndev);
+    cl_platform_id* clw_init_platforms(uint64_t *n);
+    cl_device_id* clw_init_devices(cl_platform_id plat, uint64_t *n);
+    cl_context clw_init_context(cl_device_id *devices, uint64_t ndev);
     cl_command_queue clw_init_queue(cl_context ctx, cl_device_id device);
     cl_program clw_init_program_source(cl_context ctx, const char *source);
-    cl_int clw_build_program(cl_program program, size_t ndev, cl_device_id *devs, const char *compile_opt);
+    cl_int clw_build_program(cl_program program, uint64_t ndev, cl_device_id *devs, const char *compile_opt);
     kernel_t clw_init_kernel(cl_program program, const char *name);
-    kernel_t *clw_init_kernels(cl_program program, const char **names, size_t n);
+    kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n);
 
     //info related
-    void clw_get_platform_info(FILE *file, cl_platform_id plat, size_t iplat);
-    void clw_get_device_info(FILE *file, cl_device_id dev, size_t idev);
+    void clw_get_platform_info(FILE *file, cl_platform_id plat, uint64_t iplat);
+    void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev);
     void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from clw_build_program returned call
 
     //queue related
-    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, size_t dim, size_t *global_offset, size_t *global, size_t *local);
+    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
     void clw_finish(cl_command_queue queue);
 
     //work related
-    size_t clw_get_local_work_device_gcd_1d(size_t global, cl_device_id dev);
-    size_t clw_get_local_work_gdc_1d(size_t global, size_t fac);
-    size_t *clw_get_local_work_device_gdc_nd(size_t ndim, size_t *global, cl_device_id dev);
-    size_t *clw_get_local_work_gdc_nd(size_t ndim, size_t *global, size_t fac);
+    uint64_t clw_get_local_work_device_gcd_1d(uint64_t global, cl_device_id dev);
+    uint64_t clw_get_local_work_gdc_1d(uint64_t global, uint64_t fac);
+    uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_device_id dev);
+    uint64_t *clw_get_local_work_gdc_nd(uint64_t ndim, uint64_t *global, uint64_t fac);
 
     //kernel arg related
-    void clw_set_kernel_arg(kernel_t k, size_t argIndex, size_t argSize, void *arg);
+    void clw_set_kernel_arg(kernel_t k, uint64_t argIndex, uint64_t argSize, void *arg);
 
 #ifdef OPENCLWRAPPER_IMPLEMENTATION
 
@@ -153,11 +153,11 @@ int clw_read_file(const char *path, char **out) {
     }
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
-    size_t filesize = ftell(f);
+    uint64_t filesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
     *out = (char*)malloc(filesize + 1);
-    size_t readsize = fread((void *)(*out), 1, filesize, f);
+    uint64_t readsize = fread((void *)(*out), 1, filesize, f);
     if (readsize != filesize) {
         clw_print_cl_error(stderr, -1, "READSIZE AND FILESIZE ARE NOT EQUAL");
     }
@@ -166,31 +166,31 @@ int clw_read_file(const char *path, char **out) {
     return filesize;
 }
 
-size_t gcd(size_t a, size_t b) {
+uint64_t gcd(uint64_t a, uint64_t b) {
     if (b == 0)
         return a;
     else
         return gcd(b, a % b);
 }
 
-cl_mem clw_create_buffer(size_t size, cl_context context, cl_mem_flags flags) {
+cl_mem clw_create_buffer(uint64_t size, cl_context context, cl_mem_flags flags) {
     cl_int err;
     cl_mem ret = clCreateBuffer(context, flags, size, NULL, &err);
     clw_print_cl_error(stderr, err, "ERROR ON CREATING BUFFER WITH SIZE %zu", size);
     return ret;
 }
 
-void clw_read_buffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q) {
+void clw_read_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q) {
     cl_int err = clEnqueueReadBuffer(q, buffer, CL_TRUE, offset, size, host_ptr, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "ERROR ON READING BUFFER WITH SIZE %zu AND OFFSET %zu", size, offset);
 }
 
-void clw_write_buffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q) {
+void clw_write_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q) {
     cl_int err = clEnqueueWriteBuffer(q, buffer, CL_TRUE, offset, size, host_ptr, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "ERROR ON WRITING BUFFER WITH SIZE %zu AND OFFSET %zu", size, offset);
 }
 
-cl_platform_id* clw_init_platforms(size_t *n) {
+cl_platform_id* clw_init_platforms(uint64_t *n) {
     //disable cache
     #if defined(unix) || defined(__unix) || defined(__unix)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
@@ -211,7 +211,7 @@ cl_platform_id* clw_init_platforms(size_t *n) {
     return local;
 }
 
-cl_device_id* clw_init_devices(cl_platform_id plat, size_t *n) {
+cl_device_id* clw_init_devices(cl_platform_id plat, uint64_t *n) {
     cl_uint nn;
     cl_int err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &nn);
     clw_print_cl_error(stderr, err, "ERROR FINDING NUMBER OF DEVICES");
@@ -223,7 +223,7 @@ cl_device_id* clw_init_devices(cl_platform_id plat, size_t *n) {
     return local;
 }
 
-cl_context clw_init_context(cl_device_id *devices, size_t ndev) {
+cl_context clw_init_context(cl_device_id *devices, uint64_t ndev) {
     cl_int err;
     cl_context ret = clCreateContext(NULL, ndev, devices, NULL, NULL, &err);
     clw_print_cl_error(stderr, err, "ERROR CREATING CONTEXT");
@@ -244,7 +244,7 @@ cl_program clw_init_program_source(cl_context ctx, const char *source) {
     return ret;
 }
 
-cl_int clw_build_program(cl_program program, size_t ndev, cl_device_id *devs, const char *compile_opt) {
+cl_int clw_build_program(cl_program program, uint64_t ndev, cl_device_id *devs, const char *compile_opt) {
     return clBuildProgram(program, ndev, devs, compile_opt, NULL, NULL);
 }
 
@@ -257,15 +257,15 @@ kernel_t clw_init_kernel(cl_program program, const char *name) {
     return ret;
 }
 
-kernel_t *clw_init_kernels(cl_program program, const char **names, size_t n) {
+kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n) {
     kernel_t *ret = (kernel_t*)malloc(sizeof(kernel_t) * n);
-    for (size_t i = 0; i < n; ++i) {
+    for (uint64_t i = 0; i < n; ++i) {
         ret[i] = clw_init_kernel(program, names[i]);
     }
     return ret;
 }
 
-void clw_enqueue_nd(cl_command_queue queue, kernel_t k, size_t dim, size_t *global_offset, size_t *global, size_t *local) {
+void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local) {
     cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "ERROR ENQUEUING KERNEL %s", k.name);
 }
@@ -275,40 +275,40 @@ void clw_finish(cl_command_queue queue) {
     clw_print_cl_error(stderr, err, "ERROR FINISHING QUEUE");
 }
 
-size_t clw_get_local_work_device_gcd_1d(size_t global, cl_device_id dev) {
-    size_t devG;
-    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &devG, NULL);
+uint64_t clw_get_local_work_device_gcd_1d(uint64_t global, cl_device_id dev) {
+    uint64_t devG;
+    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &devG, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE GCD");
     return gcd(global, devG);
 }
 
-size_t clw_get_local_work_gdc_1d(size_t global, size_t fac) {
+uint64_t clw_get_local_work_gdc_1d(uint64_t global, uint64_t fac) {
     return gcd(global, fac);
 }
 
-size_t *clw_get_local_work_device_gdc_nd(size_t ndim, size_t *global, cl_device_id dev) {
-    size_t *ret = (size_t*)malloc(sizeof(size_t) * ndim);
-    for (size_t i = 0; i < ndim; ++i) {
+uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_device_id dev) {
+    uint64_t *ret = (uint64_t*)malloc(sizeof(uint64_t) * ndim);
+    for (uint64_t i = 0; i < ndim; ++i) {
         ret[i] = clw_get_local_work_device_gcd_1d(global[i], dev);
     }
     return ret;
 }
 
-size_t *clw_get_local_work_gdc_nd(size_t ndim, size_t *global, size_t fac) {
-    size_t *ret = (size_t*)malloc(sizeof(size_t) * ndim);
-    for (size_t i = 0; i < ndim; ++i) {
+uint64_t *clw_get_local_work_gdc_nd(uint64_t ndim, uint64_t *global, uint64_t fac) {
+    uint64_t *ret = (uint64_t*)malloc(sizeof(uint64_t) * ndim);
+    for (uint64_t i = 0; i < ndim; ++i) {
         ret[i] = clw_get_local_work_gdc_1d(global[i], fac);
     }
     return ret;
 }
 
-void clw_set_kernel_arg(kernel_t k, size_t argIndex, size_t argSize, void *arg) {
+void clw_set_kernel_arg(kernel_t k, uint64_t argIndex, uint64_t argSize, void *arg) {
     cl_int err = clSetKernelArg(k.kernel, argIndex, argSize, arg);
     clw_print_cl_error(stderr, err, "ERROR SETTING ARG %zu ON KERNEL %s", argIndex, k.name);
 }
 
-void clw_get_platform_info(FILE *file, cl_platform_id plat, size_t iplat) {
-    size_t n;
+void clw_get_platform_info(FILE *file, cl_platform_id plat, uint64_t iplat) {
+    uint64_t n;
     cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE PLATFORM[%zu] NAME INFO", iplat);
 
@@ -321,11 +321,11 @@ void clw_get_platform_info(FILE *file, cl_platform_id plat, size_t iplat) {
     free(info);
 }
 
-void clw_get_device_info(FILE *file, cl_device_id dev, size_t idev) {
+void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
     fprintf(file, "---------------------------------\n");
 
 
-    size_t n;
+    uint64_t n;
     cl_platform_id plt;
 
     cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plt, NULL);
@@ -393,8 +393,8 @@ void clw_get_device_info(FILE *file, cl_device_id dev, size_t idev) {
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] COMPUTE UNITS INFO", idev);
     fprintf(file, "DEVICE[%zu] COMPUTE UNITS: %u\n", idev, maxcomp);
 
-    size_t maxworgroup;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxworgroup, NULL);
+    uint64_t maxworgroup;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &maxworgroup, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
     fprintf(file, "DEVICE[%zu] MAX WORK GROUP SIZE: %zu\n", idev, maxworgroup);
 
@@ -403,16 +403,16 @@ void clw_get_device_info(FILE *file, cl_device_id dev, size_t idev) {
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
     fprintf(file, "DEVICE[%zu] MAX DIMENSIONS: %u\n", idev, dimension);
 
-    size_t *dim_size = (size_t*)malloc(sizeof(size_t) * dimension);
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * dimension, dim_size, NULL);
+    uint64_t *dim_size = (uint64_t*)malloc(sizeof(uint64_t) * dimension);
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP PER DIMENSION", idev);
 
     fprintf(file, "DEVICE[%zu] MAX WORK GROUP SIZE PER DIMENSION: {", idev);
 
-    for (size_t i = 0; i < dimension - 1; ++i) {
+    for (uint64_t i = 0; i < dimension - 1; ++i) {
         fprintf(file, "%zu, ", dim_size[i]);
     }
-    size_t i = dimension - 1;
+    uint64_t i = dimension - 1;
     fprintf(file, "%zu}\n", dim_size[i]);
     free(dim_size);
 
@@ -421,7 +421,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, size_t idev) {
 }
 
 void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode) {
-    size_t size;
+    uint64_t size;
     cl_int err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
     clw_print_cl_error(stderr, err, "ERROR GETTING BUILD LOG SIZE");
 

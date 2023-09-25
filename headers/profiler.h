@@ -34,15 +34,15 @@ void DumpMeasures(FILE *file);
 #ifdef __PROFILER_IMPLEMENTATION
 
 
-static size_t hash(const char *name) {
-    size_t r = 0;
-    for (size_t i = 0; i < strlen(name); ++i) r += (size_t)name[i] + (size_t)name[i] * i;
+static uint64_t hash(const char *name) {
+    uint64_t r = 0;
+    for (uint64_t i = 0; i < strlen(name); ++i) r += (uint64_t)name[i] + (uint64_t)name[i] * i;
     return r % __PROFILER_TABLE_MAX;
 }
 
 static PROFILER(elem) initelem(const char* name) {
     PROFILER(elem) ret = {0};
-    size_t len = strlen(name);
+    uint64_t len = strlen(name);
     ret.name = (char*)calloc(len + 1, 1);
     memcpy(ret.name, name, len);
     ret.name[len] = '\0';
@@ -53,7 +53,7 @@ static PROFILER(elem) initelem(const char* name) {
 }
 
 static bool insert(const char* name) {
-    size_t index = hash(name);
+    uint64_t index = hash(name);
     if (!PROFILER(table)[index].name) {
         PROFILER(table)[index] = initelem(name);
         return true;
@@ -80,7 +80,7 @@ bool profiler_start_measure(const char *name) {
 }
 
 void EndMeasure(const char* name) {
-    size_t index = hash(name);
+    uint64_t index = hash(name);
     PROFILER(elem) *head = &PROFILER(table)[index];
     while (head) {
       if (strcmp(head->name, name) == 0) {
@@ -102,7 +102,7 @@ static void FreeList(PROFILER(elem) *head) {
 }
 
 void DumpMeasures(FILE *file) {
-    for (size_t i = 0; i < __PROFILER_TABLE_MAX; ++i) {
+    for (uint64_t i = 0; i < __PROFILER_TABLE_MAX; ++i) {
         PROFILER(elem) *head = &PROFILER(table)[i];
         if (!head->name) continue;
     

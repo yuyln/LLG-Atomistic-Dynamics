@@ -1,6 +1,7 @@
 #ifndef __GEN_LATTICE_UTILS_H
 #define __GEN_LATTICE_UTILS_H
 #include <math.h>
+#include <stdio.h>
 
 typedef struct {
     double x, y, z;
@@ -10,6 +11,7 @@ void create_skyrmion_neel(v3d *g, int rows, int cols, int cx, int cy, int R, dou
 void create_triangular_neel_skyrmion_lattice(v3d *g, int rows, int cols, int R, int nx, double P, double Q);
 void create_triangular_bloch_skyrmion_lattice(v3d *g, int rows, int cols, int R, int nx, double P, double Q);
 void print_grid(FILE *f, v3d *v, int rows, int cols);
+void dump_grid(FILE *f, v3d *v, int rows, int cols);
 
 #endif //__GEN_LATTICE_UTILS_H
 
@@ -130,6 +132,13 @@ void print_grid(FILE *f, v3d *v, int rows, int cols) {
     }
     int col = cols - 1;
     fprintf(f, "%.15f\t%.15f\t%.15f", v[row * cols + col].x, v[row * cols + col].y, v[row * cols + col].z);
+}
+
+void dump_grid(FILE *f, v3d *v, int rows, int cols) {
+    fprintf(f, "BINARY");
+    fwrite(&rows, sizeof(int), 1, f);
+    fwrite(&cols, sizeof(int), 1, f);
+    fwrite(v, rows * cols * sizeof(v3d), 1, f);
 }
 
 #endif //__GEN_LATTICE_UTILS_C

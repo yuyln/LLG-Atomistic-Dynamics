@@ -1,7 +1,7 @@
 #!/bin/sh
 set -xe
 
-CFLAGS="-DWIN -DRK4 -Wall -Wextra -pedantic -Ofast -ggdb -I ./OpenCL/include -L ./OpenCL/lib -static-libgcc"
+CFLAGS="-DWIN -DRK4 -Wall -Wextra -pedantic -Ofast -I ./OpenCL/include -L ./OpenCL/lib -static-libgcc"
 LIBS="-lm -lOpenCL -fopenmp"
 CC=x86_64-w64-mingw32-gcc
 

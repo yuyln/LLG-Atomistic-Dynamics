@@ -1,7 +1,7 @@
 #ifndef __gsa
 #define __gsa
 
-#include "./headers/helpers.h"
+#include "helpers.h"
 
 void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
     grid_t g_min = grid_init_null(),
@@ -31,17 +31,17 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
            exp1 = 2.0 / (3.0 - param.qV),
            exp2 = 1.0 / qV1 - 0.5;
     
-    for (size_t outer = 1; outer <= param.outer_loop; ++outer) {
+    for (uint64_t outer = 1; outer <= param.outer_loop; ++outer) {
         srand(time(NULL));
         double t = 0.0,
                Tqt = param.T0 * (pow(2.0, qT1) - 1.0);
-        for (size_t inner = 1; inner <= param.inner_loop; ++inner) {
+        for (uint64_t inner = 1; inner <= param.inner_loop; ++inner) {
             t += 1.0;
             double T = Tqt / (pow(t + 1.0, qT1) - 1.0);
             if (inner % (param.inner_loop / param.print_param) == 0)
                 printf("outer: %zu inner: %zu H_min: %e T: %e\n", outer, inner, H_min, T);
             
-            for (size_t I = 0; I < g_in->param.total; ++I) {
+            for (uint64_t I = 0; I < g_in->param.total; ++I) {
                 double R = rand_double();
                 double delta = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
                 if (rand_double() < 0.5)
@@ -136,7 +136,7 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     double* ham_gpu = (double*)calloc(g_in->param.total, sizeof(double));
 
 
-    size_t global = g_in->param.total,
+    uint64_t global = g_in->param.total,
            local = gcd(global, 32);
 
     clw_set_kernel_arg(gpu->kernels[0], 0, sizeof(cl_mem), &g_out_buffer);
@@ -151,11 +151,11 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
 
     clw_set_kernel_arg(gpu->kernels[2], 1, sizeof(cl_mem), &g_out_buffer);
 
-    for (size_t outer = 1; outer <= param.outer_loop; ++outer) {
+    for (uint64_t outer = 1; outer <= param.outer_loop; ++outer) {
         srand(time(NULL));
         double t = 0.0,
                Tqt = param.T0 * (pow(2.0, qT1) - 1.0);
-        for (size_t inner = 1; inner <= param.inner_loop; ++inner) {
+        for (uint64_t inner = 1; inner <= param.inner_loop; ++inner) {
             t += 1.0;
             double T = Tqt / (pow(t + 1.0, qT1) - 1.0);
             clw_set_kernel_arg(gpu->kernels[0], 2, sizeof(double) ,&T);
@@ -172,7 +172,7 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
             clw_read_buffer(ham_buffer, ham_gpu, sizeof(double) * g_in->param.total, 0, gpu->queue);
 
             double HH = 0.0;
-            for (size_t i = 0; i < g_in->param.total; ++i)
+            for (uint64_t i = 0; i < g_in->param.total; ++i)
                 HH += ham_gpu[i];
             
             H_new = HH;

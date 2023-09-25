@@ -18,11 +18,11 @@ struct parser_context {
     char* file_str;
     char* file_name;
     char** state;
-    size_t n;
-    size_t file_size;
+    uint64_t n;
+    uint64_t file_size;
 };
 
-static parser_context global_parser_context = {" \r\n:=", NULL, NULL, NULL, 0, 0};
+static parser_context global_parser_context = {"\t \r\n:=", NULL, NULL, NULL, 0, 0};
 
 parser_context parser_init_context(char* separators);
 void parser_end(parser_context* context);
@@ -39,7 +39,7 @@ unsigned long long int parser_get_ull(const char* tag, int base, unsigned long l
 #ifdef _PARSER_IMPLEMENTATION
 
 static char* parser_copy_string(char *from) {
-    size_t from_size = strlen(from);
+    uint64_t from_size = strlen(from);
     char lchar = from[from_size - 1];
     if (lchar != '\0') from_size++;
 
@@ -97,7 +97,7 @@ void parser_start(const char* file_path, parser_context* context) {
     fseek(file, 0, SEEK_SET);
     fseek(file, 0, SEEK_END);
 
-    context->file_size = (size_t)ftell(file);
+    context->file_size = (uint64_t)ftell(file);
     context->file_str = (char*)malloc(context->file_size + 1);
     context->file_name = parser_copy_string((char*)file_path);
 
@@ -119,7 +119,7 @@ void parser_start(const char* file_path, parser_context* context) {
     context->state = (char**)malloc(sizeof(char*) * context->n);
 
     token = strtok(context->file_str, context->seps);
-    size_t i = 0;
+    uint64_t i = 0;
     while (token) {
         context->state[i++] = token;
         token = strtok(NULL, context->seps);
@@ -129,7 +129,7 @@ void parser_start(const char* file_path, parser_context* context) {
 long int parser_find_index_of_tag(const char* tag, parser_context* context) {
     if (!context) return parser_find_index_of_tag(tag, &global_parser_context);
 
-    for (size_t i = 0; i < context->n; ++i)
+    for (uint64_t i = 0; i < context->n; ++i)
         if (!strcmp(tag, context->state[i]))
             return i;
             

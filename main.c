@@ -23,12 +23,6 @@ int main() {
 
     v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm / s.g_old.param.exchange);
     v3d field_tesla = field_joule_to_tesla(field_joule, s.g_old.param.mu_s);
-
-
-    for (size_t i = 0; i < s.g_old.param.total; ++i)
-        s.g_old.grid[i] = v3d_normalize(field_tesla);
-    create_skyrmion_neel(s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.cols, s.g_old.param.cols - 12, s.g_old.param.rows - 3, 3, 1.0, -1.0);
-
     current_t cur;
 
     if (s.use_gpu && s.do_gsa) {

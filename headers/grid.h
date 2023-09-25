@@ -1,7 +1,10 @@
 #ifndef __GRID
 #define __GRID
 #ifndef OPENCLCOMP
-#include "./headers/vec.h"
+#include "vec.h"
+#include <stdint.h>
+#else
+typedef size_t uint64_t;
 #endif
 
 typedef enum {
@@ -39,7 +42,7 @@ typedef struct {
 
 typedef struct {
     int rows, cols;
-    size_t total;
+    uint64_t total;
     double exchange, dm, lattice, cubic_ani;
     double mu_s, lande, avg_spin, alpha, gamma;
     double total_time; //should not be a grid param, however.........

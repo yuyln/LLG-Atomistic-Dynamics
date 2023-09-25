@@ -1,10 +1,10 @@
 #ifndef __GRADIENT_DESCENT_H
 #define __GRADIENT_DESCENT_H
 
-#include "./headers/opencl_wrapper.h"
-#include "./headers/grid.h"
-#include "./headers/funcs.h"
-#include "./headers/helpers.h"
+#include "opencl_wrapper.h"
+#include "grid.h"
+#include "funcs.h"
+#include "helpers.h"
 #define PRINT_PARAM 20
 
 
@@ -216,8 +216,8 @@ void gradient_descent_gpu(grid_t *g_in, grid_t *g_out, double dt, double alpha, 
     clw_set_kernel_arg(gpu->kernels[4], 12, sizeof(v3d), &field);
 
     srand(time(NULL));
-    size_t global = rows * cols;
-    size_t local = gcd(global, 32);
+    uint64_t global = rows * cols;
+    uint64_t local = gcd(global, 32);
     for (int i = 0; i < steps; ++i) {
         double local_T = 0;
 
