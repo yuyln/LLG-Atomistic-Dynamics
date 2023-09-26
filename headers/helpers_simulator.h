@@ -230,7 +230,7 @@ simulator_t init_simulator(const char *path) {
         ret.gpu.program = clw_init_program_source(ret.gpu.ctx, kernel_data);
 
         char *comp_opt;
-        const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose";
+        const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose -cl-fast-relaxed-math";
 
 
         uint64_t comp_opt_size = snprintf(NULL, 0, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
