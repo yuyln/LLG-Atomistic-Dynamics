@@ -539,15 +539,15 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
 void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const char* file_name) {
     FILE *fly = file_open(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax)) {
-	    int steps = (int)(s->n_steps / s->write_cut);
-    	int fcut = s->write_cut;
-	    double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        int steps = (int)(s->n_steps / s->write_cut);
+        int fcut = s->write_cut;
+        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
-    	fwrite(&fcut, sizeof(int), 1, fly);
-	    fwrite(&dt_real, sizeof(double), 1, fly);
-    	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&fcut, sizeof(int), 1, fly);
+        fwrite(&dt_real, sizeof(double), 1, fly);
+        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
@@ -590,7 +590,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         clw_set_kernel_arg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
         int t = i;
         clw_set_kernel_arg(s->gpu.kernels[3], 6, sizeof(int), &t);
-        
+
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
 
@@ -598,26 +598,30 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
             uint64_t t = i / s->write_vel_charge_cut;
 
             /*
-                So, reading the gpu_t this frequent is BAAAD
-                If Visual Studio is right, this read call takes about 60%-80% of the function call (cumulative)
-                The optimal way would be to create a large buffer on the gpu_t, write to that buffer via kernels, and
-                after all the integration is finished, read that buffer. However, this is almost impossible without
-                using too much memory.
-                A typical lattice of 272x272 with 3000000 integration steps would generate a huge buffer
-                3 * sizeof(double) * 272 * 272 * (3000000 / s->write_vel_charge_cut) * 2(velocity and avg_mag)
+               So, reading the gpu_t this frequent is BAAAD
+               If Visual Studio is right, this read call takes about 60%-80% of the function call (cumulative)
+               The optimal way would be to create a large buffer on the gpu_t, write to that buffer via kernels, and
+               after all the integration is finished, read that buffer. However, this is almost impossible without
+               using too much memory.
+               A typical lattice of 272x272 with 3000000 integration steps would generate a huge buffer
+               3 * sizeof(double) * 272 * 272 * (3000000 / s->write_vel_charge_cut) * 2(velocity and avg_mag)
                =3 * 8 * 272 * 272 * (3000000 / 100) * 2 (values used in real simulations made by me)
                =106.5GB
-                So, no, there is no way of doing a large buffer for all the integration steps
-                What could work is doing a smaller buffer, and reading it in batches during the integration.
-                This way instead of 3000000 steps, as used above, we use the amount os elements per batch in the buffer.
-                3 * sizeof(double) * 272 * 272 * elementes per batch * 2
+               So, no, there is no way of doing a large buffer for all the integration steps
+               What could work is doing a smaller buffer, and reading it in batches during the integration.
+               This way instead of 3000000 steps, as used above, we use the amount os elements per batch in the buffer.
+               3 * sizeof(double) * 272 * 272 * elementes per batch * 2
                =3 * 8 * 272 * 272 * 500 * 2
                =1.7GB
-                So, this would be more reasonable to use. However, usually we run many programs at the same time (~40)
-                and 1GB(+other memory needed, such as grid buffer and so on) per program would not fit on any RTX gpu_t,
-                so, yeah, no, we cannot use that either.
-                We are left with reading the buffers more frequent than what i would like,
-                but it is what it is and it isn't what it isn't
+               So, this would be more reasonable to use. However, usually we run many programs at the same time (~40)
+               and 1GB(+other memory needed, such as grid buffer and so on) per program would not fit on any RTX gpu_t,
+               so, yeah, no, we cannot use that either.
+               We are left with reading the buffers more frequent than what i would like,
+               but it is what it is and it isn't what it isn't
+
+               UPDATE: linux `perf` and Flamegraph(https://www.brendangregg.com/flamegraphs.html) both reports
+               80-90% of the time is spend reading GPU buffers. However, disabling these read calls does NOT
+               change the program speed. So, I am lost right now and have no clue on what is happening :).
             */
             clw_read_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
             for (uint64_t k = 0; k < s->g_old.param.total; ++k) {
@@ -625,7 +629,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
                 uint64_t y = (k - x) / s->g_old.param.cols;
                 s->velxy_Ez[t].x += vxvy_Ez_avg_mag_chpr_chim[k].x;
                 s->velxy_Ez[t].y += vxvy_Ez_avg_mag_chpr_chim[k].y;
-		s->velxy_Ez[t].z += vxvy_Ez_avg_mag_chpr_chim[k].z;
+                s->velxy_Ez[t].z += vxvy_Ez_avg_mag_chpr_chim[k].z;
 
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
                 s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
@@ -637,12 +641,12 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
 
             // Moved to export phase
             /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
+              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
-        
+
         if (i % s->write_cut == 0) {
             uint64_t t = i / s->write_cut;
             if (s->write_to_file) {
