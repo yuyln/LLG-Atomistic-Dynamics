@@ -25,8 +25,8 @@ typedef struct PROFILER(elem) {
 PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX] = {0};
 
 bool profiler_start_measure(const char* name);
-void EndMeasure(const char* name);
-void DumpMeasures(FILE *file);
+void profiler_end_measure(const char* name);
+void profiler_print_measures(FILE *file);
 
 #endif //__PROFILER_H
 
@@ -79,7 +79,7 @@ bool profiler_start_measure(const char *name) {
     return insert(name);
 }
 
-void EndMeasure(const char* name) {
+void profiler_end_measure(const char* name) {
     uint64_t index = hash(name);
     PROFILER(elem) *head = &PROFILER(table)[index];
     while (head) {
@@ -93,15 +93,15 @@ void EndMeasure(const char* name) {
     }
 }
 
-static void FreeList(PROFILER(elem) *head) {
+static void profiler_free_list(PROFILER(elem) *head) {
     if (!head) return;
     
-    FreeList(head->next);
+    profiler_free_list(head->next);
     if (head->name) free(head->name);
     free(head);
 }
 
-void DumpMeasures(FILE *file) {
+void profiler_print_measures(FILE *file) {
     for (uint64_t i = 0; i < __PROFILER_TABLE_MAX; ++i) {
         PROFILER(elem) *head = &PROFILER(table)[i];
         if (!head->name) continue;
@@ -112,7 +112,7 @@ void DumpMeasures(FILE *file) {
         }
     
         head = &PROFILER(table)[i];
-        FreeList(head->next);
+        profiler_free_list(head->next);
 	
 	free(head->name);
         memset(head, 0, sizeof(PROFILER(elem)));

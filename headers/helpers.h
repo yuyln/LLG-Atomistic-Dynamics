@@ -25,14 +25,8 @@
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include "opencl_wrapper.h"
 
-#define PROFILER_IMPLEMENTATION
+#define __PROFILER_IMPLEMENTATION
 #include "profiler.h"
-
-#if __STDC_VERSION__ > 201603L
-#define mynodiscard [[nodiscard]]
-#else
-#define mynodiscard 
-#endif
 
 typedef struct {
     double qA, qT, qV, T0;
@@ -579,6 +573,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     clw_write_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
 
     clw_set_kernel_arg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_Ez_avg_mag_chpr_chim_buffer);
+    profiler_start_measure("GPU INTEGRATION");
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 100) == 0) {
@@ -659,6 +654,8 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
             }
         }
     }
+    profiler_end_measure("GPU INTEGRATION");
+    profiler_print_measures(stdout);
     read_v3d_grid_buffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
     clw_print_cl_error(stderr, clReleaseMemObject(vxvy_Ez_avg_mag_chpr_chim_buffer), "Could not release vxvy_Ez_avg_mag_chpr_chim_buffer obj");
     if (vxvy_Ez_avg_mag_chpr_chim)
