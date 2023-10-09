@@ -71,7 +71,7 @@ else:
 if cmd_parser.PLOT_ARROWS:
     mx_, my_ = utils.GetVecsFromXY(mx, my, x_in, y_in)
     vecs = ax.quiver(x, y, mx_ * fac_x, my_ * fac_y,
-                     angles='xy', scale_units='xy', pivot="mid", scale=1.0 / np.sqrt(2.0), width=0.0013, headwidth=3)
+                     angles='xy', scale_units='xy', pivot="mid", scale=1.0 / np.sqrt(1.0), width=0.0026, headwidth=3)
 
 ax.set_xlim([min_x, max_x])
 ax.set_ylim([min_y, max_y])
@@ -119,5 +119,7 @@ if cmd_parser.PLOT_PIN:
         print(e)
     ax.scatter(x_pin, y_pin, marker="s", s=marker_size, c=cmd_parser.COLOR_PIN)
 
+ax.text(-1, (rows - 1) * lattice, cmd_parser.LABEL,
+        fontsize=28, verticalalignment='center', horizontalalignment='center')
 cmd_parser.print()
 fig.savefig(cmd_parser.OUTPUT_FILE, dpi=cmd_parser.DPI, facecolor="white", bbox_inches="tight")

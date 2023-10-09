@@ -3,6 +3,7 @@
 #include "./headers/helpers_simulator.h"
 #include "./headers/gradient_descent.h"
 
+//TODO: fix crashing when providing file that does not exist
 int main() {
     double J_norm = 5.0e-2;
     double jx =  0.0,

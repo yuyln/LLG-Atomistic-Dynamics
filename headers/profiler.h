@@ -1,8 +1,10 @@
 #ifndef __PROFILER_H
 #define __PROFILER_H
 
-#if _POSIX_C_SOURCE < 199309L
-#define _POSIX_C_SOURCE 199310L
+#ifdef WIN
+#define profiler_start_measure(name)
+#define profiler_end_measure(name)
+#define profiler_print_measures(file)
 #endif
 
 #define PROFILER(x) __PROFILER_##x
@@ -13,7 +15,6 @@
 #include <time.h>
 #include <string.h>
 #include <stdbool.h>
-
 
 typedef struct PROFILER(elem) {
     char* name;
@@ -31,7 +32,7 @@ void profiler_print_measures(FILE *file);
 #endif //__PROFILER_H
 
 
-#ifdef __PROFILER_IMPLEMENTATION
+#if defined(__PROFILER_IMPLEMENTATION) && !defined(WIN)
 
 
 static uint64_t hash(const char *name) {

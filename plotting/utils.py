@@ -51,6 +51,7 @@ class CMDArgs:
         parser.add_argument("-bar-size", default=0.02, type=float)
         parser.add_argument("-bar-pad", default=0.00, type=float)
         parser.add_argument("-bar-pos", default="NONE", type=str)
+        parser.add_argument("-label", default="", type=str)
 
         self.args = vars(parser.parse_args())
         self.INPUT_FILE    = self.args["input"]
@@ -78,6 +79,7 @@ class CMDArgs:
         self.BARSIZE       = self.args["bar_size"]
         self.BARPAD        = self.args["bar_pad"]
         self.BARPOS        = self.args["bar_pos"]
+        self.LABEL         = self.args["label"]
 
     def print(self):
         pprint.pprint(self.args)
