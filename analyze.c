@@ -128,9 +128,17 @@ int main(int argc, const char **argv) {
                 double charge_im = 0.0;
                 for (int row = rs * rows_per_stripe; row < (rs + 1) * rows_per_stripe; ++row) {
                     for (int col = cs * cols_per_stripe; col < (cs + 1) * cols_per_stripe; ++col) {
-                        vel = v3d_add(vel, velocity_weighted(row * cols + col, gc, gp, gn, rows, cols, lattice, lattice, dt * cut, pbc));
-                        charge_pr += charge(row * cols + col, gc, rows, cols, pbc);
-                        charge_im += charge_old(row * cols + col, gc, rows, cols, lattice, lattice, pbc);
+                        v3d c0 = get_pbc_v3d(row, col, gp, rows, cols, pbc);
+                        v3d c1 = get_pbc_v3d(row, col, gc, rows, cols, pbc);
+                        v3d c2 = get_pbc_v3d(row, col, gn, rows, cols, pbc);
+
+                        v3d l1 = get_pbc_v3d(row, col - 1, gc, rows, cols, pbc);
+                        v3d r1 = get_pbc_v3d(row, col + 1, gc, rows, cols, pbc);
+                        v3d u1 = get_pbc_v3d(row + 1, col, gc, rows, cols, pbc);
+                        v3d d1 = get_pbc_v3d(row - 1, col, gc, rows, cols, pbc);
+                        vel = v3d_add(vel, velocity_weighted(c0, c1, c2, l1, r1, u1, d1, lattice, lattice, dt * cut));
+                        charge_pr += charge(c1, l1, r1, u1, d1);
+                        charge_im += charge_old(c1, l1, r1, u1, d1, lattice, lattice);
                     }
                 }
                 fprintf(out_data, "%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", t * dt * cut, cs * cols_per_stripe * lattice,

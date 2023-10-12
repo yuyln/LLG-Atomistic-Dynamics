@@ -45,7 +45,6 @@ simulator_t init_simulator(const char *path) {
     region_param_t region_default = {0};
     region_default.exchange_mult = 1.0;
     region_default.dm_mult = 1.0;
-    region_default.field_mult = 1.0;
     region_default.dm_type = param_tmp.dm_type;
 
     parser_context input_ctx = parser_init_context(global_parser_context.seps);
@@ -195,7 +194,6 @@ simulator_t init_simulator(const char *path) {
                 ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(regionf_ctx.state[I + 2], NULL);
                 ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(regionf_ctx.state[I + 3], NULL);
                 ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(regionf_ctx.state[I + 4], NULL, 10);
-                ret.g_old.regions[row * ret.g_old.param.cols + col].field_mult = strtod(regionf_ctx.state[I + 5], NULL);
             }
         }
         parser_end(&regionf_ctx);
@@ -406,7 +404,7 @@ void dump_write_grid(const char *file_path, simulator_t *s) {
     fclose(f);
 }
 
-void DumpWriteChargegrid_t(const char *file_path, simulator_t *s) {
+/*void DumpWriteChargegrid_t(const char *file_path, simulator_t *s) {
     FILE *f = file_open(file_path, "wb", 1);
 
     int rows = s->g_old.param.rows;
@@ -428,5 +426,5 @@ void DumpWriteChargegrid_t(const char *file_path, simulator_t *s) {
 
     fclose(f);
     free(charge_total);
-}
+}*/
 #endif

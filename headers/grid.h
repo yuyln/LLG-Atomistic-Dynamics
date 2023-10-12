@@ -8,7 +8,7 @@ typedef size_t uint64_t;
 #endif
 
 typedef enum {
-    R_ij, Z_CROSS_R_ij
+    R_ij, Z_CROSS_R_ij, R_ij_CROSS_Z
 } DM_TYPE;
 
 typedef enum {
@@ -51,7 +51,7 @@ typedef struct {
 } grid_param_t;
 
 typedef struct {
-    double exchange_mult, dm_mult, field_mult; //current
+    double exchange_mult, dm_mult; //current
     DM_TYPE dm_type;
 } region_param_t;
 

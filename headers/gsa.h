@@ -64,7 +64,7 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
                     delta = -delta;
                 g_out->grid[I].z = g_old.grid[I].z + delta;
 
-                grid_normalize(I, g_out->grid, g_out->pinning);
+                g_out->grid[I] = grid_normalize(g_out->grid[I], g_out->pinning[I]);
             }
             
             H_new = hamiltonian(g_out, field);

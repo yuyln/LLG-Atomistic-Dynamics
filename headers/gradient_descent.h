@@ -11,7 +11,6 @@
 void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alpha, double beta, double mass, int steps, v3d field, double T, double T_factor) {
     int rows = g_in->param.rows;
     int cols = g_in->param.cols;
-    double J = fabs(g_in->param.exchange);
 
     grid_t g_aux = grid_init_null();
     grid_copy(&g_aux, g_in);
@@ -34,40 +33,49 @@ void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alph
     for (int i = 0; i < steps; ++i) { 
         double local_T = 0;
 
-	if (i >= steps / 2) {
-	    local_T = T;
-	    T *= T_factor;
+        if (i >= steps / 2) {
+            local_T = T;
+            T *= T_factor;
         }
 
-	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
+        if (i % (steps / PRINT_PARAM) == 0)
+            printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
-	double H = 0;
+        double H = 0;
 
         for (int j = 0; j < rows * cols; ++j) {
-	    g_aux.grid = g_c;
-	    v3d vel = gradient_descente_velocity(g_p[j], g_n[j], dt);
-	    v3d Heff = gradient_descent_force(j, &g_aux, vel, g_c, field, J, alpha, beta);
+            int col = j % cols;
+            int row = (j - col) / cols;
+            g_aux.grid = g_c;
 
-	    if (T != 0)
+            v3d c = get_pbc_v3d(row, col, g_c, rows, cols, g_aux.param.pbc);
+            v3d left = get_pbc_v3d(row, col - 1, g_c, rows, cols, g_aux.param.pbc);
+            v3d right = get_pbc_v3d(row, col + 1, g_c, rows, cols, g_aux.param.pbc);
+            v3d up = get_pbc_v3d(row + 1, col, g_c, rows, cols, g_aux.param.pbc);
+            v3d down = get_pbc_v3d(row - 1, col, g_c, rows, cols, g_aux.param.pbc);
+
+            v3d vel = gradient_descente_velocity(g_p[j], g_n[j], dt);
+            v3d Heff = gradient_descent_force(row, col, c, left, right, up, down, g_aux.param, g_aux.regions[j], g_aux.ani[j], field, alpha, beta, vel);
+
+            if (T != 0)
                 Heff = v3d_add(Heff, v3d_scalar(v3d_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
 
-	    g_n[j] = v3d_add(
-			    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
-			    v3d_scalar(Heff, -dt * dt / mass)
-			   );
+            g_n[j] = v3d_add(
+                    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
+                    v3d_scalar(Heff, -dt * dt / mass)
+                    );
 
-	    g_aux.grid = g_n;
-	    grid_normalize(j, g_aux.grid, g_aux.pinning);
-	    H += hamiltonian_I(j, g_aux.grid, &g_aux.param, g_aux.ani, g_aux.regions, field);
-	}
+            g_aux.grid = g_n;
+            g_aux.grid[j] = grid_normalize(g_aux.grid[j], g_aux.pinning[j]);
+            H += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field);
+        }
 
-	memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
-	memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
-	if (H < H_min) {
-	    H_min = H;
-	    memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
-	}
+        memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
+        memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
+        if (H < H_min) {
+            H_min = H;
+            memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
+        }
     }
 
 
@@ -88,7 +96,6 @@ void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alph
 void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double alpha, double beta, double mass, int steps, v3d field, double T, double T_factor, int n_threads) {
     int rows = g_in->param.rows;
     int cols = g_in->param.cols;
-    double J = fabs(g_in->param.exchange);
 
     grid_t g_aux = grid_init_null();
     grid_copy(&g_aux, g_in);
@@ -113,51 +120,60 @@ void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double al
     for (int i = 0; i < steps; ++i) {
         double local_T = 0;
 
-	if (i >= steps / 2) {
-	    local_T = T;
-	    T *= T_factor;
+        if (i >= steps / 2) {
+            local_T = T;
+            T *= T_factor;
         }
 
-	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
+        if (i % (steps / PRINT_PARAM) == 0)
+            printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
-	memset(Hn, 0, n_threads * sizeof(double));
+        memset(Hn, 0, n_threads * sizeof(double));
 
-	if (i >= steps / 2) {
-	    local_T = T;
-	    T *= T_factor;
-	}
+        if (i >= steps / 2) {
+            local_T = T;
+            T *= T_factor;
+        }
 
-	double H = 0.0;
-	int j;
-	#pragma omp parallel for num_threads(n_threads)
+        double H = 0.0;
+        int j;
+#pragma omp parallel for num_threads(n_threads)
         for (j = 0; j < rows * cols; ++j) {
-	    g_aux.grid = g_c;
-	    v3d vel = gradient_descente_velocity(g_p[j], g_n[j], dt);
-	    v3d Heff = gradient_descent_force(j, &g_aux, vel, g_c, field, J, alpha, beta);
+            int col = j % cols;
+            int row = (j - col) / cols;
+            g_aux.grid = g_c;
 
-	    if (T != 0)
+            v3d c = get_pbc_v3d(row, col, g_c, rows, cols, g_aux.param.pbc);
+            v3d left = get_pbc_v3d(row, col - 1, g_c, rows, cols, g_aux.param.pbc);
+            v3d right = get_pbc_v3d(row, col + 1, g_c, rows, cols, g_aux.param.pbc);
+            v3d up = get_pbc_v3d(row + 1, col, g_c, rows, cols, g_aux.param.pbc);
+            v3d down = get_pbc_v3d(row - 1, col, g_c, rows, cols, g_aux.param.pbc);
+
+            v3d vel = gradient_descente_velocity(g_p[j], g_n[j], dt);
+            v3d Heff = gradient_descent_force(row, col, c, left, right, up, down, g_aux.param, g_aux.regions[j], g_aux.ani[j], field, alpha, beta, vel);
+
+            if (T != 0)
                 Heff = v3d_add(Heff, v3d_scalar(v3d_c(2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0, 2.0 * rand_double() - 1.0), local_T));
 
-	    g_n[j] = v3d_add(
-			    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
-			    v3d_scalar(Heff, -dt * dt / mass)
-			   );
+            g_n[j] = v3d_add(
+                    v3d_sub(v3d_scalar(g_c[j], 2.0), g_p[j]),
+                    v3d_scalar(Heff, -dt * dt / mass)
+                    );
 
-	    g_aux.grid = g_n;
-	    grid_normalize(j, g_aux.grid, g_aux.pinning);
-	    Hn[omp_get_thread_num()] += hamiltonian_I(j, g_aux.grid, &g_aux.param, g_aux.ani, g_aux.regions, field);
-	}
+            g_aux.grid = g_n;
+            g_aux.grid[j] = grid_normalize(g_aux.grid[j], g_aux.pinning[j]);
+            Hn[omp_get_thread_num()] += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field);
+        }
 
-	for (int j = 0; j < n_threads; ++j)
-	    H += Hn[j];
+        for (int j = 0; j < n_threads; ++j)
+            H += Hn[j];
 
-	memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
-	memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
-	if (H < H_min) {
-	    H_min = H;
-	    memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
-	}
+        memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
+        memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
+        if (H < H_min) {
+            H_min = H;
+            memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
+        }
     }
 
 
@@ -178,7 +194,6 @@ void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double al
 void gradient_descent_gpu(grid_t *g_in, grid_t *g_out, double dt, double alpha, double beta, double mass, int steps, v3d field, double T, double T_factor, gpu_t *gpu) {
     int rows = g_in->param.rows;
     int cols = g_in->param.cols;
-    double J = fabs(g_in->param.exchange);
 
     grid_t g_aux = grid_init_null();
     grid_copy(&g_aux, g_in);
@@ -212,8 +227,7 @@ void gradient_descent_gpu(grid_t *g_in, grid_t *g_out, double dt, double alpha, 
     clw_set_kernel_arg(gpu->kernels[4], 6, sizeof(double), &beta);
     clw_set_kernel_arg(gpu->kernels[4], 7, sizeof(double), &mass);
     clw_set_kernel_arg(gpu->kernels[4], 9, sizeof(cl_mem), &H_buffer);
-    clw_set_kernel_arg(gpu->kernels[4], 11, sizeof(double), &J);
-    clw_set_kernel_arg(gpu->kernels[4], 12, sizeof(v3d), &field);
+    clw_set_kernel_arg(gpu->kernels[4], 11, sizeof(v3d), &field);
 
     srand(time(NULL));
     uint64_t global = rows * cols;
@@ -221,41 +235,41 @@ void gradient_descent_gpu(grid_t *g_in, grid_t *g_out, double dt, double alpha, 
     for (int i = 0; i < steps; ++i) {
         double local_T = 0;
 
-	if (i >= steps / 2) {
-	    local_T = T;
-	    T *= T_factor;
+        if (i >= steps / 2) {
+            local_T = T;
+            T *= T_factor;
         }
-	clw_set_kernel_arg(gpu->kernels[4], 8, sizeof(double), &local_T);
+        clw_set_kernel_arg(gpu->kernels[4], 8, sizeof(double), &local_T);
 
-	if (i % (steps / PRINT_PARAM) == 0)
-	    printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
+        if (i % (steps / PRINT_PARAM) == 0)
+            printf("STEP: %d      H_MIN: %e      T: %e\n", i, H_min / QE, local_T);
 
-	int seed = rand();
-	clw_set_kernel_arg(gpu->kernels[4], 10, sizeof(int), &seed);
-	clw_enqueue_nd(gpu->queue, gpu->kernels[4], 1, NULL, &global, &local);
-	clw_read_buffer(H_buffer, H, sizeof(double) * rows * cols, 0, gpu->queue);
+        int seed = rand();
+        clw_set_kernel_arg(gpu->kernels[4], 10, sizeof(int), &seed);
+        clw_enqueue_nd(gpu->queue, gpu->kernels[4], 1, NULL, &global, &local);
+        clw_read_buffer(H_buffer, H, sizeof(double) * rows * cols, 0, gpu->queue);
 
-	double Hl = 0.0;
-	for (int j = 0; j < rows * cols; ++j)
-	    Hl += H[j];
+        double Hl = 0.0;
+        for (int j = 0; j < rows * cols; ++j)
+            Hl += H[j];
 
-	//memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
-	//memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
-	clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_p_buffer);
-	clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_c_buffer);
-	clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
+        //memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
+        //memcpy(g_c, g_n, sizeof(v3d) * rows * cols);
+        clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_p_buffer);
+        clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_c_buffer);
+        clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
 
-	clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_c_buffer);
-	clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_n_buffer);
-	clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
+        clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_c_buffer);
+        clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_n_buffer);
+        clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
 
-	if (Hl < H_min) {
-	    H_min = Hl;
-	    //memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
-	    clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_min_buffer);
-	    clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_n_buffer);
-	    clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
-	}
+        if (Hl < H_min) {
+            H_min = Hl;
+            //memcpy(g_min, g_n, sizeof(v3d) * rows * cols);
+            clw_set_kernel_arg(gpu->kernels[5], 0, sizeof(cl_mem), &g_min_buffer);
+            clw_set_kernel_arg(gpu->kernels[5], 1, sizeof(cl_mem), &g_n_buffer);
+            clw_enqueue_nd(gpu->queue, gpu->kernels[5], 1, NULL, &global, &local);
+        }
     }
 
 

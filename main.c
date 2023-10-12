@@ -26,21 +26,31 @@ int main() {
     v3d field_tesla = field_joule_to_tesla(field_joule, s.g_old.param.mu_s);
     current_t cur;
 
-    if (s.use_gpu && s.do_gsa) {
-        gsa_gpu(s.gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
-        grid_copy(&s.g_old, &s.g_new);
-        full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
-        full_grid_write_buffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
+    if (s.do_gsa) {
+        dump_v3d_grid("./output/GSA_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
+
+        if (s.use_gpu) {
+            gsa_gpu(s.gsap, &s.g_old, &s.g_new, field_tesla, &s.gpu);
+            grid_copy(&s.g_old, &s.g_new);
+            full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
+            full_grid_write_buffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
+        } else
+            gsa(s.gsap, &s.g_old, &s.g_new, field_tesla);
+
+        dump_v3d_grid("./output/GSA_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     }
-    else if (s.do_gsa)
-        gsa(s.gsap, &s.g_old, &s.g_new, field_tesla);
+
 
     if (s.use_gpu)
         full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
     if (s.do_gradient) {
+        dump_v3d_grid("./output/GRADIENT_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
+
         gradient_descent(&s.g_old, &s.g_new, s.dt, s.alpha_gradient, s.beta_gradient, s.mass_gradient, s.gradient_steps, field_tesla, s.temp_gradient, s.factor_gradient, &s.gpu, s.use_gpu, s.n_cpu);
         copy_grid_to_allocated_grid(&s.g_old, &s.g_new);
+
+        dump_v3d_grid("./output/GRADIENT_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     }
 
     if (s.use_gpu)
@@ -51,13 +61,14 @@ int main() {
         cur = (current_t){0};
         printf("Relaxing\n");
         s.doing_relax = true;
+        dump_v3d_grid("./output/RELAX_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
         integrate_simulator(&s, field_tesla, cur, "./output/did_relax");
+        dump_v3d_grid("./output/RELAX_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
         s.doing_relax = false;
         printf("Done relaxing\n");
     }
 
-    dump_v3d_grid("./output/start.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
-    print_v3d_grid_path("./output/before_integration.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
+    dump_v3d_grid("./output/INTEGRATION_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     if (s.use_gpu)
         full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 

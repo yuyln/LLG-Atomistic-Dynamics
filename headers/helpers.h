@@ -359,25 +359,24 @@ void read_v3d_grid_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
 }
 
 
-//@TODO: Different cut for velocity and charge files
 void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const char* file_name) {
     FILE *fly = file_open(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax)) {
-	int steps = (int)(s->n_steps / s->write_cut);
-	int fcut = s->write_cut;
-	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        int steps = (int)(s->n_steps / s->write_cut);
+        int fcut = s->write_cut;
+        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
-	fwrite(&fcut, sizeof(int), 1, fly);
-	fwrite(&dt_real, sizeof(double), 1, fly);
-	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&fcut, sizeof(int), 1, fly);
+        fwrite(&dt_real, sizeof(double), 1, fly);
+        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
     memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
     memset(s->pos_xy, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
     memset(s->avg_mag, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
     memset(s->chpr_chim, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    
+
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0) {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
@@ -386,19 +385,34 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         uint64_t t = i / s->write_vel_charge_cut;
         for (uint64_t I = 0; I < s->g_old.param.total; ++I) {
-            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
-            grid_normalize(I, s->g_new.grid, s->g_new.pinning);
+            int col = I % s->g_old.param.cols;
+            int row = (I - col) / s->g_old.param.cols;
+
+            v3d c = get_pbc_v3d(row, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d left = get_pbc_v3d(row, col - 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d right = get_pbc_v3d(row, col + 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d up = get_pbc_v3d(row + 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d down = get_pbc_v3d(row - 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+
+            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], grid_step(row, col, c, left, right, up, down, s->g_old.param, s->g_old.regions[I], s->g_old.ani[I], field, cur, s->dt, norm_time));
+            s->g_new.grid[I] = grid_normalize(s->g_new.grid[I], s->g_old.pinning[I]);
 
             if (i % s->write_vel_charge_cut == 0) {
+                v3d c0 = c;
+                v3d c1 = get_pbc_v3d(row, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d left1 = get_pbc_v3d(row, col - 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d right1 = get_pbc_v3d(row, col + 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d up1 = get_pbc_v3d(row + 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d down1 = get_pbc_v3d(row - 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+
                 uint64_t x = I % s->g_old.param.cols;
                 uint64_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = charge(c, left, right, up, down);
+                double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
                 s->pos_xy[t].x += (double)x * s->g_old.param.lattice * charge_i;
                 s->pos_xy[t].y += (double)y * s->g_old.param.lattice * charge_i;
 
-                v3d vt = velocity_weighted(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
-                            s->g_old.param.lattice, s->g_old.param.lattice, 0.5 * s->dt * HBAR / fabs(s->g_old.param.exchange), s->g_old.param.pbc);
+                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
 
                 s->velxy_Ez[t].x += vt.x;
                 s->velxy_Ez[t].y += vt.y;
@@ -409,14 +423,14 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
                 s->chpr_chim[t].y = charge_i_old;
             }
         }
-        
+
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
         if (i % s->write_vel_charge_cut == 0) {
             // Moved to export phase
             /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
+              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
 
@@ -435,15 +449,15 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
 void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, const char* file_name) {
     FILE *fly = file_open(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax)) {
-	int steps = (int)(s->n_steps / s->write_cut);
-	int fcut = s->write_cut;
-	double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        int steps = (int)(s->n_steps / s->write_cut);
+        int fcut = s->write_cut;
+        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
-	fwrite(&fcut, sizeof(int), 1, fly);
-	fwrite(&dt_real, sizeof(double), 1, fly);
-	fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&fcut, sizeof(int), 1, fly);
+        fwrite(&dt_real, sizeof(double), 1, fly);
+        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
@@ -473,22 +487,43 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
         }
 
         int I = 0; //For Visual Studio not complain
-        #pragma omp parallel for num_threads(s->n_cpu)
+#pragma omp parallel for num_threads(s->n_cpu)
         for (I = 0; I < s->g_old.param.total; ++I) {
-            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], step(I, &s->g_old, field, cur, s->dt, norm_time));
-            grid_normalize(I, s->g_new.grid, s->g_new.pinning);
+
+            int col = I % s->g_old.param.cols;
+            int row = (I - col) / s->g_old.param.cols;
+
+            v3d c = get_pbc_v3d(row, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d left = get_pbc_v3d(row, col - 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d right = get_pbc_v3d(row, col + 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d up = get_pbc_v3d(row + 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+            v3d down = get_pbc_v3d(row - 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+
+            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], grid_step(row, col, c, left, right, up, down, s->g_old.param, s->g_old.regions[I], s->g_old.ani[I], field, cur, s->dt, norm_time));
+            s->g_new.grid[I] = grid_normalize(s->g_new.grid[I], s->g_old.pinning[I]);
 
             if (i % s->write_vel_charge_cut == 0) {
                 int nt = omp_get_thread_num();
+
+
+                v3d c0 = c;
+                v3d c1 = get_pbc_v3d(row, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d left1 = get_pbc_v3d(row, col - 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d right1 = get_pbc_v3d(row, col + 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d up1 = get_pbc_v3d(row + 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+                v3d down1 = get_pbc_v3d(row - 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
+
                 uint64_t x = I % s->g_old.param.cols;
                 uint64_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                double charge_i_old = charge_old(I, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.lattice, s->g_old.param.lattice, s->g_old.param.pbc);
+                double charge_i = charge(c, left, right, up, down);
+                double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
+
                 pos_xy_thread[nt].x += (double)x * s->g_old.param.lattice * charge_i;
                 pos_xy_thread[nt].y += (double)y * s->g_old.param.lattice * charge_i;
 
-                v3d vt = velocity_weighted(I, s->g_new.grid, s->g_old.grid, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, 
-                            s->g_old.param.lattice, s->g_old.param.lattice, 0.5 * s->dt * HBAR / fabs(s->g_old.param.exchange), s->g_old.param.pbc);
+
+                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
+
                 velxy_thread[nt].x += vt.x;
                 velxy_thread[nt].y += vt.y;
 
@@ -497,7 +532,7 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
                 chpr_chim_thread[nt] = v3d_add(chpr_chim_thread[nt], v3d_c(charge_i, charge_i_old, 0.0));
             }
         }
-        
+
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
         if (i % s->write_vel_charge_cut == 0)  {
             for (uint64_t k = 0; k < s->n_cpu; ++k) {
@@ -509,12 +544,12 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
 
             // Moved to export phase
             /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-            s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-            s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
+              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
+              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
             s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
         }
-        
+
         if (i % s->write_cut == 0) {
             t = i / s->write_cut;
             if (s->write_to_file)
@@ -614,10 +649,10 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
                We are left with reading the buffers more frequent than what i would like,
                but it is what it is and it isn't what it isn't
 
-               UPDATE: linux `perf` and Flamegraph(https://www.brendangregg.com/flamegraphs.html) both reports
-               80-90% of the time is spend reading GPU buffers. However, disabling these read calls does NOT
-               change the program speed. So, I am lost right now and have no clue on what is happening :).
-            */
+UPDATE: linux `perf` and Flamegraph(https://www.brendangregg.com/flamegraphs.html) both reports
+80-90% of the time is spend reading GPU buffers. However, disabling these read calls does NOT
+change the program speed. So, I am lost right now and have no clue on what is happening :).
+*/
             clw_read_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
             for (uint64_t k = 0; k < s->g_old.param.total; ++k) {
                 uint64_t x = k % s->g_old.param.cols;
@@ -681,19 +716,19 @@ double current_real_to_normalized(double density, grid_param_t params) {
     return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
 }
 
-v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
+/*v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
     v3d ret = v3d_s(0.0);
     for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
         ret = v3d_add(ret, velocity(I, current, before, after, rows, cols, dx, dy, dt, pbc));
     return v3d_scalar(ret, dx * dy);
-}
+}*/
 
-v3d total_velocityW(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
+/*v3d total_velocityW(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
     v3d ret = v3d_s(0.0);
     for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
         ret = v3d_add(ret, velocity_weighted(I, current, before, after, rows, cols, dx, dy, dt, pbc));
     return ret;
-}
+}*/
 
 void write_simulation_data(const char* root_path, simulator_t* s) {
     char *out_charge;
