@@ -7,5 +7,5 @@ cl /O2 /D RK4 /D _USE_MATH_DEFINES /D WIN /MD /I./OpenCL/include /DEBUG /o main 
 
 cl /O2 /D _USE_MATH_DEFINES /D WIN /MD /I./OpenCL/include /DEBUG /o analyze analyze.c ./OpenCL/lib/OpenCL.lib user32.lib gdi32.lib shell32.lib /openmp /link /NODEFAULTLIB:library
 
-@REM del *.obj
+del *.obj
 
