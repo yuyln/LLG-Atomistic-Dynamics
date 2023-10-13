@@ -54,7 +54,8 @@ typedef struct simulator_t {
     grid_t g_old;
     grid_t g_new;
     cl_mem g_old_buffer, g_new_buffer;
-    v3d *grid_out_file, *velxy_Ez, *pos_xy, *avg_mag, *chpr_chim;
+    v3d *grid_out_file;
+    info_pack_t *simulation_info;
 } simulator_t;
 
 FILE* file_open(const char* name, const char* mode, int exit_) {
@@ -372,10 +373,7 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
         fwrite(&dt_real, sizeof(double), 1, fly);
         fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
-    memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->pos_xy, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->avg_mag, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->chpr_chim, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
+    memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0) {
@@ -409,30 +407,28 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
                 uint64_t y = (I - x) / s->g_old.param.cols;
                 double charge_i = charge(c, left, right, up, down);
                 double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
-                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * charge_i;
-                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * charge_i;
+                s->simulation_info[t].charge_cx += (double)x * s->g_old.param.lattice * charge_i;
+                s->simulation_info[t].charge_cy += (double)y * s->g_old.param.lattice * charge_i;
 
                 v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
 
-                s->velxy_Ez[t].x += vt.x;
-                s->velxy_Ez[t].y += vt.y;
-
-                s->avg_mag[t] = v3d_add(s->avg_mag[t], s->g_new.grid[I]);
-
-                s->chpr_chim[t].x = charge_i;
-                s->chpr_chim[t].y = charge_i_old;
+                s->simulation_info[t].vx += vt.x;
+                s->simulation_info[t].vy += vt.y;
+                s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, s->g_new.grid[I]);
+                s->simulation_info[t].charge_lattice += charge_i;
+                s->simulation_info[t].charge_finite += charge_i_old;
+                s->simulation_info[t].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field);
+                s->simulation_info[t].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
+                s->simulation_info[t].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
+                s->simulation_info[t].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field);
+                s->simulation_info[t].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
+                s->simulation_info[t].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
             }
         }
 
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
-        if (i % s->write_vel_charge_cut == 0) {
-            // Moved to export phase
-            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
-        }
+        if (i % s->write_vel_charge_cut == 0)
+            s->simulation_info[t].avg_mag = v3d_scalar(s->simulation_info[t].avg_mag, 1.0 / (double)s->g_old.param.total);
 
         if (i % s->write_cut == 0) {
             t = i / s->write_cut;
@@ -459,27 +455,15 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
         fwrite(&dt_real, sizeof(double), 1, fly);
         fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
-
-    memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->pos_xy, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->avg_mag, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->chpr_chim, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-
-    v3d *velxy_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
-    v3d *pos_xy_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
-    v3d *avg_mag_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
-    v3d *chpr_chim_thread = (v3d*)(calloc(s->n_cpu, sizeof(v3d)));
+    memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
+    info_pack_t *sim_info_thread = (info_pack_t*)calloc(s->n_cpu, sizeof(info_pack_t));
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         uint64_t t = i / s->write_vel_charge_cut;
 
-        if (i % s->write_vel_charge_cut == 0) {
-            memset(velxy_thread, 0, sizeof(v3d) * s->n_cpu);
-            memset(pos_xy_thread, 0, sizeof(v3d) * s->n_cpu);
-            memset(avg_mag_thread, 0, sizeof(v3d) * s->n_cpu);
-            memset(chpr_chim_thread, 0, sizeof(v3d) * s->n_cpu);
-        }
+        if (i % s->write_vel_charge_cut == 0)
+            memset(sim_info_thread, 0, sizeof(info_pack_t) * s->n_cpu);
 
         if (i % (s->n_steps / 10) == 0) {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
@@ -518,36 +502,46 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
                 double charge_i = charge(c, left, right, up, down);
                 double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
 
-                pos_xy_thread[nt].x += (double)x * s->g_old.param.lattice * charge_i;
-                pos_xy_thread[nt].y += (double)y * s->g_old.param.lattice * charge_i;
+                sim_info_thread[nt].charge_cx += x * s->g_old.param.lattice * charge_i;
+                sim_info_thread[nt].charge_cy += y * s->g_old.param.lattice * charge_i;
 
 
                 v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
+                
+                sim_info_thread[nt].vx += vt.x;
+                sim_info_thread[nt].vy += vt.y;
+                sim_info_thread[nt].avg_mag = v3d_add(sim_info_thread[nt].avg_mag, s->g_new.grid[I]);
+                sim_info_thread[nt].charge_finite += charge_i;
+                sim_info_thread[nt].charge_lattice += charge_i_old;
 
-                velxy_thread[nt].x += vt.x;
-                velxy_thread[nt].y += vt.y;
-
-                avg_mag_thread[nt] = v3d_add(avg_mag_thread[nt], s->g_new.grid[I]);
-
-                chpr_chim_thread[nt] = v3d_add(chpr_chim_thread[nt], v3d_c(charge_i, charge_i_old, 0.0));
+                sim_info_thread[nt].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field);
+                sim_info_thread[nt].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
+                sim_info_thread[nt].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
+                sim_info_thread[nt].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field);
+                sim_info_thread[nt].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
+                sim_info_thread[nt].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
             }
         }
 
         memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
         if (i % s->write_vel_charge_cut == 0)  {
             for (uint64_t k = 0; k < s->n_cpu; ++k) {
-                s->velxy_Ez[t] = v3d_add(s->velxy_Ez[t], velxy_thread[k]);
-                s->pos_xy[t] = v3d_add(s->pos_xy[t], pos_xy_thread[k]);
-                s->avg_mag[t] = v3d_add(s->avg_mag[t], avg_mag_thread[k]);
-                s->chpr_chim[t] = v3d_add(s->chpr_chim[t], chpr_chim_thread[k]);
+                s->simulation_info[t].vx += sim_info_thread[k].vx;
+                s->simulation_info[t].vy += sim_info_thread[k].vy;
+                s->simulation_info[t].charge_cx += sim_info_thread[k].charge_cx;
+                s->simulation_info[t].charge_cy += sim_info_thread[k].charge_cy;
+                s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, sim_info_thread[k].avg_mag);
+                s->simulation_info[t].charge_lattice += sim_info_thread[k].charge_lattice;
+                s->simulation_info[t].charge_finite += sim_info_thread[k].charge_finite;
+                s->simulation_info[t].energy += sim_info_thread[k].energy;
+                s->simulation_info[t].energy_exchange += sim_info_thread[k].energy_exchange;
+                s->simulation_info[t].energy_dm += sim_info_thread[k].energy_dm;
+                s->simulation_info[t].energy_zeeman += sim_info_thread[k].energy_zeeman;
+                s->simulation_info[t].energy_anisotropy += sim_info_thread[k].energy_anisotropy;
+                s->simulation_info[t].energy_cubic_anisotropy += sim_info_thread[k].energy_cubic_anisotropy;
             }
 
-            // Moved to export phase
-            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
+            s->simulation_info[t].avg_mag = v3d_scalar(s->simulation_info[t].avg_mag, 1.0 / (double)s->g_old.param.total);
         }
 
         if (i % s->write_cut == 0) {
@@ -559,10 +553,7 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
         }
     }
     fclose(fly);
-    free(velxy_thread);
-    free(pos_xy_thread);
-    free(avg_mag_thread);
-    free(chpr_chim_thread);
+    free(sim_info_thread);
 }
 
 void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const char* file_name) {
@@ -579,10 +570,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
     }
 
-    memset(s->velxy_Ez, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->pos_xy, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->avg_mag, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
-    memset(s->chpr_chim, 0, sizeof(v3d) * s->n_steps / s->write_vel_charge_cut);
+    memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
 
     clw_set_kernel_arg(s->gpu.kernels[2], 0, sizeof(cl_mem), &s->g_old_buffer);
     clw_set_kernel_arg(s->gpu.kernels[2], 1, sizeof(cl_mem), &s->g_new_buffer);
@@ -600,14 +588,12 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     uint64_t global = s->g_old.param.total;
     uint64_t local = gcd(global, 32);
 
-    v3d* vxvy_Ez_avg_mag_chpr_chim = (v3d*)calloc(3 * s->g_old.param.total, sizeof(v3d));
-    memset(vxvy_Ez_avg_mag_chpr_chim, 1, sizeof(v3d) * s->g_old.param.total * 3);
-    memset(vxvy_Ez_avg_mag_chpr_chim, 0, sizeof(v3d) * s->g_old.param.total * 3);
+    info_pack_t* gpu_sim_info = (info_pack_t*)calloc(s->g_old.param.total, sizeof(info_pack_t));
 
-    cl_mem vxvy_Ez_avg_mag_chpr_chim_buffer = clw_create_buffer(3 * sizeof(v3d) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
-    clw_write_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
+    cl_mem gpu_sim_info_buffer = clw_create_buffer(sizeof(info_pack_t) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
+    clw_write_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
 
-    clw_set_kernel_arg(s->gpu.kernels[3], 8, sizeof(cl_mem), &vxvy_Ez_avg_mag_chpr_chim_buffer);
+    clw_set_kernel_arg(s->gpu.kernels[3], 8, sizeof(cl_mem), &gpu_sim_info_buffer);
     profiler_start_measure("GPU INTEGRATION");
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
@@ -653,28 +639,25 @@ UPDATE: linux `perf` and Flamegraph(https://www.brendangregg.com/flamegraphs.htm
 80-90% of the time is spend reading GPU buffers. However, disabling these read calls does NOT
 change the program speed. So, I am lost right now and have no clue on what is happening :).
 */
-            clw_read_buffer(vxvy_Ez_avg_mag_chpr_chim_buffer, vxvy_Ez_avg_mag_chpr_chim, 3 * sizeof(v3d) * s->g_old.param.total, 0, s->gpu.queue);
+
             for (uint64_t k = 0; k < s->g_old.param.total; ++k) {
-                uint64_t x = k % s->g_old.param.cols;
-                uint64_t y = (k - x) / s->g_old.param.cols;
-                s->velxy_Ez[t].x += vxvy_Ez_avg_mag_chpr_chim[k].x;
-                s->velxy_Ez[t].y += vxvy_Ez_avg_mag_chpr_chim[k].y;
-                s->velxy_Ez[t].z += vxvy_Ez_avg_mag_chpr_chim[k].z;
-
-                s->pos_xy[t].x += (double)x * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
-                s->pos_xy[t].y += (double)y * s->g_old.param.lattice * vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k].x;
-
-                s->avg_mag[t] = v3d_add(s->avg_mag[t], vxvy_Ez_avg_mag_chpr_chim[s->g_old.param.total + k]);
-
-                s->chpr_chim[t] = v3d_add(s->chpr_chim[t], vxvy_Ez_avg_mag_chpr_chim[2 * s->g_old.param.total + k]);
+                clw_read_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
+                s->simulation_info[t].vx += gpu_sim_info[k].vx;
+                s->simulation_info[t].vy += gpu_sim_info[k].vy;
+                s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, gpu_sim_info[k].avg_mag);
+                s->simulation_info[t].charge_lattice += gpu_sim_info[k].charge_lattice;
+                s->simulation_info[t].charge_finite += gpu_sim_info[k].charge_finite;
+                s->simulation_info[t].charge_cx += gpu_sim_info[k].charge_cx;
+                s->simulation_info[t].charge_cy += gpu_sim_info[k].charge_cy;
+                s->simulation_info[t].energy += gpu_sim_info[k].energy;
+                s->simulation_info[t].energy_exchange += gpu_sim_info[k].energy_exchange;
+                s->simulation_info[t].energy_dm += gpu_sim_info[k].energy_dm;
+                s->simulation_info[t].energy_zeeman += gpu_sim_info[k].energy_zeeman;
+                s->simulation_info[t].energy_anisotropy += gpu_sim_info[k].energy_anisotropy;
+                s->simulation_info[t].energy_cubic_anisotropy += gpu_sim_info[k].energy_cubic_anisotropy;
             }
 
-            // Moved to export phase
-            /*s->velxy_Ez_chargez[t].x /= s->velxy_Ez_chargez[t].z;
-              s->velxy_Ez_chargez[t].y /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].x /= s->velxy_Ez_chargez[t].z;
-              s->pos_xy[t].y /= s->velxy_Ez_chargez[t].z;*/
-            s->avg_mag[t] = v3d_scalar(s->avg_mag[t], 1.0 / (double)s->g_old.param.total);
+            s->simulation_info[t].avg_mag = v3d_scalar(s->simulation_info[t].avg_mag, 1.0 / (double)s->g_old.param.total);
         }
 
         if (i % s->write_cut == 0) {
@@ -692,10 +675,8 @@ change the program speed. So, I am lost right now and have no clue on what is ha
     profiler_end_measure("GPU INTEGRATION");
     profiler_print_measures(stdout);
     read_v3d_grid_buffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
-    clw_print_cl_error(stderr, clReleaseMemObject(vxvy_Ez_avg_mag_chpr_chim_buffer), "Could not release vxvy_Ez_avg_mag_chpr_chim_buffer obj");
-    if (vxvy_Ez_avg_mag_chpr_chim)
-        free(vxvy_Ez_avg_mag_chpr_chim);
-
+    clw_print_cl_error(stderr, clReleaseMemObject(gpu_sim_info_buffer), "Could not release gpu_sim_info_buffer obj");
+    free(gpu_sim_info);
     fclose(fly);
 }
 
@@ -743,11 +724,11 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
     snprintf(out_velocity, out_velocity_size, "%s_velocity.out", root_path);
     out_velocity[out_velocity_size - 1] = '\0';
 
-    char *out_pos_xy;
-    uint64_t out_pos_xy_size = snprintf(NULL, 0, "%s_pos_xy.out", root_path) + 1;
-    out_pos_xy = (char*)calloc(out_pos_xy_size, 1);
-    snprintf(out_pos_xy, out_pos_xy_size, "%s_pos_xy.out", root_path);
-    out_pos_xy[out_pos_xy_size - 1] = '\0';
+    char *out_charge_center;
+    uint64_t out_charge_center_size = snprintf(NULL, 0, "%s_charge_center.out", root_path) + 1;
+    out_charge_center = (char*)calloc(out_charge_center_size, 1);
+    snprintf(out_charge_center, out_charge_center_size, "%s_charge_center.out", root_path);
+    out_charge_center[out_charge_center_size - 1] = '\0';
 
     char *out_avg_mag;
     uint64_t out_avg_mag_size = snprintf(NULL, 0, "%s_avg_mag.out", root_path) + 1;
@@ -763,13 +744,13 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
 
     FILE *charge_total = file_open(out_charge, "w", 0);
     FILE *velocity_total = file_open(out_velocity, "w", 0);
-    FILE *pos_xy = file_open(out_pos_xy, "w", 0);
-    FILE *avg_mag = file_open(out_avg_mag, "w", 0);
-    FILE *energy = file_open(out_energy, "w", 0);
+    FILE *charge_center = file_open(out_charge_center, "w", 0);
+    FILE *avg_mag_f = file_open(out_avg_mag, "w", 0);
+    FILE *energy_f = file_open(out_energy, "w", 0);
 
     free(out_charge);
     free(out_velocity);
-    free(out_pos_xy);
+    free(out_charge_center);
     free(out_avg_mag);
     free(out_energy);
 
@@ -782,23 +763,33 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
             continue;
 
         uint64_t t = i / s->write_vel_charge_cut;
-        double vx, vy, chpr, chim;
-        vx = s->velxy_Ez[t].x;
-        vy = s->velxy_Ez[t].y;
-        chpr = s->chpr_chim[t].x;
-        chim = s->chpr_chim[t].y;
-        fprintf(velocity_total, "%e\t%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, vx / chpr, vy / chpr, vx / chim, vy / chim);
-        fprintf(charge_total, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
-        fprintf(pos_xy, "%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->pos_xy[t].x / chpr, s->pos_xy[t].y / chpr);
-        fprintf(avg_mag, "%e\t%e\t%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->avg_mag[t].x, s->avg_mag[t].y, s->avg_mag[t].z);
-	    fprintf(energy, "%e\t%e\n", (double)i * s->dt * HBAR / J_abs, s->velxy_Ez[t].z);
+        double vx = s->simulation_info[t].vx;
+        double vy = s->simulation_info[t].vy;
+        double chpr = s->simulation_info[t].charge_lattice;
+        double chim = s->simulation_info[t].charge_finite;
+        double energy = s->simulation_info[t].energy;
+        double energy_exchange = s->simulation_info[t].energy_exchange;
+        double energy_dm = s->simulation_info[t].energy_dm;
+        double energy_zeeman = s->simulation_info[t].energy_zeeman;
+        double energy_anisotropy = s->simulation_info[t].energy_anisotropy;
+        double energy_cubic_anisotropy = s->simulation_info[t].energy_cubic_anisotropy;
+        double cx = s->simulation_info[t].charge_cx;
+        double cy = s->simulation_info[t].charge_cy;
+        v3d avg_mag = s->simulation_info[t].avg_mag;
+
+        fprintf(velocity_total, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, vx / chpr, vy / chpr, vx / chim, vy / chim);
+        fprintf(charge_total, "%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
+        fprintf(charge_center, "%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, cx / chpr, cy / chpr);
+        fprintf(avg_mag_f, "%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, avg_mag.x, avg_mag.y, avg_mag.z);
+	    fprintf(energy_f, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs,
+                                energy, energy_exchange, energy_dm, energy_zeeman, energy_anisotropy, energy_cubic_anisotropy);
     } 
     printf("Done writing charges related output\n");
     fclose(charge_total);
     fclose(velocity_total);
-    fclose(pos_xy);
-    fclose(avg_mag);
-    fclose(energy);
+    fclose(charge_center);
+    fclose(avg_mag_f);
+    fclose(energy_f);
 
     if (!(s->write_to_file && s->write_human))
         return;

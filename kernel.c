@@ -66,7 +66,7 @@ kernel void reset_v3d_gpu(global v3d *v1, global v3d *v2) {
     v1[I] = v2[I];
 }
 
-kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global v3d* vxvy_Ez_avg_mag_cp_ci, int calc_energy) {
+kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {
 	size_t I = get_global_id(0);
     int col = I % COLS;
     int row = (I - col) / COLS;
@@ -91,13 +91,36 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
     g_new->grid[I] = c_new;
 
 	if (i % cut == 0) {
-		v3d vt = velocity_weighted(c_old, c_old, c_new, l, r, u, d, gp.lattice, gp.lattice, 2.0 * dt * HBAR / fabs(gp.exchange));
-		vxvy_Ez_avg_mag_cp_ci[I].x = vt.x;
-		vxvy_Ez_avg_mag_cp_ci[I].y = vt.y;
-		vxvy_Ez_avg_mag_cp_ci[TOTAL + I] = g_new->grid[I];
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].x = charge(c, l, r, u, d);
-		vxvy_Ez_avg_mag_cp_ci[2 * TOTAL + I].y = charge_old(c, l, r, u, d, gp.lattice, gp.lattice);
-		vxvy_Ez_avg_mag_cp_ci[I].z = hamiltonian_I(row, col, c, l, r, u, d, gp, ani, region, field);
+        v3d c0 = c;
+        v3d c1 = c_new;
+        v3d l1 = get_pbc_v3d(row, col - 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
+        v3d r1 = get_pbc_v3d(row, col + 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
+        v3d u1 = get_pbc_v3d(row + 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
+        v3d d1 = get_pbc_v3d(row - 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
+
+        uint64_t x = I % gp.cols;
+        uint64_t y = (I - x) / gp.cols;
+
+        double charge_i = charge(c1, l1, r1, u1, d1);
+        double charge_i_old = charge_old(c1, l1, r1, u1, d1, gp.lattice, gp.lattice);
+        sim_info[I].charge_cx = (double)x * gp.lattice * charge_i;
+        sim_info[I].charge_cy = (double)y * gp.lattice * charge_i;
+
+        v3d vt = velocity_weighted(c0, c1, c1, l1, r1, u1, d1, gp.lattice, gp.lattice, dt * 0.5 * HBAR / fabs(gp.exchange));
+
+        sim_info[I].vx = vt.x;
+        sim_info[I].vy = vt.y;
+        sim_info[I].avg_mag = c_new;
+        sim_info[I].charge_lattice = charge_i;
+        sim_info[I].charge_finite = charge_i_old;
+        if (calc_energy) {
+            sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field);
+            sim_info[I].energy_exchange = 0.5 * exchange_energy(c1, l1, r1, u1, d1, gp, region);
+            sim_info[I].energy_dm = 0.5 * dm_energy(c1, l1, r1, u1, d1, gp, region);
+            sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field);
+            sim_info[I].energy_anisotropy = anisotropy_energy(c1, ani);
+            sim_info[I].energy_cubic_anisotropy = cubic_anisotropy_energy(c1, gp);
+        }
 	}
 }
 

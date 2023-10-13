@@ -21,7 +21,7 @@ GRADIENT_TEMP: 0.1
 GRADIENT_FACTOR: 0.9999
 GRADIENT_MASS: 1.0
 
-GSA: 1
+GSA: 0
     qA: 2.8
     qV: 2.6
     qT: 2.2
@@ -32,7 +32,7 @@ GSA: 1
 
 RELAX: 0
 GRADIENT: 0
-INTEGRATE: 0
+INTEGRATE: 1
 
 
 FILE_PINNING: ./input/pinning.in

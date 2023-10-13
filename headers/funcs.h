@@ -80,34 +80,55 @@ v3d get_dm_v3d(int drow, int dcol, DM_TYPE dm_type, double dm) {
     return v3d_s(0.0);
 }
 
-//double hamiltonian_I(uint64_t I, GLOBAL grid_t* g, v3d field)
+double exchange_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
+                       grid_param_t gp, region_param_t region) {
+    return -gp.exchange * region.exchange_mult * (v3d_dot(c, right)+
+                                                 v3d_dot(c, left) +
+                                                 v3d_dot(c, up)   +
+                                                 v3d_dot(c, down));
+}
+
+double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
+                 grid_param_t gp, region_param_t region) {
+    v3d DMR = get_dm_v3d(0, 1, region.dm_type, gp.dm * region.dm_mult),
+    DML = get_dm_v3d(0, -1, region.dm_type, gp.dm * region.dm_mult),
+    DMU = get_dm_v3d(1, 0, region.dm_type, gp.dm * region.dm_mult),
+    DMD = get_dm_v3d(-1, 0, region.dm_type, gp.dm * region.dm_mult);
+
+    return -(v3d_dot(DMR, v3d_cross(c, right))+
+             v3d_dot(DML, v3d_cross(c, left)) +
+             v3d_dot(DMU, v3d_cross(c, up))   +
+             v3d_dot(DMD, v3d_cross(c, down)));
+
+}
+
+double zeeman_energy(int row, int col, v3d c, grid_param_t gp, v3d field) {
+    return -gp.mu_s * v3d_dot(c, generate_field(row, col, gp, field, 0.0));
+}
+
+double anisotropy_energy(v3d c, anisotropy_t ani) {
+    return -ani.K_1 * (v3d_dot(c, ani.dir)) * (v3d_dot(c, ani.dir));
+}
+
+double cubic_anisotropy_energy(v3d c, grid_param_t gp) {
+    return -gp.cubic_ani * (c.x * c.x * c.x * c.x+
+                            c.y * c.y * c.y * c.y+
+                            c.z * c.z * c.z * c.z);
+}
+
 double hamiltonian_I(int row, int col,
                      v3d c, v3d left, v3d right, v3d up, v3d down,
                      grid_param_t gp, anisotropy_t ani, region_param_t region, v3d field) {
 
-    v3d DMR = get_dm_v3d(0, 1, region.dm_type, gp.dm * region.dm_mult),
-        DML = get_dm_v3d(0, -1, region.dm_type, gp.dm * region.dm_mult),
-        DMU = get_dm_v3d(1, 0, region.dm_type, gp.dm * region.dm_mult),
-        DMD = get_dm_v3d(-1, 0, region.dm_type, gp.dm * region.dm_mult);
 
-    double out = -gp.mu_s * v3d_dot(c, generate_field(row, col, gp, field, 0.0));
+    double out = zeeman_energy(row, col, c, gp, field);
 
+    out += 0.5 * exchange_energy(c, left, right, up, down, gp, region);
 
-    out += -0.5 * gp.exchange * region.exchange_mult * (v3d_dot(c, right)+
-                                                        v3d_dot(c, left) +
-                                                        v3d_dot(c, up)   +
-                                                        v3d_dot(c, down));
+    out += 0.5 * dm_energy(c, left, right, up, down, gp, region);
 
-    out += -0.5 * (v3d_dot(DMR, v3d_cross(c, right))+
-                   v3d_dot(DML, v3d_cross(c, left)) +
-                   v3d_dot(DMU, v3d_cross(c, up))   +
-                   v3d_dot(DMD, v3d_cross(c, down)));
-
-    out += -ani.K_1 * (v3d_dot(c, ani.dir)) * (v3d_dot(c, ani.dir));
-
-    out += -gp.cubic_ani * (c.x * c.x * c.x * c.x+
-                            c.y * c.y * c.y * c.y+
-                            c.z * c.z * c.z * c.z);
+    out += anisotropy_energy(c, ani);
+    out += cubic_anisotropy_energy(c, gp);
 
     return out;
 }

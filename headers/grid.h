@@ -70,4 +70,20 @@ typedef struct {
     #endif
 } grid_t;
 
+typedef struct {
+    double vx;
+    double vy;
+    double energy;
+    double energy_exchange;
+    double energy_dm;
+    double energy_zeeman;
+    double energy_anisotropy;
+    double energy_cubic_anisotropy;
+    double charge_lattice;
+    double charge_finite;
+    double charge_cx;
+    double charge_cy;
+    v3d avg_mag;
+} info_pack_t;
+
 #endif

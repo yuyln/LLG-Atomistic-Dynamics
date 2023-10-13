@@ -202,10 +202,7 @@ simulator_t init_simulator(const char *path) {
     }
 
     ret.grid_out_file = (v3d *)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(v3d));
-    ret.velxy_Ez = (v3d *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(v3d));
-    ret.pos_xy = (v3d *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(v3d));
-    ret.avg_mag = (v3d *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(v3d));
-    ret.chpr_chim = (v3d *)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(v3d));
+    ret.simulation_info = (info_pack_t*)calloc(ret.n_steps / ret.write_vel_charge_cut, sizeof(info_pack_t));
     printf("Size of grid out file in MB: %f\n", (ret.write_to_file || ret.write_on_fly) * ret.n_steps * ret.g_old.param.total / ret.write_cut * sizeof(v3d) / 1.0e6);
 
     ret.g_old.param.total_time = ret.dt * ret.n_steps;
@@ -328,30 +325,12 @@ simulator_t init_simulator(const char *path) {
 }
 
 void free_simulator(simulator_t *s) {
-    if (s->grid_out_file) {
+    if (s->grid_out_file)
         free(s->grid_out_file);
-        s->grid_out_file = NULL;
-    }
 
-    if (s->velxy_Ez) {
-        free(s->velxy_Ez);
-        s->velxy_Ez = NULL;
-    }
+    if (s->simulation_info)
+        free(s->simulation_info);
 
-    if (s->pos_xy) {
-        free(s->pos_xy);
-        s->pos_xy = NULL;
-    }
-
-    if (s->avg_mag) {
-        free(s->avg_mag);
-        s->avg_mag = NULL;
-    }
-
-    if (s->chpr_chim) {
-        free(s->chpr_chim);
-        s->chpr_chim = NULL;
-    }
 
     grid_free(&s->g_old);
     grid_free(&s->g_new);
@@ -360,6 +339,7 @@ void free_simulator(simulator_t *s) {
         clw_print_cl_error(stderr, clReleaseMemObject(s->g_new_buffer), "Error releasing g_new buffer");
         free_gpu(&s->gpu);
     }
+    memset(s, 0, sizeof(simulator_t));
 }
 
 void export_simulator(simulator_t *s, FILE *file) {
@@ -403,28 +383,4 @@ void dump_write_grid(const char *file_path, simulator_t *s) {
 
     fclose(f);
 }
-
-/*void DumpWriteChargegrid_t(const char *file_path, simulator_t *s) {
-    FILE *f = file_open(file_path, "wb", 1);
-
-    int rows = s->g_old.param.rows;
-    int cols = s->g_old.param.cols;
-    fwrite(&rows, sizeof(rows), 1, f);
-    fwrite(&cols, sizeof(cols), 1, f);
-    int n_steps = s->n_steps / s->write_cut;
-    fwrite(&n_steps, 1, sizeof(int), f);
-
-    uint64_t ss = s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut * sizeof(double);
-
-    double *charge_total = calloc(s->write_to_file * s->n_steps * s->g_old.param.total / s->write_cut, sizeof(double));
-    for (int i = 0; i < n_steps; ++i) {
-        for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I) {
-            charge_total[i * rows * cols + I] = charge(I, &s->grid_out_file[i * rows * cols], rows, cols, s->g_old.param.pbc);
-        }
-    }
-    fwrite(charge_total, ss, 1, f);
-
-    fclose(f);
-    free(charge_total);
-}*/
 #endif
