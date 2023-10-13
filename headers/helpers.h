@@ -613,6 +613,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         if (i % s->write_vel_charge_cut == 0) {
             uint64_t t = i / s->write_vel_charge_cut;
 
+            clw_read_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
             /*
                So, reading the gpu_t this frequent is BAAAD
                If Visual Studio is right, this read call takes about 60%-80% of the function call (cumulative)
@@ -641,7 +642,6 @@ change the program speed. So, I am lost right now and have no clue on what is ha
 */
 
             for (uint64_t k = 0; k < s->g_old.param.total; ++k) {
-                clw_read_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
                 s->simulation_info[t].vx += gpu_sim_info[k].vx;
                 s->simulation_info[t].vy += gpu_sim_info[k].vy;
                 s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, gpu_sim_info[k].avg_mag);
