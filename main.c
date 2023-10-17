@@ -10,9 +10,10 @@ int main() {
            jy =  1.0,
            jz =  0.0;
     double p = -1.0;
+    double theta_sh = 1.0;
     double beta = 0.0;
-    CUR_TYPE cur_type = CUR_STT;
-    double dh = 1.0e-9;
+    CUR_TYPE cur_type = CUR_CPP;
+    double dh = 5.0e-10;
 
     double Hz_norm =  0.5,
            Hy_norm =  0.0,
@@ -80,7 +81,7 @@ int main() {
     printf("                       =(%.5e, %.5e, %.5e)D^2/J\n", Hx_norm, Hy_norm, Hz_norm);
     printf("-------------------------------------\n");
     v3d j = v3d_normalize(v3d_c(jx, jy, jz));
-    cur = (current_t){.thick = dh, .theta_sh = 0.0, .j = J_norm, .P = p, .beta = beta, .type = cur_type,
+    cur = (current_t){.thick = dh, .theta_sh = theta_sh, .j = J_norm, .P = p, .beta = beta, .type = cur_type,
                       .j_hat = j, .p_hat = j};
 
     if (s.do_integrate)

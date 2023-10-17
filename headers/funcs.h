@@ -320,7 +320,7 @@ double charge(v3d c, v3d left, v3d right, v3d up, v3d down) {
 
 
 v3d B_emergent(v3d c, v3d left, v3d right, v3d up, v3d down) {
-    return v3d_c(0.0, 0.0, charge_old(c, left, right, up, down));
+    return v3d_c(0.0, 0.0, 4 * M_PI * charge_old(c, left, right, up, down));
 }
 
 //0->before
