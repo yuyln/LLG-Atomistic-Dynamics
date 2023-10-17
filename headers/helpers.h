@@ -376,6 +376,8 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
     }
     memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
 
+    profiler_start_measure("SINGLE CPU INTEGRATION");
+
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0) {
             printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
@@ -440,6 +442,8 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
         }
     }
 
+    profiler_end_measure("SINGLE CPU INTEGRATION");
+
     fclose(fly);
 }
 
@@ -458,6 +462,8 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
     }
     memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
     info_pack_t *sim_info_thread = (info_pack_t*)calloc(s->n_cpu, sizeof(info_pack_t));
+
+    profiler_start_measure("MULTI CPU INTEGRATION");
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         double norm_time = (double)i * s->dt * (!s->doing_relax);
@@ -555,6 +561,8 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
     }
     fclose(fly);
     free(sim_info_thread);
+
+    profiler_end_measure("MULTI CPU INTEGRATION");
 }
 
 void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const char* file_name) {
@@ -674,7 +682,6 @@ change the program speed. So, I am lost right now and have no clue on what is ha
         }
     }
     profiler_end_measure("GPU INTEGRATION");
-    profiler_print_measures(stdout);
     read_v3d_grid_buffer(s->gpu.queue, s->g_old_buffer, &s->g_old);
     clw_print_cl_error(stderr, clReleaseMemObject(gpu_sim_info_buffer), "Could not release gpu_sim_info_buffer obj");
     free(gpu_sim_info);

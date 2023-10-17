@@ -34,7 +34,6 @@ v3d bilinear_interpolation(v3d v00, v3d v10, v3d v11, v3d v01, double u, double 
     return ret;
 }
 
-//TODO: Check branch misses and compare with branchless
 //WARNING: This should be the ONLY access to global memory when running on GPU
 v3d get_pbc_v3d(int row, int col, const GLOBAL v3d* v, int rows, int cols, pbc_t pbc) {
     switch (pbc.pbc_type) {
@@ -206,8 +205,6 @@ v3d dH_dSi(int row, int col,
     return ret;
 }
 
-//TODO: Use SHE current, like on Zhang papers
-//TODO: Normalize properly
 v3d ds_dtau(int row, int col,
             v3d c, v3d left, v3d right, v3d up, v3d down, 
             grid_param_t gp, region_param_t region, anisotropy_t ani,

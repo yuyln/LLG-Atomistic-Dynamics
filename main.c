@@ -3,7 +3,6 @@
 #include "./headers/helpers_simulator.h"
 #include "./headers/gradient_descent.h"
 
-//TODO: fix crashing when providing file that does not exist
 int main() {
     double J_norm = 5.0e-2;
     double jx =  0.0,
@@ -94,5 +93,6 @@ int main() {
     print_v3d_grid_path("./output/end.out", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols);
     write_simulation_data("./output/anim", &s);
     free_simulator(&s);
+    profiler_print_measures(stdout);
     return 0;
 }

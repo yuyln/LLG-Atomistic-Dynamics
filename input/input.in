@@ -34,10 +34,6 @@ RELAX: 0
 GRADIENT: 0
 INTEGRATE: 1
 
-
-FILE_PINNING: ./input/pinning.in
-FILE_ANISOTROPY: ./input/anisotropy.in
-FILE_REGIONS: ./input/regions.in
 ROWS: 16
 COLS: 16
 

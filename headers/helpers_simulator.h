@@ -50,11 +50,6 @@ simulator_t init_simulator(const char *path) {
     param_tmp.avg_spin = 1.0;
 
 
-    region_param_t region_default = {0};
-    region_default.exchange_mult = 1.0;
-    region_default.dm_mult = 1.0;
-    region_default.dm_type = param_tmp.dm_type;
-
     parser_context input_ctx = parser_init_context(global_parser_context.seps);
     parser_start(path, &input_ctx);
 
@@ -123,6 +118,11 @@ simulator_t init_simulator(const char *path) {
     global_ani.dir.z = parser_get_double("ANI_Z", 1.0, &input_ctx);
     global_ani.dir = v3d_normalize(global_ani.dir);
 
+    region_param_t region_default = {0};
+    region_default.exchange_mult = 1.0;
+    region_default.dm_mult = 1.0;
+    region_default.dm_type = param_tmp.dm_type;
+
     if (!local_file_grid_dir)
         ret.g_old = init_grid_random(parser_get_int("ROWS", 10, 272, &input_ctx), parser_get_int("COLS", 10, 272, &input_ctx));
     else
@@ -157,8 +157,6 @@ simulator_t init_simulator(const char *path) {
             }
         }
         parser_end(&anif_ctx);
-    } else {
-        memset(ret.g_old.ani, 0, sizeof(anisotropy_t) * ret.g_old.param.total);
     }
 
     if (local_file_pin_dir) {
@@ -205,8 +203,6 @@ simulator_t init_simulator(const char *path) {
             }
         }
         parser_end(&regionf_ctx);
-    } else {
-        memset(ret.g_old.regions, 0, sizeof(region_param_t) * ret.g_old.param.total);
     }
 
     ret.grid_out_file = (v3d *)calloc(ret.write_to_file * ret.n_steps * ret.g_old.param.total / ret.write_cut, sizeof(v3d));
@@ -233,7 +229,8 @@ simulator_t init_simulator(const char *path) {
         ret.gpu.program = clw_init_program_source(ret.gpu.ctx, kernel_data);
 
         char *comp_opt;
-        const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose -cl-fast-relaxed-math";
+        //const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose -cl-fast-relaxed-math";
+        const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-fast-relaxed-math";
 
 
         uint64_t comp_opt_size = snprintf(NULL, 0, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
