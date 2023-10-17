@@ -215,32 +215,32 @@ v3d ds_dtau(int row, int col,
     switch (cur.type) {
         case CUR_CPP: {
             cur = generate_current(row, col, gp, cur, norm_time);
-            double factor = cur.j * cur.theta_sh * gp.lattice / cur.thick;
-            v3d cur_local = v3d_scalar(v3d_cross(cur.p_hat, c), factor);
+            double factor = cur.theta_sh * gp.lattice / cur.thick;
+            v3d cur_local = v3d_scalar(v3d_cross(cur.p, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
             V = v3d_add(V, v3d_scalar(cur_local, -cur.beta));
             break;
         }
         case CUR_STT: {
             cur = generate_current(row, col, gp, cur, norm_time);
-            v3d cur_local = v3d_dot_grad_v3d(cur.j_hat, left, right, up, down, 1.0, 1.0);
-            V = v3d_add(V, v3d_scalar(cur_local, cur.P * cur.j));
-            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta * cur.j));
+            v3d cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, 1.0, 1.0);
+            V = v3d_add(V, v3d_scalar(cur_local, cur.P));
+            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta));
             break;
         }
         case CUR_BOTH: {
 
             cur = generate_current(row, col, gp, cur, norm_time);
-            double factor = cur.j * cur.theta_sh * gp.lattice / cur.thick;
-            v3d cur_local = v3d_scalar(v3d_cross(cur.p_hat, c), factor);
+            double factor = cur.theta_sh * gp.lattice / cur.thick;
+            v3d cur_local = v3d_scalar(v3d_cross(cur.p, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
             V = v3d_add(V, v3d_scalar(cur_local, -cur.beta));
 
 
             cur = generate_current(row, col, gp, cur, norm_time);
-            cur_local = v3d_dot_grad_v3d(cur.j_hat, left, right, up, down, 1.0, 1.0);
-            V = v3d_add(V, v3d_scalar(cur_local, cur.P * cur.j));
-            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta * cur.j));
+            cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, 1.0, 1.0);
+            V = v3d_add(V, v3d_scalar(cur_local, cur.P));
+            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta));
 
             break;
         }

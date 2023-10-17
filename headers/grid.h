@@ -20,8 +20,7 @@ typedef enum {
 } CUR_TYPE;
 
 typedef struct {
-    v3d j_hat, p_hat;
-    double j;
+    v3d j, p;
     double P, beta, thick, theta_sh;
     CUR_TYPE type;
 } current_t;

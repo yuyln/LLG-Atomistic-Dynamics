@@ -80,8 +80,8 @@ int main() {
     printf("                       =(%.5e, %.5e, %.5e)D^2/J\n", Hx_norm, Hy_norm, Hz_norm);
     printf("-------------------------------------\n");
     v3d j = v3d_normalize(v3d_c(jx, jy, jz));
-    cur = (current_t){.thick = dh, .theta_sh = theta_sh, .j = J_norm, .P = p, .beta = beta, .type = cur_type,
-                      .j_hat = j, .p_hat = j};
+    cur = (current_t){.thick = dh, .theta_sh = theta_sh, .j = v3d_scalar(j, J_norm), .P = p, .beta = beta, .type = cur_type,
+                      .p = j};
 
     if (s.do_integrate)
         integrate_simulator(&s, field_joule, cur, "./output/integration_fly.bin");
