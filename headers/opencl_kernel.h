@@ -105,11 +105,11 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
         uint64_t y = (I - x) / gp.cols;\n\
 \n\
         double charge_i = charge(c1, l1, r1, u1, d1);\n\
-        double charge_i_old = charge_old(c1, l1, r1, u1, d1, gp.lattice, gp.lattice);\n\
-        sim_info[I].charge_cx = (double)x * gp.lattice * charge_i;\n\
-        sim_info[I].charge_cy = (double)y * gp.lattice * charge_i;\n\
+        double charge_i_old = charge_old(c1, l1, r1, u1, d1);\n\
+        sim_info[I].charge_cx = x * charge_i;\n\
+        sim_info[I].charge_cy = y * charge_i;\n\
 \n\
-        v3d vt = velocity_weighted(c0, c1, c1, l1, r1, u1, d1, gp.lattice, gp.lattice, dt * 0.5 * HBAR / fabs(gp.exchange));\n\
+        v3d vt = velocity_weighted(c0, c1, c1, l1, r1, u1, d1, dt * 0.5);\n\
 \n\
         sim_info[I].vx = vt.x;\n\
         sim_info[I].vy = vt.y;\n\

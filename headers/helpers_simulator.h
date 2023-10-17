@@ -35,12 +35,20 @@ void free_gpu(gpu_t *g) {
     if (g->plats)
         free(g->plats);
 }
-
 simulator_t init_simulator(const char *path) {
     simulator_t ret = {0};
-    grid_param_t param_tmp = {0};
     ret.doing_relax = false;
-    find_grid_param_path(path, &param_tmp);
+    find_grid_param_path(path, &ret.real_param);
+
+    grid_param_t param_tmp = ret.real_param;
+    param_tmp.exchange /= fabs(ret.real_param.exchange);
+    param_tmp.dm /= fabs(ret.real_param.exchange);
+    param_tmp.cubic_ani /= fabs(ret.real_param.exchange);
+    param_tmp.mu_s = 1;
+    param_tmp.gamma = 1;
+    param_tmp.lande = 1.0;
+    param_tmp.avg_spin = 1.0;
+
 
     region_param_t region_default = {0};
     region_default.exchange_mult = 1.0;
@@ -109,7 +117,7 @@ simulator_t init_simulator(const char *path) {
         fprintf(stderr, "Could not find FILE_GRID, random starting sample will be used\n");
 
     anisotropy_t global_ani;
-    global_ani.K_1 = parser_get_double("ANISOTROPY", 0.02, &input_ctx) * fabs(param_tmp.exchange);
+    global_ani.K_1 = parser_get_double("ANISOTROPY", 0.02, &input_ctx);
     global_ani.dir.x = parser_get_double("ANI_X", 0, &input_ctx);
     global_ani.dir.y = parser_get_double("ANI_Y", 0, &input_ctx);
     global_ani.dir.z = parser_get_double("ANI_Z", 1.0, &input_ctx);
@@ -144,7 +152,7 @@ simulator_t init_simulator(const char *path) {
                 double dir_x = strtod(anif_ctx.state[I + 2], NULL);
                 double dir_y = strtod(anif_ctx.state[I + 3], NULL);
                 double dir_z = strtod(anif_ctx.state[I + 4], NULL);
-                double K_1 = strtod(anif_ctx.state[I + 5], NULL) * param_tmp.exchange;
+                double K_1 = strtod(anif_ctx.state[I + 5], NULL);
                 ret.g_old.ani[row * ret.g_old.param.cols + col] = (anisotropy_t){K_1, v3d_c(dir_x, dir_y, dir_z)};
             }
         }
@@ -259,8 +267,8 @@ simulator_t init_simulator(const char *path) {
         printf("DO INTEGRATE                = %d\n\n", ret.do_integrate);
 
         printf("DT NORMALIZED               = %.15e\n", ret.dt);
-        printf("DT REAL                     = %.15e ns\n", ret.dt * HBAR / fabs(ret.g_old.param.exchange) / 1.0e-9);
-        printf("INTEGRATIOn REAL TIME       = %.15e ns\n", ret.dt * HBAR / fabs(ret.g_old.param.exchange) * ret.n_steps / 1.0e-9);
+        printf("DT REAL                     = %.15e ns\n", ret.dt * HBAR / fabs(ret.real_param.exchange) / 1.0e-9);
+        printf("INTEGRATIOn REAL TIME       = %.15e ns\n", ret.dt * HBAR / fabs(ret.real_param.exchange) * ret.n_steps / 1.0e-9);
         printf("INTEGRATION STEPS           = %zu\n\n", ret.n_steps);
 
         printf("WRITE TO FILE               = %d\n", ret.write_to_file);
@@ -293,21 +301,21 @@ simulator_t init_simulator(const char *path) {
 
 
 
-        printf("EXCHANGE                    = %.15e Joule = %.15e eV\n", ret.g_old.param.exchange, ret.g_old.param.exchange / QE);
-        printf("DM                          = %.15e Joule = %.15e eV = %.15e * J\n", ret.g_old.param.dm, ret.g_old.param.dm / QE, ret.g_old.param.dm / fabs(ret.g_old.param.exchange));
-        printf("LATTICE PARAMETER           = %.15e nm\n", ret.g_old.param.lattice / 1.0e-9);
-        printf("CUBIC ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", ret.g_old.param.cubic_ani, ret.g_old.param.cubic_ani / QE, ret.g_old.param.cubic_ani / fabs(ret.g_old.param.exchange));
-        printf("AXIAL ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", global_ani.K_1, global_ani.K_1 / QE, global_ani.K_1 / fabs(ret.g_old.param.exchange));
+        printf("EXCHANGE                    = %.15e Joule = %.15e eV\n", ret.real_param.exchange, ret.real_param.exchange / QE);
+        printf("DM                          = %.15e Joule = %.15e eV = %.15e * J\n", ret.real_param.dm, ret.real_param.dm / QE, ret.real_param.dm / fabs(ret.real_param.exchange));
+        printf("LATTICE PARAMETER           = %.15e nm\n", ret.real_param.lattice / 1.0e-9);
+        printf("CUBIC ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", ret.real_param.cubic_ani, ret.real_param.cubic_ani / QE, ret.real_param.cubic_ani / fabs(ret.real_param.exchange));
+        printf("AXIAL ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", global_ani.K_1, global_ani.K_1 / QE, global_ani.K_1 / fabs(ret.real_param.exchange));
         printf("AXIAL ANISOTROPY            = (%.15e, %.15e, %.15e)\n", global_ani.dir.x, global_ani.dir.y, global_ani.dir.z);
-        printf("LANDE                       = %.15e\n", ret.g_old.param.lande);
-        printf("AVERAGE SPIN                = %.15e\n", ret.g_old.param.avg_spin);
-        printf("SPIN MOMENTUM               = %.15e\n", ret.g_old.param.mu_s);
-        printf("GILBERT DAMPING             = %.15e\n", ret.g_old.param.alpha);
-        printf("GAMMA                       = %.15e\n", ret.g_old.param.gamma);
+        printf("LANDE                       = %.15e\n", ret.real_param.lande);
+        printf("AVERAGE SPIN                = %.15e\n", ret.real_param.avg_spin);
+        printf("SPIN MOMENTUM               = %.15e\n", ret.real_param.mu_s);
+        printf("GILBERT DAMPING             = %.15e\n", ret.real_param.alpha);
+        printf("GAMMA                       = %.15e\n", ret.real_param.gamma);
 
-        printf("DM TYPE                     = %d\n", ret.g_old.param.dm_type);
-        printf("PBC TYPE                    = %d\n", ret.g_old.param.pbc.pbc_type);
-        printf("PBC DIR                     = (%.15e, %.15e, %.15e)\n", ret.g_old.param.pbc.dir.x, ret.g_old.param.pbc.dir.y, ret.g_old.param.pbc.dir.z);
+        printf("DM TYPE                     = %d\n", ret.real_param.dm_type);
+        printf("PBC TYPE                    = %d\n", ret.real_param.pbc.pbc_type);
+        printf("PBC DIR                     = (%.15e, %.15e, %.15e)\n", ret.real_param.pbc.dir.x, ret.real_param.pbc.dir.y, ret.g_old.param.pbc.dir.z);
         printf("--------------------------------------------------------------\n");
     }
 

@@ -18,8 +18,6 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
     grid_copy(&g_old, g_in);
     grid_copy(g_out, g_in);
 
-    double norm_factor = g_in->param.exchange * (g_in->param.exchange > 0? 1.0: -1.0);
-
     double H_old = hamiltonian(&g_old, field),
            H_new = hamiltonian(g_out, field),
            H_min = hamiltonian(&g_min, field);
@@ -79,7 +77,7 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
                 copy_spins_to_allocated_grid(&g_old, g_out);
             }
             else {
-                double df_norm = (H_new - H_old) / norm_factor;
+                double df_norm = (H_new - H_old);
                 double pqa = 1.0 / pow(1.0 + qA1 * df_norm / T, oneqA1);
                 if (rand_double() < pqa) {
                     H_old = H_new;
@@ -108,7 +106,6 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     grid_copy(&g_old, g_in);
     grid_copy(g_out, g_in);
 
-    double norm_factor = g_in->param.exchange * (g_in->param.exchange > 0? 1.0: -1.0);
 
     double H_old = hamiltonian(&g_old, field),
            H_new = hamiltonian(g_out, field),
@@ -191,7 +188,7 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
                 //clw_finish(gpu->queue);
             }
             else {
-                double df_norm = (H_new - H_old) / norm_factor;
+                double df_norm = (H_new - H_old);
                 double pqa = 1.0 / pow(1.0 + qA1 * df_norm / T, oneqA1);
                 if (rand_double() < pqa) {
                     H_old = H_new;

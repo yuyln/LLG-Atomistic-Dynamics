@@ -53,6 +53,7 @@ typedef struct simulator_t {
     gpu_t gpu;
     grid_t g_old;
     grid_t g_new;
+    grid_param_t real_param;
     cl_mem g_old_buffer, g_new_buffer;
     v3d *grid_out_file;
     info_pack_t *simulation_info;
@@ -290,9 +291,9 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
     g->cubic_ani = parser_get_double("CUBIC", 0, &ctx) * fabs(g->exchange);
     g->lande = parser_get_double("LANDE", 2.002318, &ctx);
     g->avg_spin = parser_get_double("SPIN", 1, &ctx);
-    g->mu_s = g->lande * MU_B * g->avg_spin;
     g->alpha = parser_get_double("ALPHA", 0.3, &ctx);
     g->gamma = parser_get_double("GAMMA", 1.760859644e11, &ctx);
+    g->mu_s = g->gamma * HBAR;
 
     g->dm_type = parser_get_int("DM_TYPE", 10, 1, &ctx);
     if (g->dm_type > 1 || g->dm_type < 0) {
@@ -365,13 +366,13 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
     if (s->write_on_fly && (!s->doing_relax)) {
         int steps = (int)(s->n_steps / s->write_cut);
         int fcut = s->write_cut;
-        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        double dt_real = s->dt * HBAR / fabs(s->real_param.exchange);
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
         fwrite(&fcut, sizeof(int), 1, fly);
         fwrite(&dt_real, sizeof(double), 1, fly);
-        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&s->real_param.lattice, sizeof(double), 1, fly);
     }
     memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
 
@@ -406,11 +407,11 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
                 uint64_t x = I % s->g_old.param.cols;
                 uint64_t y = (I - x) / s->g_old.param.cols;
                 double charge_i = charge(c, left, right, up, down);
-                double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
-                s->simulation_info[t].charge_cx += (double)x * s->g_old.param.lattice * charge_i;
-                s->simulation_info[t].charge_cy += (double)y * s->g_old.param.lattice * charge_i;
+                double charge_i_old = charge_old(c, left, right, up, down);
+                s->simulation_info[t].charge_cx += x * charge_i;
+                s->simulation_info[t].charge_cy += y * charge_i;
 
-                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
+                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->dt * 0.5);
 
                 s->simulation_info[t].vx += vt.x;
                 s->simulation_info[t].vy += vt.y;
@@ -447,13 +448,13 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
     if (s->write_on_fly && (!s->doing_relax)) {
         int steps = (int)(s->n_steps / s->write_cut);
         int fcut = s->write_cut;
-        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        double dt_real = s->dt * HBAR / fabs(s->real_param.exchange);
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
         fwrite(&fcut, sizeof(int), 1, fly);
         fwrite(&dt_real, sizeof(double), 1, fly);
-        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&s->real_param.lattice, sizeof(double), 1, fly);
     }
     memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
     info_pack_t *sim_info_thread = (info_pack_t*)calloc(s->n_cpu, sizeof(info_pack_t));
@@ -500,13 +501,13 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
                 uint64_t x = I % s->g_old.param.cols;
                 uint64_t y = (I - x) / s->g_old.param.cols;
                 double charge_i = charge(c, left, right, up, down);
-                double charge_i_old = charge_old(c, left, right, up, down, s->g_old.param.lattice, s->g_old.param.lattice);
+                double charge_i_old = charge_old(c, left, right, up, down);
 
-                sim_info_thread[nt].charge_cx += x * s->g_old.param.lattice * charge_i;
-                sim_info_thread[nt].charge_cy += y * s->g_old.param.lattice * charge_i;
+                sim_info_thread[nt].charge_cx += x * charge_i;
+                sim_info_thread[nt].charge_cy += y * charge_i;
 
 
-                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->g_old.param.lattice, s->g_old.param.lattice, s->dt * 0.5 * HBAR / fabs(s->g_old.param.exchange));
+                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->dt * 0.5);
                 
                 sim_info_thread[nt].vx += vt.x;
                 sim_info_thread[nt].vy += vt.y;
@@ -561,13 +562,13 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     if (s->write_on_fly && (!s->doing_relax)) {
         int steps = (int)(s->n_steps / s->write_cut);
         int fcut = s->write_cut;
-        double dt_real = s->dt * HBAR / s->g_old.param.exchange;
+        double dt_real = s->dt * HBAR / fabs(s->real_param.exchange);
         fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
         fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
         fwrite(&steps, sizeof(int), 1, fly);
         fwrite(&fcut, sizeof(int), 1, fly);
         fwrite(&dt_real, sizeof(double), 1, fly);
-        fwrite(&s->g_old.param.lattice, sizeof(double), 1, fly);
+        fwrite(&s->real_param.lattice, sizeof(double), 1, fly);
     }
 
     memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
@@ -754,8 +755,14 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
     free(out_avg_mag);
     free(out_energy);
 
-    double J_abs = fabs(s->g_old.param.exchange);
+    double J_abs = fabs(s->real_param.exchange);
     printf("Writing charges related output\n");
+    fprintf(velocity_total, "t(tau)\tt(ns)\tvx_lat_charge(a/tau)\tvy_lat_charge(a/tau)\tvx_diff_charge(a/tau)\tvy_diff_charge(a/tau)\t"
+                            "\tvx_lat_charge(m/s)\tvy_lat_charge(m/s)\tvx_diff_charge(m/s)\tvy_diff_charge(m/s)\n");
+    fprintf(charge_total, "t(tau)\tt(ns)\tQ_lattice\tQ_finite\n");
+    fprintf(charge_center, "t(tau)\tt(ns)\tcx(a)\tcy(a)\tcx(nm)\tcy(nm)\n");
+    fprintf(avg_mag_f, "t(tau)\tt(ns)\t<mx>\t<my>\t<mz>\n");
+    fprintf(energy_f, "t(tau)\tt(ns)\tE_total(normalized)\tExchange(normalized)\tDM(normalized)\tZeeman(normalized)\tAnisotropy(normalized)\tCubic_Anisotropy(normalized)\tE_total(eV)\tExchange(eV)\tDM(eV)\tZeeman(eV)\tAnisotropy(eV)\tCubic_Anisotropy(eV)\n");
     for (uint64_t i = 0; i < s->n_steps; ++i) {
         if (i % (s->n_steps / 10) == 0)
             printf("%.3f%%\n", (double)i / (double)s->n_steps * 100.0);
@@ -777,12 +784,25 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
         double cy = s->simulation_info[t].charge_cy;
         v3d avg_mag = s->simulation_info[t].avg_mag;
 
-        fprintf(velocity_total, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, vx / chpr, vy / chpr, vx / chim, vy / chim);
-        fprintf(charge_total, "%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, chpr, chim);
-        fprintf(charge_center, "%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, cx / chpr, cy / chpr);
-        fprintf(avg_mag_f, "%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs, avg_mag.x, avg_mag.y, avg_mag.z);
-	    fprintf(energy_f, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", (double)i * s->dt * HBAR / J_abs,
+        double v_factor = s->real_param.lattice * J_abs / HBAR;
+        double t_factor = HBAR / J_abs * 1.0 / 1e-9;
+        double tn = i * s->dt;
+
+        fprintf(velocity_total, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t", tn, tn * t_factor, vx / chpr, vy / chpr, vx / chim, vy / chim);
+        fprintf(velocity_total, "%.15e\t%.15e\t%.15e\t%.15e\n", vx / chpr * v_factor, vy * v_factor / chpr, vx * v_factor / chim, vy * v_factor / chim);
+
+        fprintf(charge_total, "%.15e\t%.15e\t%.15e\t%.15e\n", tn, tn * t_factor, chpr, chim);
+
+        fprintf(charge_center, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", tn, tn * t_factor, cx / chpr, cy / chpr,
+                                                               cx / chpr * s->real_param.lattice / 1.0e-9, cy / chpr * s->real_param.lattice / 1.0e-9);
+
+        fprintf(avg_mag_f, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n", tn, tn * t_factor, avg_mag.x, avg_mag.y, avg_mag.z);
+
+
+	    fprintf(energy_f, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t", tn, tn * t_factor,
                                 energy, energy_exchange, energy_dm, energy_zeeman, energy_anisotropy, energy_cubic_anisotropy);
+
+	    fprintf(energy_f, "%.15e\t%.15e\t%.15e\t%.15e\t%.15e\t%.15e\n",  energy * J_abs / QE, energy_exchange * J_abs / QE, energy_dm * J_abs / QE, energy_zeeman * J_abs / QE, energy_anisotropy * J_abs / QE, energy_cubic_anisotropy * J_abs / QE);
     } 
     printf("Done writing charges related output\n");
     fclose(charge_total);

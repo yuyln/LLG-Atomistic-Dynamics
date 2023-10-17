@@ -103,7 +103,7 @@ double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
 }
 
 double zeeman_energy(int row, int col, v3d c, grid_param_t gp, v3d field) {
-    return -gp.mu_s * v3d_dot(c, generate_field(row, col, gp, field, 0.0));
+    return -v3d_dot(c, generate_field(row, col, gp, field, 0.0));
 }
 
 double anisotropy_energy(v3d c, anisotropy_t ani) {
@@ -201,7 +201,7 @@ v3d dH_dSi(int row, int col,
                         -4.0 * gp.cubic_ani * c.z * c.z * c.z);
     ret = v3d_add(ret, cub_ani);
     
-    ret = v3d_sub(ret, v3d_scalar(generate_field(row, col, gp, field, norm_time), gp.mu_s));
+    ret = v3d_sub(ret, generate_field(row, col, gp, field, norm_time));
 
     return ret;
 }
@@ -212,38 +212,39 @@ v3d ds_dtau(int row, int col,
             v3d c, v3d left, v3d right, v3d up, v3d down, 
             grid_param_t gp, region_param_t region, anisotropy_t ani,
             v3d field, current_t cur, double norm_time) {
-    v3d Heff = v3d_scalar(dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, norm_time), -1.0 / gp.mu_s);
-    double J_abs = gp.exchange * region.exchange_mult * (gp.exchange * region.exchange_mult < 0? -1.0: 1.0);
-
-    v3d V = v3d_scalar(v3d_cross(c, Heff), -gp.gamma * HBAR / J_abs);
+    v3d Heff = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, norm_time);
+    v3d V = v3d_cross(c, Heff);
 
     switch (cur.type) {
         case CUR_CPP: {
             cur = generate_current(row, col, gp, cur, norm_time);
-            double factor = gp.gamma * HBAR * cur.p * gp.lattice * gp.avg_spin / (cur.thick * gp.mu_s);
-            v3d cur_local = v3d_scalar(v3d_cross(cur.j, c), factor);
+            double factor = cur.j * cur.theta_sh * gp.lattice / cur.thick;
+            v3d cur_local = v3d_scalar(v3d_cross(cur.p_hat, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
-            V = v3d_add(V, v3d_scalar(cur_local, cur.beta));
+            V = v3d_add(V, v3d_scalar(cur_local, -cur.beta));
             break;
         }
         case CUR_STT: {
             cur = generate_current(row, col, gp, cur, norm_time);
-            v3d cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, gp.lattice, gp.lattice);
-            V = v3d_add(V, v3d_scalar(cur_local, cur.p * gp.lattice));
-            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.p * cur.beta * gp.lattice / gp.avg_spin));
+            v3d cur_local = v3d_dot_grad_v3d(cur.j_hat, left, right, up, down, 1.0, 1.0);
+            V = v3d_add(V, v3d_scalar(cur_local, cur.P * cur.j));
+            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta * cur.j));
             break;
         }
         case CUR_BOTH: {
+
             cur = generate_current(row, col, gp, cur, norm_time);
-            double factor = gp.gamma * HBAR * cur.p * gp.lattice * gp.avg_spin / (cur.thick * gp.mu_s);
-            v3d cur_local = v3d_scalar(v3d_cross(cur.j, c), factor);
+            double factor = cur.j * cur.theta_sh * gp.lattice / cur.thick;
+            v3d cur_local = v3d_scalar(v3d_cross(cur.p_hat, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
-            V = v3d_add(V, v3d_scalar(cur_local, cur.beta));
-    
-    
-            cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, gp.lattice, gp.lattice);
-            V = v3d_add(V, v3d_scalar(cur_local, cur.p * gp.lattice));
-            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.p * cur.beta * gp.lattice / gp.avg_spin));
+            V = v3d_add(V, v3d_scalar(cur_local, -cur.beta));
+
+
+            cur = generate_current(row, col, gp, cur, norm_time);
+            cur_local = v3d_dot_grad_v3d(cur.j_hat, left, right, up, down, 1.0, 1.0);
+            V = v3d_add(V, v3d_scalar(cur_local, cur.P * cur.j));
+            V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta * cur.j));
+
             break;
         }
         case CUR_NONE:
@@ -288,10 +289,10 @@ v3d grid_step(int row, int col,
     #endif
 }
 
-double charge_old(v3d c, v3d left, v3d right, v3d up, v3d down, double dx, double dy) {
-    v3d dgdx = v3d_scalar(v3d_sub(right, left), 0.5 / dx);
-    v3d dgdy = v3d_scalar(v3d_sub(up, down), 0.5 / dy);
-    return 1.0 / (4 * M_PI) * dx * dy * v3d_dot(v3d_cross(dgdx, dgdy), c);
+double charge_old(v3d c, v3d left, v3d right, v3d up, v3d down) {
+    v3d dgdx = v3d_scalar(v3d_sub(right, left), 0.5);
+    v3d dgdy = v3d_scalar(v3d_sub(up, down), 0.5);
+    return 1.0 / (4 * M_PI) * v3d_dot(c, v3d_cross(dgdx, dgdy));
 }
 
 double Q_ijk(v3d mi, v3d mj, v3d mk) {
@@ -319,32 +320,32 @@ double charge(v3d c, v3d left, v3d right, v3d up, v3d down) {
 
 
 v3d B_emergent(v3d c, v3d left, v3d right, v3d up, v3d down) {
-    return v3d_c(0.0, 0.0, HBAR / QE * 4.0 * M_PI * charge(c, left, right, up, down));
+    return v3d_c(0.0, 0.0, charge_old(c, left, right, up, down));
 }
 
 //0->before
 //1->current
 //2->after
-v3d E_emergent(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dx, double dy, double dt) {
+v3d E_emergent(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dt) {
     v3d ret = v3d_s(0.0);
     
-    v3d dgdx = v3d_scalar(v3d_sub(right1, left1), 0.5 / dx);
-    v3d dgdy = v3d_scalar(v3d_sub(up1, down1), 0.5 / dy);
+    v3d dgdx = v3d_scalar(v3d_sub(right1, left1), 0.5);
+    v3d dgdy = v3d_scalar(v3d_sub(up1, down1), 0.5);
     v3d dgdt = v3d_scalar(v3d_sub(c2, c0), 0.5 / dt);
-    ret.x = HBAR / QE * v3d_dot(c1, v3d_cross(dgdx, dgdt));
-    ret.y = HBAR / QE * v3d_dot(c1, v3d_cross(dgdy, dgdt));
+    ret.x = v3d_dot(c1, v3d_cross(dgdx, dgdt));
+    ret.y = v3d_dot(c1, v3d_cross(dgdy, dgdt));
     return ret;
 }
 
-v3d velocity(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dx, double dy, double dt) {
-    v3d Em = E_emergent(c0, c1, c2, left1, right1, up1, down1, dx, dy, dt);
+v3d velocity(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dt) {
+    v3d Em = E_emergent(c0, c1, c2, left1, right1, up1, down1, dt);
     v3d Bm = B_emergent(c1, left1, right1, up1, down1);
     return (v3d){ Em.y / Bm.z, -Em.x / Bm.z, 0.0 };
 }
 
-v3d velocity_weighted(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dx, double dy, double dt) {
-    v3d Em = E_emergent(c0, c1, c2, left1, right1, up1, down1, dx, dy, dt);
-    double factor = dx * dy * QE / (4.0 * M_PI * HBAR);
+v3d velocity_weighted(v3d c0, v3d c1, v3d c2, v3d left1, v3d right1, v3d up1, v3d down1, double dt) {
+    v3d Em = E_emergent(c0, c1, c2, left1, right1, up1, down1, dt);
+    double factor = 1.0 / (4.0 * M_PI);
     return (v3d){ factor * Em.y, -factor * Em.x, 0.0 };
 }
 
@@ -359,8 +360,7 @@ v3d gradient_descent_force(int row, int col,
                            v3d c, v3d left, v3d right, v3d up, v3d down,
                            grid_param_t gp, region_param_t region, anisotropy_t ani,
                            v3d field, double alpha, double beta, v3d vel) {
-    double J = gp.exchange * SIGN(gp.exchange);
-    v3d F = v3d_scalar(dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, 0), 1.0 / J);
+    v3d F = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, 0);
     F = v3d_sub(F, v3d_scalar(vel, alpha));
     F = v3d_sub(F, v3d_scalar(c, beta));
     return F;
