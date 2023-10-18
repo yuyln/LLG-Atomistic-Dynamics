@@ -43,6 +43,7 @@ simulator_t init_simulator(const char *path) {
     grid_param_t param_tmp = ret.real_param;
     param_tmp.exchange /= fabs(ret.real_param.exchange);
     param_tmp.dm /= fabs(ret.real_param.exchange);
+    param_tmp.dm_ani /= fabs(ret.real_param.exchange);
     param_tmp.cubic_ani /= fabs(ret.real_param.exchange);
     param_tmp.mu_s = 1;
     param_tmp.gamma = 1;

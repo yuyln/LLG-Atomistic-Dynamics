@@ -9,8 +9,8 @@ typedef size_t uint64_t;
 
 typedef enum {
     R_ij, Z_CROSS_R_ij, 
-    R_ij_ISOTROPIC_X, Z_CROSS_R_ij_ISOTROPIC_X,
-    R_ij_ISOTROPIC_Y, Z_CROSS_R_ij_ISOTROPIC_Y,
+    //R_ij_ANISOTROPIC_X, Z_CROSS_R_ij_ANISOTROPIC_X,
+    //R_ij_ANISOTROPIC_Y, Z_CROSS_R_ij_ANISOTROPIC_Y,
     R_ij_CROSS_Z
 } DM_TYPE;
 
@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
     int rows, cols;
     uint64_t total;
-    double exchange, dm, lattice, cubic_ani;
+    double exchange, dm, dm_ani, lattice, cubic_ani;
     double mu_s, lande, avg_spin, alpha, gamma;
     double total_time; //should not be a grid param, however.........
     DM_TYPE dm_type;

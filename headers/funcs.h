@@ -70,20 +70,20 @@ v3d get_dm_v3d(int drow, int dcol, DM_TYPE dm_type, double dm) {
         case R_ij:
             return v3d_c(dcol * dm, drow * dm, 0.0);
 
-        case R_ij_ISOTROPIC_X:
+        /*case R_ij_ANISOTROPIC_X:
             return v3d_c(-dcol * dm, drow * dm, 0.0);
 
-        case R_ij_ISOTROPIC_Y:
-            return v3d_c(dcol * dm, -drow * dm, 0.0);
+        case R_ij_ANISOTROPIC_Y:
+            return v3d_c(dcol * dm, -drow * dm, 0.0);*/
 
         case Z_CROSS_R_ij:
             return v3d_c(-drow * dm, dcol * dm, 0.0);
 
-        case Z_CROSS_R_ij_ISOTROPIC_X:
+        /*case Z_CROSS_R_ij_ANISOTROPIC_X:
             return v3d_c(drow * dm, dcol * dm, 0.0);
 
-        case Z_CROSS_R_ij_ISOTROPIC_Y:
-            return v3d_c(-drow * dm, -dcol * dm, 0.0);
+        case Z_CROSS_R_ij_ANISOTROPIC_Y:
+            return v3d_c(-drow * dm, -dcol * dm, 0.0);*/
 
         case R_ij_CROSS_Z:
             return v3d_c(drow * dm, -dcol * dm, 0.0);
@@ -102,10 +102,11 @@ double exchange_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
 
 double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
                  grid_param_t gp, region_param_t region) {
-    v3d DMR = get_dm_v3d(0, 1, region.dm_type, gp.dm * region.dm_mult),
-    DML = get_dm_v3d(0, -1, region.dm_type, gp.dm * region.dm_mult),
-    DMU = get_dm_v3d(1, 0, region.dm_type, gp.dm * region.dm_mult),
-    DMD = get_dm_v3d(-1, 0, region.dm_type, gp.dm * region.dm_mult);
+
+    v3d DMR = get_dm_v3d(0, 1, region.dm_type, (gp.dm + gp.dm_ani) * region.dm_mult), //put (-) here to remove from later
+        DML = get_dm_v3d(0, -1, region.dm_type, (gp.dm + gp.dm_ani) * region.dm_mult),
+        DMU = get_dm_v3d(1, 0, region.dm_type, (gp.dm - gp.dm_ani) * region.dm_mult),
+        DMD = get_dm_v3d(-1, 0, region.dm_type, (gp.dm - gp.dm_ani) * region.dm_mult);
 
     return -(v3d_dot(DMR, v3d_cross(c, right))+
              v3d_dot(DML, v3d_cross(c, left)) +
@@ -188,10 +189,10 @@ v3d dH_dSi(int row, int col,
            grid_param_t gp, region_param_t region, anisotropy_t ani, v3d field, double norm_time) {
     v3d ret = v3d_s(0.0);
 
-    v3d DMR = get_dm_v3d(0, 1, region.dm_type, -gp.dm * region.dm_mult), //put (-) here to remove from later
-        DML = get_dm_v3d(0, -1, region.dm_type, -gp.dm * region.dm_mult),
-        DMU = get_dm_v3d(1, 0, region.dm_type, -gp.dm * region.dm_mult),
-        DMD = get_dm_v3d(-1, 0, region.dm_type, -gp.dm * region.dm_mult);
+    v3d DMR = get_dm_v3d(0, 1, region.dm_type, -(gp.dm + gp.dm_ani) * region.dm_mult), //put (-) here to remove from later
+        DML = get_dm_v3d(0, -1, region.dm_type, -(gp.dm + gp.dm_ani) * region.dm_mult),
+        DMU = get_dm_v3d(1, 0, region.dm_type, -(gp.dm - gp.dm_ani) * region.dm_mult),
+        DMD = get_dm_v3d(-1, 0, region.dm_type, -(gp.dm - gp.dm_ani) * region.dm_mult);
     
     v3d exchange = v3d_scalar(right, -gp.exchange * region.exchange_mult);
     exchange = v3d_add(exchange, v3d_scalar(left, -gp.exchange * region.exchange_mult));

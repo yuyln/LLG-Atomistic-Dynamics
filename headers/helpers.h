@@ -287,6 +287,7 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
 
     g->exchange = parser_get_double("EXCHANGE", QE * 1.0e-3, &ctx);
     g->dm = parser_get_double("DMI", -0.18, &ctx) * fabs(g->exchange);
+    g->dm_ani = parser_get_double("DMI_ANISOTROPIC", 0, &ctx) * fabs(g->exchange);
     g->lattice = parser_get_double("LATTICE", 5.0e-10, &ctx);
     g->cubic_ani = parser_get_double("CUBIC", 0, &ctx) * fabs(g->exchange);
     g->lande = parser_get_double("LANDE", 2.002318, &ctx);
@@ -295,8 +296,8 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
     g->gamma = parser_get_double("GAMMA", 1.760859644e11, &ctx);
     g->mu_s = g->gamma * HBAR;
 
-    g->dm_type = parser_get_int("DM_TYPE", 10, 1, &ctx);
-    if (g->dm_type > 6 || g->dm_type < 0) {
+    g->dm_type = parser_get_int("DM_TYPE", 10, Z_CROSS_R_ij, &ctx);
+    if (g->dm_type > 2 || g->dm_type < 0) {
         fprintf(stderr, "Invalid DM, falling back to Z_CROSS_R_ij\n");
         g->dm_type = Z_CROSS_R_ij;
     }
