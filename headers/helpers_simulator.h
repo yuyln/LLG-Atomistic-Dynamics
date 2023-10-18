@@ -122,6 +122,7 @@ simulator_t init_simulator(const char *path) {
     region_param_t region_default = {0};
     region_default.exchange_mult = 1.0;
     region_default.dm_mult = 1.0;
+    region_default.dm_ani_mult = 1.0;
     region_default.dm_type = param_tmp.dm_type;
 
     if (!local_file_grid_dir)
@@ -200,7 +201,8 @@ simulator_t init_simulator(const char *path) {
                     continue;
                 ret.g_old.regions[row * ret.g_old.param.cols + col].exchange_mult = strtod(regionf_ctx.state[I + 2], NULL);
                 ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(regionf_ctx.state[I + 3], NULL);
-                ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(regionf_ctx.state[I + 4], NULL, 10);
+                ret.g_old.regions[row * ret.g_old.param.cols + col].dm_mult = strtod(regionf_ctx.state[I + 4], NULL);
+                ret.g_old.regions[row * ret.g_old.param.cols + col].dm_type = (int)strtol(regionf_ctx.state[I + 5], NULL, 10);
             }
         }
         parser_end(&regionf_ctx);

@@ -1,2 +1,2 @@
-Format: row col exchange_mult dm_mult dm_type(see input) field_mult
+Format: row col exchange_mult dm_mult dm_ani_mult dm_type(see input)
 Data:

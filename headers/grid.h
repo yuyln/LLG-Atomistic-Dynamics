@@ -54,7 +54,7 @@ typedef struct {
 } grid_param_t;
 
 typedef struct {
-    double exchange_mult, dm_mult; //current
+    double exchange_mult, dm_mult, dm_ani_mult; //current
     DM_TYPE dm_type;
 } region_param_t;
 

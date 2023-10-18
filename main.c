@@ -3,6 +3,7 @@
 #include "./headers/helpers_simulator.h"
 #include "./headers/gradient_descent.h"
 
+//TODO: Test regions
 int main() {
     double J_norm = 5.0e-3;
     double jx =  cos(0 * M_PI / 180.0),
