@@ -69,12 +69,24 @@ v3d get_dm_v3d(int drow, int dcol, DM_TYPE dm_type, double dm) {
     switch (dm_type) {
         case R_ij:
             return v3d_c(dcol * dm, drow * dm, 0.0);
-    
-        case R_ij_CROSS_Z:
-            return v3d_c(drow * dm, -dcol * dm, 0.0);
+
+        case R_ij_ISOTROPIC_X:
+            return v3d_c(-dcol * dm, drow * dm, 0.0);
+
+        case R_ij_ISOTROPIC_Y:
+            return v3d_c(dcol * dm, -drow * dm, 0.0);
 
         case Z_CROSS_R_ij:
             return v3d_c(-drow * dm, dcol * dm, 0.0);
+
+        case Z_CROSS_R_ij_ISOTROPIC_X:
+            return v3d_c(drow * dm, dcol * dm, 0.0);
+
+        case Z_CROSS_R_ij_ISOTROPIC_Y:
+            return v3d_c(-drow * dm, -dcol * dm, 0.0);
+
+        case R_ij_CROSS_Z:
+            return v3d_c(drow * dm, -dcol * dm, 0.0);
     }
 
     return v3d_s(0.0);

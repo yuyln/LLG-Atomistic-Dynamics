@@ -296,7 +296,7 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
     g->mu_s = g->gamma * HBAR;
 
     g->dm_type = parser_get_int("DM_TYPE", 10, 1, &ctx);
-    if (g->dm_type > 1 || g->dm_type < 0) {
+    if (g->dm_type > 6 || g->dm_type < 0) {
         fprintf(stderr, "Invalid DM, falling back to Z_CROSS_R_ij\n");
         g->dm_type = Z_CROSS_R_ij;
     }

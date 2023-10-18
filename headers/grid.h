@@ -8,7 +8,10 @@ typedef size_t uint64_t;
 #endif
 
 typedef enum {
-    R_ij, Z_CROSS_R_ij, R_ij_CROSS_Z
+    R_ij, Z_CROSS_R_ij, 
+    R_ij_ISOTROPIC_X, Z_CROSS_R_ij_ISOTROPIC_X,
+    R_ij_ISOTROPIC_Y, Z_CROSS_R_ij_ISOTROPIC_Y,
+    R_ij_CROSS_Z
 } DM_TYPE;
 
 typedef enum {
