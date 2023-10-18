@@ -6,6 +6,7 @@
 #include "constants.h"
 #endif
 
+
 current_t generate_current(int i, int j, grid_param_t gp, current_t base, double norm_time) {
     UNUSED(i); UNUSED(j); UNUSED(gp); UNUSED(norm_time);
     return base;

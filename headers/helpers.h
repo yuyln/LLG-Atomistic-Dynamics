@@ -697,12 +697,12 @@ void integrate_simulator(simulator_t *s, v3d field, current_t cur, const char* f
         integrate_simulator_single(s, field, cur, file_name);
 }
 
-double current_normalized_to_real(double density, grid_param_t params) {
-    return 2.0 * QE * params.avg_spin * fabs(params.exchange) * density / (params.lattice * params.lattice * HBAR);
+double current_normalized_to_real(double density, grid_param_t gp) {
+    return 2.0 * QE * gp.avg_spin * fabs(gp.exchange) * density / (gp.lattice * gp.lattice * HBAR);
 }
 
-double current_real_to_normalized(double density, grid_param_t params) {
-    return params.lattice * params.lattice * HBAR * density / (2.0 * QE * params.avg_spin * fabs(params.exchange));
+double current_real_to_normalized(double density, grid_param_t gp) {
+    return gp.lattice * gp.lattice * HBAR * density / (2.0 * QE * gp.avg_spin * fabs(gp.exchange));
 }
 
 /*v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {

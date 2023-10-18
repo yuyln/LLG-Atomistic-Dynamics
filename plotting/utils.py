@@ -120,66 +120,73 @@ def GetFrameFromBinary(rows: int, cols: int, frames: int, raw_data: mmap.mmap, i
     mx, my, mz = M[0::3], M[1::3], M[2::3]
     return mx, my, mz
 
+#def _v(m1, m2, hue):
+#    hue = hue % 1.0
+#    if hue < ONE_SIXTH:
+#        return m1 + (m2-m1)*hue*6.0
+#    if hue < 0.5:
+#        return m2
+#    if hue < TWO_THIRD:
+#        return m1 + (m2-m1)*(TWO_THIRD-hue)*6.0
+#    return m1
+
+#def hls_to_rgb(h, l, s):
+#    if s == 0.0:
+#        return l, l, l
+#    if l <= 0.5:
+#        m2 = l * (1.0+s)
+#    else:
+#        m2 = l+s-(l*s)
+#    m1 = 2.0*l - m2
+#    return (_v(m1, m2, h+ONE_THIRD), _v(m1, m2, h), _v(m1, m2, h-ONE_THIRD))
+#
+
+def _v(m1, m2, hue):
+    ret = np.ones_like(hue)
+    hueL = np.ones_like(hue)
+    ret[:] = hue[:]
+    hueL = hue
+    hueL = hueL % 1.0
+ 
+    ret[:] = m1[:]
+ 
+    cond = hueL < 2.0 / 3.0
+    ret[cond] = m1[cond] + (m2[cond] - m1[cond]) * (2.0 / 3.0 - hueL[cond]) * 6.0
+
+    cond = hueL < 0.5
+    ret[cond] = m2[cond]
+
+    cond = hueL < 1.0 / 6.0
+    ret[cond] = m1[cond] + (m2[cond] - m1[cond]) * hueL[cond] * 6.0
+ 
+    return ret 
 
 def HSLtoRGB(h: np.ndarray, s: np.ndarray, l: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    H = h 
-    S = s
-    L = l
-    C = (1.0 - np.abs(2.0 * L - 1)) * S
-    X = C * (1.0 - np.abs(((H / 60) % 2) - 1.0))
-    m = L - C / 2.0
+    r = np.empty_like(h)
+    g = np.empty_like(h)
+    b = np.empty_like(h)
 
-    interval1 = 0 <= H
-    interval1[H > 60] = False
+    r[:] = l[:]
+    g[:] = l[:]
+    b[:] = l[:]
 
-    interval2 = 60 <= H
-    interval2[H > 120] = False
+    m2 = l + s - (l * s)
+    m2[l <= 0.5] = l[l <= 0.5] * (1.0 + s[l <= 0.5])
 
-    interval3 = 120 <= H
-    interval3[H > 180] = False
+    m1 = 2.0 * l - m2
 
-    interval4 = 180 <= H
-    interval4[H > 240] = False
+    r, g, b = _v(m1, m2, h + 1.0 / 3.0), _v(m1, m2, h), _v(m1, m2, h - 1.0 / 3.0)
 
-    interval5 = 240 <= H
-    interval5[H > 300] = False
-
-    interval6 = 300 <= H
-    interval6[H > 360] = False
-
-    RL = C * interval1 + \
-         X * interval2 + \
-         0 * interval3 + \
-         0 * interval4 + \
-         X * interval5 + \
-         C * interval6
-
-    
-    GL = X * interval1 + \
-         C * interval2 + \
-         C * interval3 + \
-         X * interval4 + \
-         0 * interval5 + \
-         0 * interval6
-
-    BL = 0 * interval1 + \
-         0 * interval2 + \
-         X * interval3 + \
-         C * interval4 + \
-         C * interval5 + \
-         X * interval6
-
-    R = RL / 2.0 + m
-    G = GL / 2.0 + m
-    B = BL / 2.0 + m
-    return R, G, B
+    return r, g, b
 
 def GetHSL(mx: np.ndarray, my: np.ndarray, mz: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    angle = np.arctan2(my, mx)
-    angle += np.pi
-    angle *= 180 / np.pi
+    angle = np.arctan2(my, mx) / np.pi
+    #angle += np.pi
+    #angle *= 180 / np.pi
+    angle = (angle + 1) / 2.0
     L = (mz + 1) / 2.0
-    return HSLtoRGB(angle, 1.0, L)
+    S = np.ones_like(L)
+    return HSLtoRGB(angle, S, L)
 
 
 def ReadFile(path: str, sep: str="\t") -> pd.DataFrame:

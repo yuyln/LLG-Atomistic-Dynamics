@@ -54,7 +54,7 @@ else:
         bar = plt.colorbar(img, cax=cax, pad=pad, location=cmd_parser.BARPOS)
     elif cols > rows:
         cax = fig.add_axes([x0, y1 + 0.5 * s, x1 - x0, s])
-        bar = plt.colorbar(img, cax=cax, pad=pad, location="top")
+        bar = plt.colorbar(img, cax=cax, pad=pad, location="top", orientation="horizontal")
         bar.set_ticks([-1, 0, 1])
     else:
         cax = fig.add_axes([x1 + 0.5 * s, y0, s, y1 - y0])

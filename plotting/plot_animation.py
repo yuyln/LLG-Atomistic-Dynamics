@@ -52,8 +52,8 @@ else:
         bar = plt.colorbar(img, cax=cax1)
         bar.set_ticks([-1, 0, 1])
     elif cols > rows:
-        cax1 = divider.append_axes("top", size="5%", pad=0.05, orientation="horizontal")
-        bar = plt.colorbar(img, cax=cax1)
+        cax1 = divider.append_axes("top", size="5%", pad=0.05)
+        bar = plt.colorbar(img, cax=cax1, orientation="horizontal")
         bar.set_ticks([-1, 0, 1])
     else:
         cax1 = divider.append_axes("right", size="5%", pad=0.05)
