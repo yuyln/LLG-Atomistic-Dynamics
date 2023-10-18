@@ -303,9 +303,10 @@ simulator_t init_simulator(const char *path) {
 
         printf("EXCHANGE                    = %.15e Joule = %.15e eV\n", ret.real_param.exchange, ret.real_param.exchange / QE);
         printf("DM                          = %.15e Joule = %.15e eV = %.15e * J\n", ret.real_param.dm, ret.real_param.dm / QE, ret.real_param.dm / fabs(ret.real_param.exchange));
+        printf("DM ANISOTROPIC              = %.15e Joule = %.15e eV = %.15e * J\n", ret.real_param.dm_ani, ret.real_param.dm_ani / QE, ret.real_param.dm_ani / fabs(ret.real_param.exchange));
         printf("LATTICE PARAMETER           = %.15e nm\n", ret.real_param.lattice / 1.0e-9);
         printf("CUBIC ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", ret.real_param.cubic_ani, ret.real_param.cubic_ani / QE, ret.real_param.cubic_ani / fabs(ret.real_param.exchange));
-        printf("AXIAL ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", global_ani.K_1, global_ani.K_1 / QE, global_ani.K_1 / fabs(ret.real_param.exchange));
+        printf("AXIAL ANISOTROPY            = %.15e Joule = %.15e eV = %.15e * J\n", global_ani.K_1 * fabs(ret.real_param.exchange), global_ani.K_1 * fabs(ret.real_param.exchange) / QE, global_ani.K_1);
         printf("AXIAL ANISOTROPY            = (%.15e, %.15e, %.15e)\n", global_ani.dir.x, global_ani.dir.y, global_ani.dir.z);
         printf("LANDE                       = %.15e\n", ret.real_param.lande);
         printf("AVERAGE SPIN                = %.15e\n", ret.real_param.avg_spin);

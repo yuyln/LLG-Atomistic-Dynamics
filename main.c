@@ -15,7 +15,7 @@ int main() {
     CUR_TYPE cur_type = CUR_CPP;
     double dh = 5.0e-10;
 
-    double Hz_norm =  0.5,
+    double Hz_norm = -0.5,
            Hy_norm =  0.0,
            Hx_norm =  0.0;
 
@@ -23,7 +23,7 @@ int main() {
     export_simulator_path(&s, "./output/export_sim.out");
     printf("Grid size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
 
-    v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), -0.5 * 0.5);
+    v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), 0.5 * 0.5);
     v3d field_real = field_joule_to_tesla(v3d_scalar(field_joule, fabs(s.real_param.exchange)), s.real_param.mu_s);
     current_t cur;
 
