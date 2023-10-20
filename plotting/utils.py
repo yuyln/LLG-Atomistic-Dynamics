@@ -28,7 +28,7 @@ class CMDArgs:
         parser = argparse.ArgumentParser(description="Configure plots parameters via CLI")
         parser.add_argument("-input", default=inp, nargs="?", type=str)
         parser.add_argument("-output", default=out, nargs="?", type=str)
-        parser.add_argument("-DPI", default=250, nargs="?", type=int)
+        parser.add_argument("-DPI", default=275, nargs="?", type=int)
         parser.add_argument("-arrows", action="store_true")
         parser.add_argument("-factor", default=1, nargs="?", type=int)
         parser.add_argument("-fps", default=60, nargs="?", type=int)

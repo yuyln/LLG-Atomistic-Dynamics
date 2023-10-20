@@ -71,17 +71,6 @@ if cmd_parser.PLOT_ARROWS:
 ax.set_xlim([min_x, max_x])
 ax.set_ylim([min_y, max_y])
 
-
-# radius in data coordinates:
-r = lattice
-
-# radius in display coordinates:
-r_ = ax.transData.transform([r,0])[0] - ax.transData.transform([0,0])[0]
-r_ = r_ * 72 / fig.dpi
-
-# marker size as the area of a circle
-marker_size = 4 * r_ * r_
-
 if cmd_parser.PLOT_ANI:
     try:
         ani = pd.read_table(cmd_parser.ANI_INPUT, header=None, sep=cmd_parser.ANI_SEP, skiprows=cmd_parser.ANI_SKIP)
@@ -91,7 +80,10 @@ if cmd_parser.PLOT_ANI:
         y_ani = np.array([]) * lattice
         x_ani = np.array([]) * lattice
         print(e)
-    ax.scatter(x_ani, y_ani, marker="s", s=marker_size, c=cmd_parser.COLOR_ANI)
+    import matplotlib.collections as cl
+    squares = [plt.Rectangle((xi - lattice / 2.0, yi - lattice / 2.0), lattice, lattice) for xi,yi in zip(x_ani,y_ani)]
+    s = cl.PatchCollection(squares, facecolor=cmd_parser.COLOR_ANI, edgecolor=None, linewidth=0)
+    ax.add_collection(s)
 
 if cmd_parser.PLOT_PIN:
     try:
@@ -102,7 +94,11 @@ if cmd_parser.PLOT_PIN:
         y_pin = np.array([]) * lattice
         x_pin = np.array([]) * lattice
         print(e)
-    ax.scatter(x_pin, y_pin, marker="s", s=marker_size, c=cmd_parser.COLOR_PIN)
+    import matplotlib.collections as cl
+    squares = [plt.Rectangle((xi - lattice / 2.0, yi - lattice / 2.0), lattice, lattice) for xi,yi in zip(x_pin,y_pin)]
+    s = cl.PatchCollection(squares, facecolor=cmd_parser.COLOR_PIN, edgecolor=None, linewidth=0)
+    ax.add_collection(s)
+
 
 if cmd_parser.USE_LATEX:
     ax.set_xlabel("$x$(nm)")
