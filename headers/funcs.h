@@ -162,11 +162,7 @@ double hamiltonian(GLOBAL grid_t* g, v3d field) CPU_ONLY {
 }
 
 v3d grid_normalize(v3d v, pinning_t pin) {
-    if (pin.fixed)
-        v = pin.dir;
-    else
-        v = v3d_normalize(v);
-    return v;
+    return pin.fixed? pin.dir: v3d_normalize(v);
 }
 
 v3d v3d_dot_grad_v3d(v3d v, v3d left, v3d right, v3d up, v3d down, double dx, double dy) {

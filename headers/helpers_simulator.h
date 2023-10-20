@@ -144,7 +144,6 @@ simulator_t init_simulator(const char *path) {
         int index_data = parser_find_index_of_tag("Data", &anif_ctx);
         if (index_data < 0) {
             fprintf(stderr, "Tag \"Data\" not found on %s, empty anisotropy will be used\n", local_file_ani_dir);
-            memset(ret.g_old.ani, 0, sizeof(anisotropy_t) * ret.g_old.param.total);
         } else {
             for (uint64_t I = index_data + 1; I < anif_ctx.n; I += 6) {
                 int row = strtol(anif_ctx.state[I], NULL, 10);
@@ -168,7 +167,6 @@ simulator_t init_simulator(const char *path) {
         int index_data = parser_find_index_of_tag("Data", &pinf_ctx);
         if (index_data < 0) {
             fprintf(stderr, "Tag \"Data\" not found on %s, empty pinning will be used\n", local_file_pin_dir);
-            memset(ret.g_old.pinning, 0, sizeof(pinning_t) * ret.g_old.param.total);
         } else {
             for (uint64_t I = index_data + 1; I < pinf_ctx.n; I += 5) {
                 int row = strtol(pinf_ctx.state[I], NULL, 10);
@@ -182,8 +180,6 @@ simulator_t init_simulator(const char *path) {
             }
         }
         parser_end(&pinf_ctx);
-    } else {
-        memset(ret.g_old.pinning, 0, sizeof(pinning_t) * ret.g_old.param.total);
     }
 
     if (local_file_regions_dir) {
@@ -192,7 +188,6 @@ simulator_t init_simulator(const char *path) {
         int index_data = parser_find_index_of_tag("Data", &regionf_ctx);
         if (index_data < 0) {
             fprintf(stderr, "Tag \"Data\" not found on %s\n", local_file_regions_dir);
-            memset(ret.g_old.regions, 0, sizeof(region_param_t) * ret.g_old.param.total);
         } else {
             for (uint64_t I = index_data + 1; I < regionf_ctx.n; I += 6) {
                 int row = strtol(regionf_ctx.state[I], NULL, 10);
