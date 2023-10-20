@@ -42,7 +42,7 @@ kernel void termal_step(global grid_t* g_out, global grid_t* g_old, double T, do
     g_out->grid[I] = local_g_out;\n\
 }\n\
 \n\
-kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, v3d field) {\n\
+kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, v3d field, double norm_time) {\n\
     size_t I = get_global_id(0);\n\
     int col = I % COLS;\n\
     int row = (I - col) / COLS;\n\
@@ -117,10 +117,10 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
         sim_info[I].charge_lattice = charge_i;\n\
         sim_info[I].charge_finite = charge_i_old;\n\
         if (calc_energy) {\n\
-            sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field);\n\
+            sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field, norm_time);\n\
             sim_info[I].energy_exchange = 0.5 * exchange_energy(c1, l1, r1, u1, d1, gp, region);\n\
             sim_info[I].energy_dm = 0.5 * dm_energy(c1, l1, r1, u1, d1, gp, region);\n\
-            sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field);\n\
+            sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field, norm_time);\n\
             sim_info[I].energy_anisotropy = anisotropy_energy(c1, ani);\n\
             sim_info[I].energy_cubic_anisotropy = cubic_anisotropy_energy(c1, gp);\n\
         }\n\
@@ -175,7 +175,7 @@ kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d 
     u = get_pbc_v3d(row + 1, col, g_n, ROWS, COLS, gparam.pbc);\n\
     d = get_pbc_v3d(row - 1, col, g_n, ROWS, COLS, gparam.pbc);\n\
 \n\
-    H[j] = hamiltonian_I(row, col, c, l, r, u, d, gparam, ani, region, field);\n\
+    H[j] = hamiltonian_I(row, col, c, l, r, u, d, gparam, ani, region, field, 0.0);\n\
 }\n\
 ";
 #endif

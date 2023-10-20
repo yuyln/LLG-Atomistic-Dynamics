@@ -29,7 +29,7 @@ void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alph
     memcpy(g_min, g_in->grid, sizeof(v3d) * rows * cols);
 
     g_aux.grid = g_min;
-    double H_min = hamiltonian(&g_aux, field);
+    double H_min = hamiltonian(&g_aux, field, 0.0);
     for (int i = 0; i < steps; ++i) { 
         double local_T = 0;
 
@@ -67,7 +67,7 @@ void gradient_descent_single(grid_t *g_in, grid_t *g_out, double dt, double alph
 
             g_aux.grid = g_n;
             g_aux.grid[j] = grid_normalize(g_aux.grid[j], g_aux.pinning[j]);
-            H += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field);
+            H += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field, 0.0);
         }
 
         memcpy(g_p, g_c, sizeof(v3d) * rows * cols);
@@ -114,7 +114,7 @@ void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double al
     memcpy(g_min, g_in->grid, sizeof(v3d) * rows * cols);
 
     g_aux.grid = g_min;
-    double H_min = hamiltonian(&g_aux, field);
+    double H_min = hamiltonian(&g_aux, field, 0.0);
     double *Hn = (double*)calloc(n_threads, sizeof(double));
 
     for (int i = 0; i < steps; ++i) {
@@ -162,7 +162,7 @@ void gradient_descent_multiple(grid_t *g_in, grid_t *g_out, double dt, double al
 
             g_aux.grid = g_n;
             g_aux.grid[j] = grid_normalize(g_aux.grid[j], g_aux.pinning[j]);
-            Hn[omp_get_thread_num()] += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field);
+            Hn[omp_get_thread_num()] += hamiltonian_I(row, col, c, left, right, up, down, g_aux.param, g_aux.ani[j], g_aux.regions[j], field, 0.0);
         }
 
         for (int j = 0; j < n_threads; ++j)
@@ -213,7 +213,7 @@ void gradient_descent_gpu(grid_t *g_in, grid_t *g_out, double dt, double alpha, 
     double *H = (double*)calloc(rows * cols, sizeof(double));
 
 
-    double H_min = hamiltonian(&g_aux, field);
+    double H_min = hamiltonian(&g_aux, field, 0.0);
     free(g_aux.grid);
 
     full_grid_write_buffer(gpu->queue, g_aux_buffer, &g_aux);

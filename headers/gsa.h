@@ -18,9 +18,9 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
     grid_copy(&g_old, g_in);
     grid_copy(g_out, g_in);
 
-    double H_old = hamiltonian(&g_old, field),
-           H_new = hamiltonian(g_out, field),
-           H_min = hamiltonian(&g_min, field);
+    double H_old = hamiltonian(&g_old, field, 0.0),
+           H_new = hamiltonian(g_out, field, 0.0),
+           H_min = hamiltonian(&g_min, field, 0.0);
 
     double qA1 = param.qA - 1.0,
            qV1 = param.qV - 1.0,
@@ -65,7 +65,7 @@ void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
                 g_out->grid[I] = grid_normalize(g_out->grid[I], g_out->pinning[I]);
             }
             
-            H_new = hamiltonian(g_out, field);
+            H_new = hamiltonian(g_out, field, 0.0);
 
             if (H_new <= H_min) {
                 H_min = H_new;
@@ -107,9 +107,9 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     grid_copy(g_out, g_in);
 
 
-    double H_old = hamiltonian(&g_old, field),
-           H_new = hamiltonian(g_out, field),
-           H_min = hamiltonian(&g_min, field);
+    double H_old = hamiltonian(&g_old, field, 0.0),
+           H_new = hamiltonian(g_out, field, 0.0),
+           H_min = hamiltonian(&g_min, field, 0.0);
 
     grid_free(&g_min);
     grid_free(&g_old);
@@ -144,7 +144,9 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     
     clw_set_kernel_arg(gpu->kernels[1], 0, sizeof(cl_mem), &g_out_buffer);
     clw_set_kernel_arg(gpu->kernels[1], 1, sizeof(cl_mem), &ham_buffer);
-    clw_set_kernel_arg(gpu->kernels[1], 2, sizeof(v3d) ,&field);
+    clw_set_kernel_arg(gpu->kernels[1], 2, sizeof(v3d), &field);
+    double t_ = 0.0;
+    clw_set_kernel_arg(gpu->kernels[1], 3, sizeof(double), &t_);
 
     clw_set_kernel_arg(gpu->kernels[2], 1, sizeof(cl_mem), &g_out_buffer);
 

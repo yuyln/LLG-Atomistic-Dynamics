@@ -115,8 +115,8 @@ double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
 
 }
 
-double zeeman_energy(int row, int col, v3d c, grid_param_t gp, v3d field) {
-    return -v3d_dot(c, generate_field(row, col, gp, field, 0.0));
+double zeeman_energy(int row, int col, v3d c, grid_param_t gp, v3d field, double norm_time) {
+    return -v3d_dot(c, generate_field(row, col, gp, field, norm_time));
 }
 
 double anisotropy_energy(v3d c, anisotropy_t ani) {
@@ -131,10 +131,10 @@ double cubic_anisotropy_energy(v3d c, grid_param_t gp) {
 
 double hamiltonian_I(int row, int col,
                      v3d c, v3d left, v3d right, v3d up, v3d down,
-                     grid_param_t gp, anisotropy_t ani, region_param_t region, v3d field) {
+                     grid_param_t gp, anisotropy_t ani, region_param_t region, v3d field, double norm_time) {
 
 
-    double out = zeeman_energy(row, col, c, gp, field);
+    double out = zeeman_energy(row, col, c, gp, field, norm_time);
 
     out += 0.5 * exchange_energy(c, left, right, up, down, gp, region);
 
@@ -146,7 +146,7 @@ double hamiltonian_I(int row, int col,
     return out;
 }
 
-double hamiltonian(GLOBAL grid_t* g, v3d field) CPU_ONLY { 
+double hamiltonian(GLOBAL grid_t* g, v3d field, double norm_time) CPU_ONLY { 
     double ret = 0.0;
     for (uint64_t I = 0; I < g->param.total; ++I) {
         int col = I % g->param.cols;
@@ -156,7 +156,7 @@ double hamiltonian(GLOBAL grid_t* g, v3d field) CPU_ONLY {
         v3d r = get_pbc_v3d(row, col + 1, g->grid, g->param.rows, g->param.cols, g->param.pbc);
         v3d u = get_pbc_v3d(row + 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
         v3d d = get_pbc_v3d(row - 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
-        ret += hamiltonian_I(row, col, c, l, r, u, d, g->param, g->ani[I], g->regions[I], field);
+        ret += hamiltonian_I(row, col, c, l, r, u, d, g->param, g->ani[I], g->regions[I], field, norm_time);
     }
     return ret;
 }

@@ -421,10 +421,10 @@ void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const 
                 s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, s->g_new.grid[I]);
                 s->simulation_info[t].charge_lattice += charge_i;
                 s->simulation_info[t].charge_finite += charge_i_old;
-                s->simulation_info[t].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field);
+                s->simulation_info[t].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field, norm_time);
                 s->simulation_info[t].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
                 s->simulation_info[t].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                s->simulation_info[t].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field);
+                s->simulation_info[t].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field, norm_time);
                 s->simulation_info[t].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
                 s->simulation_info[t].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
             }
@@ -522,10 +522,10 @@ void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, cons
                 sim_info_thread[nt].charge_finite += charge_i;
                 sim_info_thread[nt].charge_lattice += charge_i_old;
 
-                sim_info_thread[nt].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field);
+                sim_info_thread[nt].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field, norm_time);
                 sim_info_thread[nt].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
                 sim_info_thread[nt].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                sim_info_thread[nt].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field);
+                sim_info_thread[nt].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field, norm_time);
                 sim_info_thread[nt].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
                 sim_info_thread[nt].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
             }
