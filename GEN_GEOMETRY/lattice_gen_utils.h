@@ -8,12 +8,15 @@ typedef struct {
 } v3d;
 void create_skyrmion_bloch(v3d *g, int rows, int cols, int cx, int cy, int R, double P, double Q);
 void create_skyrmion_neel(v3d *g, int rows, int cols, int cx, int cy, int R, double P, double Q);
+void create_biskyrmion_bloch(v3d *g, int rows, int cols, int cx, int cy, int R, double P/*UNUSED*/, double Q, int dx, int dy);
+void create_biskyrmion_neel(v3d *g, int rows, int cols, int cx, int cy, int R, double P/*UNUSED*/, double Q, int dx, int dy);
 void create_triangular_neel_skyrmion_lattice(v3d *g, int rows, int cols, int R, int nx, double P, double Q);
 void create_triangular_bloch_skyrmion_lattice(v3d *g, int rows, int cols, int R, int nx, double P, double Q);
 void print_grid(FILE *f, v3d *v, int rows, int cols);
 void dump_grid(FILE *f, v3d *v, int rows, int cols);
 
 #endif //__GEN_LATTICE_UTILS_H
+#define __GEN_LATTICE_UTILS_C
 
 #ifdef __GEN_LATTICE_UTILS_C
 void create_skyrmion_bloch(v3d *g, int rows, int cols, int cx, int cy, int R, double P, double Q) {
@@ -78,6 +81,32 @@ void create_skyrmion_neel(v3d *g, int rows, int cols, int cx, int cy, int R, dou
             }
         }
     }
+}
+
+void create_biskyrmion(v3d *g, int rows, int cols, int cx, int cy, int R, double P, double Q, double xi, int dx, int dy) {
+    for (int yl = 0; yl < rows; ++yl) {
+        double y = yl - cy;
+        for (int xl = 0; xl < cols; ++xl) {
+            double x = xl - cx;
+            double yn = y - dy / 2.0;
+            double yp = y + dy / 2.0;
+            double xn = x - dx / 2.0;
+            double xp = x + dx / 2.0;
+            double phi = atan2(yn, xn) + atan2(yp, xp) + xi;
+            double theta = 2.0 * atan2(1.0 / (R * R) * sqrt(xn * xn + yn * yn) * sqrt(xp * xp + yp * yp), 1.0);
+            g[yl * cols + xl] = (v3d){.x = Q * cos(phi) * sin(theta),
+                                      .y = Q * sin(phi) * sin(theta),
+                                      .z = Q * cos(theta)};
+        }
+    }
+}
+
+void create_biskyrmion_bloch(v3d *g, int rows, int cols, int cx, int cy, int R, double P/*UNUSED*/, double Q, int dx, int dy) {
+    create_biskyrmion(g, rows, cols, cx, cy, R, P, Q, 0.0, dx, dy);
+}
+
+void create_biskyrmion_neel(v3d *g, int rows, int cols, int cx, int cy, int R, double P/*UNUSED*/, double Q, int dx, int dy) {
+    create_biskyrmion(g, rows, cols, cx, cy, R, P, Q, M_PI / 2.0, dx, dy);
 }
 
 void create_triangular_neel_skyrmion_lattice(v3d *g, int rows, int cols, int R, int nx, double P, double Q) {

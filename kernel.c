@@ -53,7 +53,7 @@ kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, v3d fie
     v3d u = get_pbc_v3d(row + 1, col, g->grid, ROWS, COLS, gp.pbc);
     v3d d = get_pbc_v3d(row - 1, col, g->grid, ROWS, COLS, gp.pbc);
 
-    ham_buffer[I] = hamiltonian_I(row, col, c, l, r, u, d, gp, ani, region, field);
+    ham_buffer[I] = hamiltonian_I(row, col, c, l, r, u, d, gp, ani, region, field, norm_time);
 }
 
 kernel void reset_gpu(global grid_t* g_old, global grid_t* g_new) {

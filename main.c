@@ -6,8 +6,8 @@
 //TODO: Test regions
 int main() {
     double J_norm = 5.0e-3;
-    double jx =  cos(0 * M_PI / 180.0),
-           jy =  sin(0 * M_PI / 180.0),
+    double jx =  cos(201 * M_PI / 180.0),
+           jy =  sin(201 * M_PI / 180.0),
            jz =  0.0;
     double p = -1.0;
     double theta_sh = 1.0;
@@ -23,7 +23,7 @@ int main() {
     export_simulator_path(&s, "./output/export_sim.out");
     printf("Grid size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
 
-    v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), 0.5 * 0.5);
+    v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm);
     v3d field_real = field_joule_to_tesla(v3d_scalar(field_joule, fabs(s.real_param.exchange)), s.real_param.mu_s);
     current_t cur;
 

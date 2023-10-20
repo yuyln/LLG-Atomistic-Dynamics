@@ -20,14 +20,14 @@
 
 int main(void) {
     FILE *f_out = fopen("./starting.in", "wb");
-    int cols = 16;
-    int rows = 16;
+    int cols = 32;
+    int rows = 32;
     v3d *grid = (v3d*)calloc(cols * rows, sizeof(v3d));
     double rskyr = 4.0;
     for (int I = 0; I < cols * rows; ++I)
         grid[I] = (v3d){0.0, 0.0, 1.0};
+    create_biskyrmion_neel(grid, rows, cols, cols / 2.0, rows / 2.0, rskyr, 1.0, 1.0, 0, 5);
 
-    create_skyrmion_neel(grid, rows, cols, (cols - 1) / 2, (rows - 1) / 2, rskyr, 1.0, -1.0);
     dump_grid(f_out, grid, rows, cols);
     free(grid);
     fclose(f_out);
