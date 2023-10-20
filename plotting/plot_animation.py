@@ -11,6 +11,7 @@ rows, cols, frames, cut, dt, lattice, data = utils.ReadAnimationBinary(cmd_parse
 lattice = lattice / 1.0e-9
 
 mx, my, mz = utils.GetFrameFromBinary(rows, cols, frames, data, 0)
+mz *= cmd_parser.INVERT
 x, y, x_in, y_in, fac_x, fac_y = utils.GetPosition(rows, cols, cmd_parser.REDUCE_FACTOR, lattice)
 
 min_x = -lattice / 2
@@ -132,6 +133,7 @@ def animate(i):
         b_mxs, b_mys, b_mzs = GetBatchLattices(ib)
 
     mx, my, mz = b_mxs[i % cmd_parser.BATCH_S], b_mys[i % cmd_parser.BATCH_S], b_mzs[i % cmd_parser.BATCH_S]
+    mz *= cmd_parser.INVERT
 
 
     if cmd_parser.HSL:

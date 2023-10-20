@@ -10,6 +10,7 @@ rows, cols, lattice, data = utils.ReadLatticeBinary(cmd_parser.INPUT_FILE)
 lattice = lattice / 1.0e-9
 
 mx, my, mz = utils.GetFrameFromBinary(rows, cols, 1, data, 0, 16)
+mz *= cmd_parser.INVERT
 x, y, x_in, y_in, fac_x, fac_y = utils.GetPosition(rows, cols, cmd_parser.REDUCE_FACTOR, lattice)
 
 min_x = -lattice / 2
