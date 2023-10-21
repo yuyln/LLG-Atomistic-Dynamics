@@ -4,7 +4,7 @@
 #include "./headers/gradient_descent.h"
 
 //TODO: Test regions
-int main() {
+int main(int argc, const char **argv) {
     double J_norm = 5.0e-3;
     double jx =  cos(201 * M_PI / 180.0),
            jy =  sin(201 * M_PI / 180.0),
@@ -18,8 +18,11 @@ int main() {
     double Hz_norm = -0.5,
            Hy_norm =  0.0,
            Hx_norm =  0.0;
-
-    simulator_t s = init_simulator("./input/input.in");
+    if (argc < 2) {
+        printf("No input file provided\n");
+        return 1;
+    }
+    simulator_t s = init_simulator(argv[1]);
     export_simulator_path(&s, "./output/export_sim.out");
     printf("Grid size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
 
