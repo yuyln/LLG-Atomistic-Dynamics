@@ -591,9 +591,13 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     clw_set_kernel_arg(s->gpu.kernels[3], 3, sizeof(double), &s->dt);
     clw_set_kernel_arg(s->gpu.kernels[3], 4, sizeof(current_t), &cur);
 
-    // int cut = s->write_vel_charge_cut;
-    clw_set_kernel_arg(s->gpu.kernels[3], 7, sizeof(int), &s->write_vel_charge_cut);
-    clw_set_kernel_arg(s->gpu.kernels[3], 9, sizeof(int), &s->calculate_energy);
+
+    clw_set_kernel_arg(s->gpu.kernels[6], 0, sizeof(cl_mem), &s->g_old_buffer);
+    clw_set_kernel_arg(s->gpu.kernels[6], 1, sizeof(cl_mem), &s->g_new_buffer);
+    clw_set_kernel_arg(s->gpu.kernels[6], 2, sizeof(v3d), &field);
+    clw_set_kernel_arg(s->gpu.kernels[6], 3, sizeof(double), &s->dt);
+    clw_set_kernel_arg(s->gpu.kernels[6], 6, sizeof(int), &s->write_vel_charge_cut);
+    clw_set_kernel_arg(s->gpu.kernels[6], 8, sizeof(int), &s->calculate_energy);
 
     uint64_t global = s->g_old.param.total;
     uint64_t local = gcd(global, 32);
@@ -603,7 +607,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     cl_mem gpu_sim_info_buffer = clw_create_buffer(sizeof(info_pack_t) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
     clw_write_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
 
-    clw_set_kernel_arg(s->gpu.kernels[3], 8, sizeof(cl_mem), &gpu_sim_info_buffer);
+    clw_set_kernel_arg(s->gpu.kernels[6], 7, sizeof(cl_mem), &gpu_sim_info_buffer);
     profiler_start_measure("GPU INTEGRATION");
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
@@ -614,10 +618,12 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
 
         double norm_time = (double)i * s->dt * (!s->doing_relax);
         clw_set_kernel_arg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
+        clw_set_kernel_arg(s->gpu.kernels[6], 4, sizeof(double), &norm_time);
         int t = i;
-        clw_set_kernel_arg(s->gpu.kernels[3], 6, sizeof(int), &t);
+        clw_set_kernel_arg(s->gpu.kernels[6], 5, sizeof(int), &t);
 
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
+        clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[6], 1, NULL, &global, &local);
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[2], 1, NULL, &global, &local);
 
         if (i % s->write_vel_charge_cut == 0) {

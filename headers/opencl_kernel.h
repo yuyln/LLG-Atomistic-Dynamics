@@ -69,7 +69,7 @@ kernel void reset_v3d_gpu(global v3d *v1, global v3d *v2) {\n\
     v1[I] = v2[I];\n\
 }\n\
 \n\
-kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {\n\
+kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time) {\n\
 	size_t I = get_global_id(0);\n\
     int col = I % COLS;\n\
     int row = (I - col) / COLS;\n\
@@ -84,18 +84,27 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
     v3d u = get_pbc_v3d(row + 1, col, g_old->grid, ROWS, COLS, gp.pbc);\n\
     v3d d = get_pbc_v3d(row - 1, col, g_old->grid, ROWS, COLS, gp.pbc);\n\
 \n\
-    v3d c_old = c;\n\
     v3d c_new = {0};\n\
 \n\
     v3d dm = grid_step(row, col, c, l, r, u, d, gp, region, ani, field, cur, dt, norm_time);\n\
 \n\
-	c_new = v3d_add(c_old, dm);\n\
+	c_new = v3d_add(c, dm);\n\
     c_new = grid_normalize(c_new, pin);\n\
     g_new->grid[I] = c_new;\n\
+}\n\
 \n\
+kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {\n\
 	if (i % cut == 0) {\n\
-        v3d c0 = c;\n\
-        v3d c1 = c_new;\n\
+        size_t I = get_global_id(0);\n\
+        int col = I % COLS;\n\
+        int row = (I - col) / COLS;\n\
+\n\
+        grid_param_t gp = g_old->param;\n\
+        anisotropy_t ani = g_old->ani[I];\n\
+        region_param_t region = g_old->regions[I];\n\
+\n\
+        v3d c0 = get_pbc_v3d(row, col, g_old->grid, ROWS, COLS, gp.pbc);\n\
+        v3d c1 = get_pbc_v3d(row, col, g_new->grid, gp.rows, gp.cols, gp.pbc);\n\
         v3d l1 = get_pbc_v3d(row, col - 1, g_new->grid, gp.rows, gp.cols, gp.pbc);\n\
         v3d r1 = get_pbc_v3d(row, col + 1, g_new->grid, gp.rows, gp.cols, gp.pbc);\n\
         v3d u1 = get_pbc_v3d(row + 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);\n\
@@ -113,7 +122,7 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
 \n\
         sim_info[I].vx = vt.x;\n\
         sim_info[I].vy = vt.y;\n\
-        sim_info[I].avg_mag = c_new;\n\
+        sim_info[I].avg_mag = c1;\n\
         sim_info[I].charge_lattice = charge_i;\n\
         sim_info[I].charge_finite = charge_i_old;\n\
         if (calc_energy) {\n\

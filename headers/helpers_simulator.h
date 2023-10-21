@@ -13,7 +13,7 @@ static const char *integration_method = "???";
 #endif
 
 #define kernels_n sizeof(kernels) / sizeof(char *)
-static const char *kernels[] = {"termal_step", "hamiltonian_gpu", "reset_gpu", "step_gpu", "gradient_step_gpu", "reset_v3d_gpu"};
+static const char *kernels[] = {"termal_step", "hamiltonian_gpu", "reset_gpu", "step_gpu", "gradient_step_gpu", "reset_v3d_gpu", "process_data"};
 
 void free_gpu(gpu_t *g) {
     for (uint64_t i = 0; i < g->n_kernels; ++i) {

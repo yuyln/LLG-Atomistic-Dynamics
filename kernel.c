@@ -66,7 +66,7 @@ kernel void reset_v3d_gpu(global v3d *v1, global v3d *v2) {
     v1[I] = v2[I];
 }
 
-kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {
+kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time) {
 	size_t I = get_global_id(0);
     int col = I % COLS;
     int row = (I - col) / COLS;
@@ -81,18 +81,27 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
     v3d u = get_pbc_v3d(row + 1, col, g_old->grid, ROWS, COLS, gp.pbc);
     v3d d = get_pbc_v3d(row - 1, col, g_old->grid, ROWS, COLS, gp.pbc);
 
-    v3d c_old = c;
     v3d c_new = {0};
 
     v3d dm = grid_step(row, col, c, l, r, u, d, gp, region, ani, field, cur, dt, norm_time);
 
-	c_new = v3d_add(c_old, dm);
+	c_new = v3d_add(c, dm);
     c_new = grid_normalize(c_new, pin);
     g_new->grid[I] = c_new;
+}
 
+kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {
 	if (i % cut == 0) {
-        v3d c0 = c;
-        v3d c1 = c_new;
+        size_t I = get_global_id(0);
+        int col = I % COLS;
+        int row = (I - col) / COLS;
+
+        grid_param_t gp = g_old->param;
+        anisotropy_t ani = g_old->ani[I];
+        region_param_t region = g_old->regions[I];
+
+        v3d c0 = get_pbc_v3d(row, col, g_old->grid, ROWS, COLS, gp.pbc);
+        v3d c1 = get_pbc_v3d(row, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
         v3d l1 = get_pbc_v3d(row, col - 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
         v3d r1 = get_pbc_v3d(row, col + 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
         v3d u1 = get_pbc_v3d(row + 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
@@ -110,7 +119,7 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
 
         sim_info[I].vx = vt.x;
         sim_info[I].vy = vt.y;
-        sim_info[I].avg_mag = c_new;
+        sim_info[I].avg_mag = c1;
         sim_info[I].charge_lattice = charge_i;
         sim_info[I].charge_finite = charge_i_old;
         if (calc_energy) {
