@@ -772,7 +772,7 @@ void write_simulation_data(const char* root_path, simulator_t* s) {
     double J_abs = fabs(s->real_param.exchange);
     printf("Writing charges related output\n");
     fprintf(velocity_total, "t(tau)\tt(ns)\tvx_lat_charge(a/tau)\tvy_lat_charge(a/tau)\tvx_diff_charge(a/tau)\tvy_diff_charge(a/tau)\t"
-                            "\tvx_lat_charge(m/s)\tvy_lat_charge(m/s)\tvx_diff_charge(m/s)\tvy_diff_charge(m/s)\n");
+                            "vx_lat_charge(m/s)\tvy_lat_charge(m/s)\tvx_diff_charge(m/s)\tvy_diff_charge(m/s)\n");
     fprintf(charge_total, "t(tau)\tt(ns)\tQ_lattice\tQ_finite\n");
     fprintf(charge_center, "t(tau)\tt(ns)\tcx(a)\tcy(a)\tcx(nm)\tcy(nm)\n");
     fprintf(avg_mag_f, "t(tau)\tt(ns)\t<mx>\t<my>\t<mz>\n");
