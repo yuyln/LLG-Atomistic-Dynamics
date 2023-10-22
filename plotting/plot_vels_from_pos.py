@@ -1,13 +1,15 @@
 import utils
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-cmd_parser = utils.CMDArgs("./output/anim_pos_xy.out", "./imgs/test_velocities.png")
+cmd_parser = utils.CMDArgs("./output/anim_charge_center.out", "./imgs/test_velocities.png")
 
 data = utils.ReadFile(cmd_parser.INPUT_FILE)
+data = pd.read_table(cmd_parser.INPUT_FILE, skiprows=1, header=None)
 dt = data[0][1] - data[0][0]
-vx = np.diff(data[1].to_numpy()) / dt
-vy = np.diff(data[2].to_numpy()) / dt
+vx = np.diff(data[2].to_numpy()) / dt
+vy = np.diff(data[3].to_numpy()) / dt
 
 if cmd_parser.USE_LATEX: utils.FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)

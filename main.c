@@ -5,9 +5,9 @@
 
 //TODO: Test regions
 int main(int argc, const char **argv) {
-    double J_norm = 5.0e-3;
-    double jx =  cos(201 * M_PI / 180.0),
-           jy =  sin(201 * M_PI / 180.0),
+    double J_norm = 1.0e-2;
+    double jx =  cos(45 * M_PI / 180.0),
+           jy =  sin(45 * M_PI / 180.0),
            jz =  0.0;
     double p = -1.0;
     double theta_sh = 1.0;
@@ -15,7 +15,7 @@ int main(int argc, const char **argv) {
     CUR_TYPE cur_type = CUR_CPP;
     double dh = 5.0e-10;
 
-    double Hz_norm = -0.5,
+    double Hz_norm =  0.5,
            Hy_norm =  0.0,
            Hx_norm =  0.0;
     if (argc < 2) {

@@ -9,6 +9,8 @@
 
 current_t generate_current(int i, int j, grid_param_t gp, current_t base, double norm_time) {
     UNUSED(i); UNUSED(j); UNUSED(gp); UNUSED(norm_time);
+    base.p.x *= cos(2.0 * M_PI * 5 / gp.total_time * norm_time);
+    base.p.y *= sin(2.0 * M_PI * 5 / gp.total_time * norm_time);
     return base;
 }
 

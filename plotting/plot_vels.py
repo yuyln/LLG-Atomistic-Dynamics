@@ -1,9 +1,11 @@
 import utils
 import matplotlib.pyplot as plt
+import pandas as pd
 
 cmd_parser = utils.CMDArgs("./output/anim_velocity.out", "./imgs/plot_velocities.png")
 
 data = utils.ReadFile(cmd_parser.INPUT_FILE)
+data = pd.read_table(cmd_parser.INPUT_FILE, skiprows=1, header=None)
 
 if cmd_parser.USE_LATEX: utils.FixPlot(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
@@ -11,8 +13,8 @@ else: utils.FixPlot_(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 fig, ax = plt.subplots()
 fig.set_size_inches(cmd_parser.WIDTH, cmd_parser.HEIGHT)
 
-ax.plot(data[0] / utils.NANO, data[1])
-ax.plot(data[0] / utils.NANO, data[2])
+ax.plot(data[0] / utils.NANO, data[4])
+ax.plot(data[0] / utils.NANO, data[5])
 
 if cmd_parser.USE_LATEX:
     ax.set_xlabel("$t$(ns)")

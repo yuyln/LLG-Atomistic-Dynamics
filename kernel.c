@@ -90,47 +90,45 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
     g_new->grid[I] = c_new;
 }
 
-kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, double norm_time, int i, int cut, global info_pack_t *sim_info, int calc_energy) {
-	if (i % cut == 0) {
-        size_t I = get_global_id(0);
-        int col = I % COLS;
-        int row = (I - col) / COLS;
+kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, double norm_time, global info_pack_t *sim_info, int calc_energy) {
+    size_t I = get_global_id(0);
+    int col = I % COLS;
+    int row = (I - col) / COLS;
 
-        grid_param_t gp = g_old->param;
-        anisotropy_t ani = g_old->ani[I];
-        region_param_t region = g_old->regions[I];
+    grid_param_t gp = g_old->param;
+    anisotropy_t ani = g_old->ani[I];
+    region_param_t region = g_old->regions[I];
 
-        v3d c0 = get_pbc_v3d(row, col, g_old->grid, ROWS, COLS, gp.pbc);
-        v3d c1 = get_pbc_v3d(row, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
-        v3d l1 = get_pbc_v3d(row, col - 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
-        v3d r1 = get_pbc_v3d(row, col + 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
-        v3d u1 = get_pbc_v3d(row + 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
-        v3d d1 = get_pbc_v3d(row - 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
+    v3d c0 = get_pbc_v3d(row, col, g_old->grid, ROWS, COLS, gp.pbc);
+    v3d c1 = get_pbc_v3d(row, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
+    v3d l1 = get_pbc_v3d(row, col - 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
+    v3d r1 = get_pbc_v3d(row, col + 1, g_new->grid, gp.rows, gp.cols, gp.pbc);
+    v3d u1 = get_pbc_v3d(row + 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
+    v3d d1 = get_pbc_v3d(row - 1, col, g_new->grid, gp.rows, gp.cols, gp.pbc);
 
-        uint64_t x = I % gp.cols;
-        uint64_t y = (I - x) / gp.cols;
+    uint64_t x = I % gp.cols;
+    uint64_t y = (I - x) / gp.cols;
 
-        double charge_i = charge(c1, l1, r1, u1, d1);
-        double charge_i_old = charge_old(c1, l1, r1, u1, d1);
-        sim_info[I].charge_cx = x * charge_i;
-        sim_info[I].charge_cy = y * charge_i;
+    double charge_i = charge(c1, l1, r1, u1, d1);
+    double charge_i_old = charge_old(c1, l1, r1, u1, d1);
+    sim_info[I].charge_cx = x * charge_i;
+    sim_info[I].charge_cy = y * charge_i;
 
-        v3d vt = velocity_weighted(c0, c1, c1, l1, r1, u1, d1, dt * 0.5);
+    v3d vt = velocity_weighted(c0, c1, c1, l1, r1, u1, d1, dt * 0.5);
 
-        sim_info[I].vx = vt.x;
-        sim_info[I].vy = vt.y;
-        sim_info[I].avg_mag = c1;
-        sim_info[I].charge_lattice = charge_i;
-        sim_info[I].charge_finite = charge_i_old;
-        if (calc_energy) {
-            sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field, norm_time);
-            sim_info[I].energy_exchange = 0.5 * exchange_energy(c1, l1, r1, u1, d1, gp, region);
-            sim_info[I].energy_dm = 0.5 * dm_energy(c1, l1, r1, u1, d1, gp, region);
-            sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field, norm_time);
-            sim_info[I].energy_anisotropy = anisotropy_energy(c1, ani);
-            sim_info[I].energy_cubic_anisotropy = cubic_anisotropy_energy(c1, gp);
-        }
-	}
+    sim_info[I].vx = vt.x;
+    sim_info[I].vy = vt.y;
+    sim_info[I].avg_mag = c1;
+    sim_info[I].charge_lattice = charge_i;
+    sim_info[I].charge_finite = charge_i_old;
+    if (calc_energy) {
+        sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field, norm_time);
+        sim_info[I].energy_exchange = 0.5 * exchange_energy(c1, l1, r1, u1, d1, gp, region);
+        sim_info[I].energy_dm = 0.5 * dm_energy(c1, l1, r1, u1, d1, gp, region);
+        sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field, norm_time);
+        sim_info[I].energy_anisotropy = anisotropy_energy(c1, ani);
+        sim_info[I].energy_cubic_anisotropy = cubic_anisotropy_energy(c1, gp);
+    }
 }
 
 kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d *g_c, global v3d *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed, v3d field) {
