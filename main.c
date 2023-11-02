@@ -12,10 +12,10 @@ int main(int argc, const char **argv) {
     double p = -1.0;
     double theta_sh = 1.0;
     double beta = 0.0;
-    CUR_TYPE cur_type = CUR_CPP;
+    CUR_TYPE cur_type = CUR_NONE;
     double dh = 5.0e-10;
 
-    double Hz_norm =  0.5,
+    double Hz_norm =  10.0,
            Hy_norm =  0.0,
            Hx_norm =  0.0;
     if (argc < 2) {
