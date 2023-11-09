@@ -15,7 +15,7 @@ int main(int argc, const char **argv) {
     CUR_TYPE cur_type = CUR_NONE;
     double dh = 5.0e-10;
 
-    double Hz_norm =  10.0,
+    double Hz_norm =  0.5,
            Hy_norm =  0.0,
            Hx_norm =  0.0;
     if (argc < 2) {

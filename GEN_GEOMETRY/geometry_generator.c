@@ -16,11 +16,12 @@
 
 int main(void) {
 	FILE *f_out = fopen("./pinning.in", "w");
+    fprintf(f_out, "A\nData:\n");
 	int cols = 272;
 	int rows = 272;
 
-    int nqx = 5;
-    int nqy = 5;
+    int nqx = 6;
+    int nqy = 6;
     int pad = 20;
 
     int sqx = (cols - nqx * pad) / nqx;

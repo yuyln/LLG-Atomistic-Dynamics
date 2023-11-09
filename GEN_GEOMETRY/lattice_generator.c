@@ -20,8 +20,8 @@
 
 int main(void) {
     FILE *f_out = fopen("./starting.in", "wb");
-    int cols = 64;
-    int rows = 64;
+    int cols = 272;
+    int rows = 272;
     v3d *grid = (v3d*)calloc(cols * rows, sizeof(v3d));
     double rskyr = 4.0;
     for (int I = 0; I < cols * rows; ++I)
