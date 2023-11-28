@@ -210,43 +210,41 @@ simulator_t init_simulator(const char *path) {
     ret.g_old.param.total_time = ret.dt * ret.n_steps;
     grid_copy(&ret.g_new, &ret.g_old);
     ret.use_gpu = (bool)parser_get_int("GPU", 10, 1, &input_ctx);
-    if (ret.use_gpu) {
-        ret.gpu.i_plat = parser_get_int("PLAT", 10, 0, &input_ctx);
-        ret.gpu.i_dev = parser_get_int("DEV", 10, 0, &input_ctx);
-        ret.gpu.plats = clw_init_platforms(&ret.gpu.n_plats);
+    ret.gpu.i_plat = parser_get_int("PLAT", 10, 0, &input_ctx);
+    ret.gpu.i_dev = parser_get_int("DEV", 10, 0, &input_ctx);
+    ret.gpu.plats = clw_init_platforms(&ret.gpu.n_plats);
 
-        for (uint64_t i = 0; i < ret.gpu.n_plats; ++i)
-            clw_get_platform_info(stdout, ret.gpu.plats[i], i);
+    for (uint64_t i = 0; i < ret.gpu.n_plats; ++i)
+        clw_get_platform_info(stdout, ret.gpu.plats[i], i);
 
-        ret.gpu.devs = clw_init_devices(ret.gpu.plats[ret.gpu.i_plat], &ret.gpu.n_devs);
-        for (uint64_t i = 0; i < ret.gpu.n_devs; ++i)
-            clw_get_device_info(stdout, ret.gpu.devs[i], i);
+    ret.gpu.devs = clw_init_devices(ret.gpu.plats[ret.gpu.i_plat], &ret.gpu.n_devs);
+    for (uint64_t i = 0; i < ret.gpu.n_devs; ++i)
+        clw_get_device_info(stdout, ret.gpu.devs[i], i);
 
-        ret.gpu.ctx = clw_init_context(ret.gpu.devs, ret.gpu.n_devs);
-        ret.gpu.queue = clw_init_queue(ret.gpu.ctx, ret.gpu.devs[ret.gpu.i_dev]);
-        ret.gpu.program = clw_init_program_source(ret.gpu.ctx, kernel_data);
+    ret.gpu.ctx = clw_init_context(ret.gpu.devs, ret.gpu.n_devs);
+    ret.gpu.queue = clw_init_queue(ret.gpu.ctx, ret.gpu.devs[ret.gpu.i_dev]);
+    ret.gpu.program = clw_init_program_source(ret.gpu.ctx, kernel_data);
 
-        char *comp_opt;
-        //const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose -cl-fast-relaxed-math";
-        const char* compile_line = "-I./ -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-fast-relaxed-math";
+    char *comp_opt;
+    //const char* compile_line = "-DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-nv-verbose -cl-fast-relaxed-math";
+    const char* compile_line = "-I./ -DROWS=%d -DCOLS=%d -DTOTAL=%zu -DOPENCLCOMP -D%s -cl-fast-relaxed-math";
 
 
-        uint64_t comp_opt_size = snprintf(NULL, 0, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
-        comp_opt = (char *)calloc(comp_opt_size, 1);
-        snprintf(comp_opt, comp_opt_size, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
-        comp_opt[comp_opt_size - 1] = '\0';
+    uint64_t comp_opt_size = snprintf(NULL, 0, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method) + 1;
+    comp_opt = (char *)calloc(comp_opt_size, 1);
+    snprintf(comp_opt, comp_opt_size, compile_line, ret.g_old.param.rows, ret.g_old.param.cols, ret.g_old.param.total, integration_method);
+    comp_opt[comp_opt_size - 1] = '\0';
 
-        printf("Compile OpenCL: %s\n", comp_opt);
-        cl_int err = clw_build_program(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
-        clw_get_program_build_info(stdout, ret.gpu.program, ret.gpu.devs[ret.gpu.i_dev], err);
+    printf("Compile OpenCL: %s\n", comp_opt);
+    cl_int err = clw_build_program(ret.gpu.program, ret.gpu.n_devs, ret.gpu.devs, comp_opt);
+    clw_get_program_build_info(stdout, ret.gpu.program, ret.gpu.devs[ret.gpu.i_dev], err);
 
-        free(comp_opt);
-        ret.g_old_buffer = clw_create_buffer(find_grid_size_bytes(&ret.g_old), ret.gpu.ctx, CL_MEM_READ_WRITE);
-        ret.g_new_buffer = clw_create_buffer(find_grid_size_bytes(&ret.g_new), ret.gpu.ctx, CL_MEM_READ_WRITE);
-        full_grid_write_buffer(ret.gpu.queue, ret.g_old_buffer, &ret.g_old);
-        full_grid_write_buffer(ret.gpu.queue, ret.g_new_buffer, &ret.g_new);
-        ret.gpu.kernels = clw_init_kernels(ret.gpu.program, kernels, kernels_n);
-    }
+    free(comp_opt);
+    ret.g_old_buffer = clw_create_buffer(find_grid_size_bytes(&ret.g_old), ret.gpu.ctx, CL_MEM_READ_WRITE);
+    ret.g_new_buffer = clw_create_buffer(find_grid_size_bytes(&ret.g_new), ret.gpu.ctx, CL_MEM_READ_WRITE);
+    full_grid_write_buffer(ret.gpu.queue, ret.g_old_buffer, &ret.g_old);
+    full_grid_write_buffer(ret.gpu.queue, ret.g_new_buffer, &ret.g_new);
+    ret.gpu.kernels = clw_init_kernels(ret.gpu.program, kernels, kernels_n);
 
 
     parser_end(&input_ctx);

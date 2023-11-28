@@ -6,33 +6,32 @@
 #include "constants.h"
 #endif
 
+v3d field_joule_to_tesla(v3d field, double mu_s) {
+    return v3d_scalar(field, 1.0 / mu_s);
+}
 
-current_t generate_current(int i, int j, grid_param_t gp, current_t base, double norm_time) {
+v3d field_tesla_to_joule(v3d field, double mu_s) {
+    return v3d_scalar(field, mu_s);
+}
+
+double current_normalized_to_real(double density, grid_param_t gp) {
+    return 2.0 * QE * gp.avg_spin * fabs(gp.exchange) * density / (gp.lattice * gp.lattice * HBAR);
+}
+
+double current_real_to_normalized(double density, grid_param_t gp) {
+    return gp.lattice * gp.lattice * HBAR * density / (2.0 * QE * gp.avg_spin * fabs(gp.exchange));
+}
+
+current_t generate_current(int i, int j, grid_param_t gp, double norm_time) {
     UNUSED(i); UNUSED(j); UNUSED(gp); UNUSED(norm_time);
+    current_t base = {0};
     return base;
 }
 
-v3d generate_field(int i, int j, grid_param_t gp, v3d base, double norm_time) {
+v3d generate_field(int i, int j, grid_param_t gp, double norm_time) {
     UNUSED(i); UNUSED(j); UNUSED(gp); UNUSED(norm_time);
+    v3d base = {0};
     return base;
-}
-
-v3d linear_interpolation(v3d v1, v3d v2, double t) {
-    return v3d_add(v1, v3d_scalar(v3d_sub(v2, v1), t));
-}
-
-v3d bilinear_interpolation(v3d v00, v3d v10, v3d v11, v3d v01, double u, double v) {
-    v3d b = v3d_sub(v10, v00);
-    v3d c = v3d_sub(v01, v00);
-    v3d d = v3d_sub(v11, v10);
-    d = v3d_sub(d, v01);
-    d = v3d_add(d, v00);
-
-    v3d ret = v00;
-    ret = v3d_add(ret, v3d_scalar(b, u));
-    ret = v3d_add(ret, v3d_scalar(c, v));
-    ret = v3d_add(ret, v3d_scalar(d, u * v));
-    return ret;
 }
 
 //WARNING: This should be the ONLY access to global memory when running on GPU
@@ -69,35 +68,20 @@ v3d get_dm_v3d(int drow, int dcol, DM_TYPE dm_type, double dm) {
     switch (dm_type) {
         case R_ij:
             return v3d_c(dcol * dm, drow * dm, 0.0);
-
-        /*case R_ij_ANISOTROPIC_X:
-            return v3d_c(-dcol * dm, drow * dm, 0.0);
-
-        case R_ij_ANISOTROPIC_Y:
-            return v3d_c(dcol * dm, -drow * dm, 0.0);*/
-
         case Z_CROSS_R_ij:
             return v3d_c(-drow * dm, dcol * dm, 0.0);
-
-        /*case Z_CROSS_R_ij_ANISOTROPIC_X:
-            return v3d_c(drow * dm, dcol * dm, 0.0);
-
-        case Z_CROSS_R_ij_ANISOTROPIC_Y:
-            return v3d_c(-drow * dm, -dcol * dm, 0.0);*/
-
         case R_ij_CROSS_Z:
             return v3d_c(drow * dm, -dcol * dm, 0.0);
     }
-
     return v3d_s(0.0);
 }
 
 double exchange_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
                        grid_param_t gp, region_param_t region) {
     return -gp.exchange * region.exchange_mult * (v3d_dot(c, right)+
-                                                 v3d_dot(c, left) +
-                                                 v3d_dot(c, up)   +
-                                                 v3d_dot(c, down));
+                                                  v3d_dot(c, left) +
+                                                  v3d_dot(c, up)   +
+                                                  v3d_dot(c, down));
 }
 
 double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
@@ -115,8 +99,8 @@ double dm_energy(v3d c, v3d left, v3d right, v3d up, v3d down,
 
 }
 
-double zeeman_energy(int row, int col, v3d c, grid_param_t gp, v3d field, double norm_time) {
-    return -v3d_dot(c, generate_field(row, col, gp, field, norm_time));
+double zeeman_energy(int row, int col, v3d c, grid_param_t gp, double norm_time) {
+    return -v3d_dot(c, generate_field(row, col, gp, norm_time));
 }
 
 double anisotropy_energy(v3d c, anisotropy_t ani) {
@@ -131,10 +115,10 @@ double cubic_anisotropy_energy(v3d c, grid_param_t gp) {
 
 double hamiltonian_I(int row, int col,
                      v3d c, v3d left, v3d right, v3d up, v3d down,
-                     grid_param_t gp, anisotropy_t ani, region_param_t region, v3d field, double norm_time) {
+                     grid_param_t gp, anisotropy_t ani, region_param_t region, double norm_time) {
 
 
-    double out = zeeman_energy(row, col, c, gp, field, norm_time);
+    double out = zeeman_energy(row, col, c, gp, norm_time);
 
     out += 0.5 * exchange_energy(c, left, right, up, down, gp, region);
 
@@ -146,7 +130,7 @@ double hamiltonian_I(int row, int col,
     return out;
 }
 
-double hamiltonian(GLOBAL grid_t* g, v3d field, double norm_time) CPU_ONLY { 
+double hamiltonian(GLOBAL grid_t* g, double norm_time) CPU_ONLY { 
     double ret = 0.0;
     for (uint64_t I = 0; I < g->param.total; ++I) {
         int col = I % g->param.cols;
@@ -156,7 +140,7 @@ double hamiltonian(GLOBAL grid_t* g, v3d field, double norm_time) CPU_ONLY {
         v3d r = get_pbc_v3d(row, col + 1, g->grid, g->param.rows, g->param.cols, g->param.pbc);
         v3d u = get_pbc_v3d(row + 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
         v3d d = get_pbc_v3d(row - 1, col, g->grid, g->param.rows, g->param.cols, g->param.pbc);
-        ret += hamiltonian_I(row, col, c, l, r, u, d, g->param, g->ani[I], g->regions[I], field, norm_time);
+        ret += hamiltonian_I(row, col, c, l, r, u, d, g->param, g->ani[I], g->regions[I], norm_time);
     }
     return ret;
 }
@@ -182,7 +166,7 @@ v3d v3d_dot_grad_v3d(v3d v, v3d left, v3d right, v3d up, v3d down, double dx, do
 
 v3d dH_dSi(int row, int col,
            v3d c, v3d left, v3d right, v3d up, v3d down, 
-           grid_param_t gp, region_param_t region, anisotropy_t ani, v3d field, double norm_time) {
+           grid_param_t gp, region_param_t region, anisotropy_t ani, double norm_time) {
     v3d ret = v3d_s(0.0);
 
     v3d DMR = get_dm_v3d(0, 1, region.dm_type, -(gp.dm * region.dm_mult + gp.dm_ani * region.dm_ani_mult)), 
@@ -210,7 +194,7 @@ v3d dH_dSi(int row, int col,
                         -4.0 * gp.cubic_ani * c.z * c.z * c.z);
     ret = v3d_add(ret, cub_ani);
     
-    ret = v3d_sub(ret, generate_field(row, col, gp, field, norm_time));
+    ret = v3d_sub(ret, generate_field(row, col, gp, norm_time));
 
     return ret;
 }
@@ -218,13 +202,13 @@ v3d dH_dSi(int row, int col,
 v3d ds_dtau(int row, int col,
             v3d c, v3d left, v3d right, v3d up, v3d down, 
             grid_param_t gp, region_param_t region, anisotropy_t ani,
-            v3d field, current_t cur, double norm_time) {
-    v3d Heff = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, norm_time);
+            double norm_time) {
+    v3d Heff = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, norm_time);
     v3d V = v3d_cross(c, Heff);
+    current_t cur = generate_current(row, col, gp, norm_time);
 
     switch (cur.type) {
         case CUR_CPP: {
-            cur = generate_current(row, col, gp, cur, norm_time);
             double factor = cur.theta_sh * gp.lattice / cur.thick;
             v3d cur_local = v3d_scalar(v3d_cross(cur.p, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
@@ -232,22 +216,18 @@ v3d ds_dtau(int row, int col,
             break;
         }
         case CUR_STT: {
-            cur = generate_current(row, col, gp, cur, norm_time);
             v3d cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, 1.0, 1.0);
             V = v3d_add(V, v3d_scalar(cur_local, cur.P));
             V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta));
             break;
         }
         case CUR_BOTH: {
-
-            cur = generate_current(row, col, gp, cur, norm_time);
             double factor = cur.theta_sh * gp.lattice / cur.thick;
             v3d cur_local = v3d_scalar(v3d_cross(cur.p, c), factor);
             V = v3d_add(V, v3d_cross(c, cur_local));
             V = v3d_add(V, v3d_scalar(cur_local, -cur.beta));
 
 
-            cur = generate_current(row, col, gp, cur, norm_time);
             cur_local = v3d_dot_grad_v3d(cur.j, left, right, up, down, 1.0, 1.0);
             V = v3d_add(V, v3d_scalar(cur_local, cur.P));
             V = v3d_sub(V, v3d_scalar(v3d_cross(c, cur_local), cur.P * cur.beta));
@@ -265,30 +245,30 @@ v3d ds_dtau(int row, int col,
 v3d grid_step(int row, int col, 
               v3d c, v3d left, v3d right, v3d up, v3d down,
               grid_param_t gp, region_param_t region, anisotropy_t ani,
-              v3d field, current_t cur, double dt, double norm_time) {
+              double dt, double norm_time) {
     #if defined(RK4)
     v3d rk1, rk2, rk3, rk4;
-    rk1 = ds_dtau(row, col, c, left, right, up, down, gp, region, ani, field, cur, norm_time);
+    rk1 = ds_dtau(row, col, c, left, right, up, down, gp, region, ani, norm_time);
 
-    rk2 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk1, dt / 2.0)), left, right, up, down, gp, region, ani, field, cur, norm_time + dt / 2.0);
+    rk2 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk1, dt / 2.0)), left, right, up, down, gp, region, ani, norm_time + dt / 2.0);
 
-    rk3 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk2, dt / 2.0)), left, right, up, down, gp, region, ani, field, cur, norm_time + dt / 2.0);
+    rk3 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk2, dt / 2.0)), left, right, up, down, gp, region, ani, norm_time + dt / 2.0);
 
-    rk4 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk3, dt)), left, right, up, down, gp, region, ani, field, cur, norm_time + dt);
+    rk4 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk3, dt)), left, right, up, down, gp, region, ani, norm_time + dt);
 
     return v3d_scalar(v3d_add(v3d_add(rk1, v3d_scalar(rk2, 2.0)), v3d_add(v3d_scalar(rk3, 2.0), rk4)), dt / 6.0);
 
     #elif defined(RK2)
     v3d rk1, rk2;
 
-    rk1 = ds_dtau(row, col, c, left, right, up, down, gp, region, ani, field, cur, norm_time);
+    rk1 = ds_dtau(row, col, c, left, right, up, down, gp, region, ani, norm_time);
 
-    rk2 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk1, dt)), left, right, up, down, gp, region, ani, field, cur, norm_time + dt);
+    rk2 = ds_dtau(row, col, v3d_add(c, v3d_scalar(rk1, dt)), left, right, up, down, gp, region, ani, norm_time + dt);
 
     return v3d_scalar(v3d_add(rk1, rk2), dt / 2.0);
 
     #elif defined(EULER)
-    return ds_dtau(row, col, c, left, right, up, down, gp, region, ani, field, cur, norm_time);
+    return ds_dtau(row, col, c, left, right, up, down, gp, region, ani, norm_time);
 
     #else
     return (v3d){0.0, 0.0, 0.0};
@@ -366,8 +346,8 @@ v3d gradient_descente_velocity(v3d g_p, v3d g_n, double dt) {
 v3d gradient_descent_force(int row, int col,
                            v3d c, v3d left, v3d right, v3d up, v3d down,
                            grid_param_t gp, region_param_t region, anisotropy_t ani,
-                           v3d field, double alpha, double beta, v3d vel) {
-    v3d F = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, field, 0);
+                           double alpha, double beta, v3d vel) {
+    v3d F = dH_dSi(row, col, c, left, right, up, down, gp, region, ani, 0.0);
     F = v3d_sub(F, v3d_scalar(vel, alpha));
     F = v3d_sub(F, v3d_scalar(c, beta));
     return F;

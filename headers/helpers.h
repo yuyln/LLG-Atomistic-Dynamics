@@ -317,14 +317,6 @@ void find_grid_param_path(const char* path, grid_param_t* g) {
     parser_end(&ctx);
 }
 
-v3d field_joule_to_tesla(v3d field, double mu_s) {
-    return v3d_scalar(field, 1.0 / mu_s);
-}
-
-v3d field_tesla_to_joule(v3d field, double mu_s) {
-    return v3d_scalar(field, mu_s);
-}
-
 void full_grid_write_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
     uint64_t off = 0;
     clw_write_buffer(buffer, &g->param, sizeof(grid_param_t), off, q);
@@ -361,212 +353,7 @@ void read_v3d_grid_buffer(cl_command_queue q, cl_mem buffer, grid_t *g) {
     clw_read_buffer(buffer, g->grid, g->param.total * sizeof(v3d), sizeof(grid_param_t), q);
 }
 
-
-void integrate_simulator_single(simulator_t* s, v3d field, current_t cur, const char* file_name) {
-    FILE *fly = file_open(file_name, "wb", 1);
-    if (s->write_on_fly && (!s->doing_relax)) {
-        int steps = (int)(s->n_steps / s->write_cut);
-        int fcut = s->write_cut;
-        double dt_real = s->dt * HBAR / fabs(s->real_param.exchange);
-        fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
-        fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
-        fwrite(&steps, sizeof(int), 1, fly);
-        fwrite(&fcut, sizeof(int), 1, fly);
-        fwrite(&dt_real, sizeof(double), 1, fly);
-        fwrite(&s->real_param.lattice, sizeof(double), 1, fly);
-    }
-    memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
-
-    profiler_start_measure("SINGLE CPU INTEGRATION");
-
-    for (uint64_t i = 0; i < s->n_steps; ++i) {
-        if (i % (s->n_steps / 10) == 0) {
-            printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-            fflush(stdout);
-        }
-        double norm_time = (double)i * s->dt * (!s->doing_relax);
-        uint64_t t = i / s->write_vel_charge_cut;
-        for (uint64_t I = 0; I < s->g_old.param.total; ++I) {
-            int col = I % s->g_old.param.cols;
-            int row = (I - col) / s->g_old.param.cols;
-
-            v3d c = get_pbc_v3d(row, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d left = get_pbc_v3d(row, col - 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d right = get_pbc_v3d(row, col + 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d up = get_pbc_v3d(row + 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d down = get_pbc_v3d(row - 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-
-            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], grid_step(row, col, c, left, right, up, down, s->g_old.param, s->g_old.regions[I], s->g_old.ani[I], field, cur, s->dt, norm_time));
-            s->g_new.grid[I] = grid_normalize(s->g_new.grid[I], s->g_old.pinning[I]);
-
-            if (i % s->write_vel_charge_cut == 0) {
-                v3d c0 = c;
-                v3d c1 = get_pbc_v3d(row, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d left1 = get_pbc_v3d(row, col - 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d right1 = get_pbc_v3d(row, col + 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d up1 = get_pbc_v3d(row + 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d down1 = get_pbc_v3d(row - 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-
-                uint64_t x = I % s->g_old.param.cols;
-                uint64_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge(c, left, right, up, down);
-                double charge_i_old = charge_old(c, left, right, up, down);
-                s->simulation_info[t].charge_cx += x * charge_i;
-                s->simulation_info[t].charge_cy += y * charge_i;
-
-                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->dt * 0.5);
-
-                s->simulation_info[t].vx += vt.x;
-                s->simulation_info[t].vy += vt.y;
-                s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, s->g_new.grid[I]);
-                s->simulation_info[t].charge_lattice += charge_i;
-                s->simulation_info[t].charge_finite += charge_i_old;
-                s->simulation_info[t].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field, norm_time);
-                s->simulation_info[t].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                s->simulation_info[t].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                s->simulation_info[t].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field, norm_time);
-                s->simulation_info[t].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
-                s->simulation_info[t].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
-            }
-        }
-
-        memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
-        if (i % s->write_vel_charge_cut == 0)
-            s->simulation_info[t].avg_mag = v3d_scalar(s->simulation_info[t].avg_mag, 1.0 / (double)s->g_old.param.total);
-
-        if (i % s->write_cut == 0) {
-            t = i / s->write_cut;
-            if (s->write_to_file)
-                memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(v3d) * s->g_old.param.total);
-            if (s->write_on_fly && (!s->doing_relax))
-                fwrite(s->g_old.grid, sizeof(v3d) * s->g_old.param.total, 1, fly);
-        }
-    }
-
-    profiler_end_measure("SINGLE CPU INTEGRATION");
-
-    fclose(fly);
-}
-
-void integrate_simulator_multiple(simulator_t* s, v3d field, current_t cur, const char* file_name) {
-    FILE *fly = file_open(file_name, "wb", 1);
-    if (s->write_on_fly && (!s->doing_relax)) {
-        int steps = (int)(s->n_steps / s->write_cut);
-        int fcut = s->write_cut;
-        double dt_real = s->dt * HBAR / fabs(s->real_param.exchange);
-        fwrite(&s->g_old.param.rows, sizeof(int), 1, fly);
-        fwrite(&s->g_old.param.cols, sizeof(int), 1, fly);
-        fwrite(&steps, sizeof(int), 1, fly);
-        fwrite(&fcut, sizeof(int), 1, fly);
-        fwrite(&dt_real, sizeof(double), 1, fly);
-        fwrite(&s->real_param.lattice, sizeof(double), 1, fly);
-    }
-    memset(s->simulation_info, 0, sizeof(info_pack_t) * s->n_steps / s->write_vel_charge_cut);
-    info_pack_t *sim_info_thread = (info_pack_t*)calloc(s->n_cpu, sizeof(info_pack_t));
-
-    profiler_start_measure("MULTI CPU INTEGRATION");
-
-    for (uint64_t i = 0; i < s->n_steps; ++i) {
-        double norm_time = (double)i * s->dt * (!s->doing_relax);
-        uint64_t t = i / s->write_vel_charge_cut;
-
-        if (i % s->write_vel_charge_cut == 0)
-            memset(sim_info_thread, 0, sizeof(info_pack_t) * s->n_cpu);
-
-        if (i % (s->n_steps / 10) == 0) {
-            printf("%.3f%%\n", 100.0 * (double)i / (double)s->n_steps);
-            fflush(stdout);
-        }
-
-        int I = 0; //For Visual Studio not complain
-#pragma omp parallel for num_threads(s->n_cpu)
-        for (I = 0; I < s->g_old.param.total; ++I) {
-
-            int col = I % s->g_old.param.cols;
-            int row = (I - col) / s->g_old.param.cols;
-
-            v3d c = get_pbc_v3d(row, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d left = get_pbc_v3d(row, col - 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d right = get_pbc_v3d(row, col + 1, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d up = get_pbc_v3d(row + 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-            v3d down = get_pbc_v3d(row - 1, col, s->g_old.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-
-            s->g_new.grid[I] = v3d_add(s->g_old.grid[I], grid_step(row, col, c, left, right, up, down, s->g_old.param, s->g_old.regions[I], s->g_old.ani[I], field, cur, s->dt, norm_time));
-            s->g_new.grid[I] = grid_normalize(s->g_new.grid[I], s->g_old.pinning[I]);
-
-            if (i % s->write_vel_charge_cut == 0) {
-                int nt = omp_get_thread_num();
-
-
-                v3d c0 = c;
-                v3d c1 = get_pbc_v3d(row, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d left1 = get_pbc_v3d(row, col - 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d right1 = get_pbc_v3d(row, col + 1, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d up1 = get_pbc_v3d(row + 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-                v3d down1 = get_pbc_v3d(row - 1, col, s->g_new.grid, s->g_old.param.rows, s->g_old.param.cols, s->g_old.param.pbc);
-
-                uint64_t x = I % s->g_old.param.cols;
-                uint64_t y = (I - x) / s->g_old.param.cols;
-                double charge_i = charge(c, left, right, up, down);
-                double charge_i_old = charge_old(c, left, right, up, down);
-
-                sim_info_thread[nt].charge_cx += x * charge_i;
-                sim_info_thread[nt].charge_cy += y * charge_i;
-
-
-                v3d vt = velocity_weighted(c1, c0, c1, left1, right1, up1, down1, s->dt * 0.5);
-                
-                sim_info_thread[nt].vx += vt.x;
-                sim_info_thread[nt].vy += vt.y;
-                sim_info_thread[nt].avg_mag = v3d_add(sim_info_thread[nt].avg_mag, s->g_new.grid[I]);
-                sim_info_thread[nt].charge_finite += charge_i;
-                sim_info_thread[nt].charge_lattice += charge_i_old;
-
-                sim_info_thread[nt].energy += hamiltonian_I(row, col, c1, left1, right1, up1, down1, s->g_old.param, s->g_old.ani[I], s->g_old.regions[I], field, norm_time);
-                sim_info_thread[nt].energy_exchange += 0.5 * exchange_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                sim_info_thread[nt].energy_dm += 0.5 * dm_energy(c1, left1, right1, up1, down1, s->g_old.param, s->g_old.regions[I]);
-                sim_info_thread[nt].energy_zeeman += zeeman_energy(row, col, c1, s->g_old.param, field, norm_time);
-                sim_info_thread[nt].energy_anisotropy += anisotropy_energy(c1, s->g_old.ani[I]);
-                sim_info_thread[nt].energy_cubic_anisotropy += cubic_anisotropy_energy(c1, s->g_old.param);
-            }
-        }
-
-        memcpy(s->g_old.grid, s->g_new.grid, sizeof(v3d) * s->g_old.param.total);
-        if (i % s->write_vel_charge_cut == 0)  {
-            for (uint64_t k = 0; k < s->n_cpu; ++k) {
-                s->simulation_info[t].vx += sim_info_thread[k].vx;
-                s->simulation_info[t].vy += sim_info_thread[k].vy;
-                s->simulation_info[t].charge_cx += sim_info_thread[k].charge_cx;
-                s->simulation_info[t].charge_cy += sim_info_thread[k].charge_cy;
-                s->simulation_info[t].avg_mag = v3d_add(s->simulation_info[t].avg_mag, sim_info_thread[k].avg_mag);
-                s->simulation_info[t].charge_lattice += sim_info_thread[k].charge_lattice;
-                s->simulation_info[t].charge_finite += sim_info_thread[k].charge_finite;
-                s->simulation_info[t].energy += sim_info_thread[k].energy;
-                s->simulation_info[t].energy_exchange += sim_info_thread[k].energy_exchange;
-                s->simulation_info[t].energy_dm += sim_info_thread[k].energy_dm;
-                s->simulation_info[t].energy_zeeman += sim_info_thread[k].energy_zeeman;
-                s->simulation_info[t].energy_anisotropy += sim_info_thread[k].energy_anisotropy;
-                s->simulation_info[t].energy_cubic_anisotropy += sim_info_thread[k].energy_cubic_anisotropy;
-            }
-
-            s->simulation_info[t].avg_mag = v3d_scalar(s->simulation_info[t].avg_mag, 1.0 / (double)s->g_old.param.total);
-        }
-
-        if (i % s->write_cut == 0) {
-            t = i / s->write_cut;
-            if (s->write_to_file)
-                memcpy(&s->grid_out_file[t * s->g_old.param.total], s->g_old.grid, sizeof(v3d) * s->g_old.param.total);
-            if (s->write_on_fly && (!s->doing_relax))
-                fwrite(s->g_old.grid, sizeof(v3d) * s->g_old.param.total, 1, fly);
-        }
-    }
-    fclose(fly);
-    free(sim_info_thread);
-
-    profiler_end_measure("MULTI CPU INTEGRATION");
-}
-
-void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const char* file_name) {
+void integrate_simulator(simulator_t *s, const char* file_name) {
     FILE *fly = file_open(file_name, "wb", 1);
     if (s->write_on_fly && (!s->doing_relax)) {
         int steps = (int)(s->n_steps / s->write_cut);
@@ -587,16 +374,13 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
 
     clw_set_kernel_arg(s->gpu.kernels[3], 0, sizeof(cl_mem), &s->g_old_buffer);
     clw_set_kernel_arg(s->gpu.kernels[3], 1, sizeof(cl_mem), &s->g_new_buffer);
-    clw_set_kernel_arg(s->gpu.kernels[3], 2, sizeof(v3d), &field);
-    clw_set_kernel_arg(s->gpu.kernels[3], 3, sizeof(double), &s->dt);
-    clw_set_kernel_arg(s->gpu.kernels[3], 4, sizeof(current_t), &cur);
+    clw_set_kernel_arg(s->gpu.kernels[3], 2, sizeof(double), &s->dt);
 
 
     clw_set_kernel_arg(s->gpu.kernels[6], 0, sizeof(cl_mem), &s->g_old_buffer);
     clw_set_kernel_arg(s->gpu.kernels[6], 1, sizeof(cl_mem), &s->g_new_buffer);
-    clw_set_kernel_arg(s->gpu.kernels[6], 2, sizeof(v3d), &field);
-    clw_set_kernel_arg(s->gpu.kernels[6], 3, sizeof(double), &s->dt);
-    clw_set_kernel_arg(s->gpu.kernels[6], 6, sizeof(int), &s->calculate_energy);
+    clw_set_kernel_arg(s->gpu.kernels[6], 2, sizeof(double), &s->dt);
+    clw_set_kernel_arg(s->gpu.kernels[6], 5, sizeof(int), &s->calculate_energy);
 
     uint64_t global = s->g_old.param.total;
     uint64_t local = gcd(global, 32);
@@ -606,7 +390,7 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     cl_mem gpu_sim_info_buffer = clw_create_buffer(sizeof(info_pack_t) * s->g_old.param.total, s->gpu.ctx, CL_MEM_READ_WRITE);
     clw_write_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
 
-    clw_set_kernel_arg(s->gpu.kernels[6], 5, sizeof(cl_mem), &gpu_sim_info_buffer);
+    clw_set_kernel_arg(s->gpu.kernels[6], 4, sizeof(cl_mem), &gpu_sim_info_buffer);
     profiler_start_measure("GPU INTEGRATION");
 
     for (uint64_t i = 0; i < s->n_steps; ++i) {
@@ -616,14 +400,14 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
         }
 
         double norm_time = (double)i * s->dt * (!s->doing_relax);
-        clw_set_kernel_arg(s->gpu.kernels[3], 5, sizeof(double), &norm_time);
+        clw_set_kernel_arg(s->gpu.kernels[3], 3, sizeof(double), &norm_time);
 
         clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[3], 1, NULL, &global, &local);
 
         if (i % s->write_vel_charge_cut == 0) {
             uint64_t t = i / s->write_vel_charge_cut;
 
-            clw_set_kernel_arg(s->gpu.kernels[6], 4, sizeof(double), &norm_time);
+            clw_set_kernel_arg(s->gpu.kernels[6], 3, sizeof(double), &norm_time);
             clw_enqueue_nd(s->gpu.queue, s->gpu.kernels[6], 1, NULL, &global, &local);
             clw_read_buffer(gpu_sim_info_buffer, gpu_sim_info, sizeof(info_pack_t) * s->g_old.param.total, 0, s->gpu.queue);
 
@@ -666,37 +450,6 @@ void integrate_simulator_gpu(simulator_t *s, v3d field, current_t cur, const cha
     free(gpu_sim_info);
     fclose(fly);
 }
-
-void integrate_simulator(simulator_t *s, v3d field, current_t cur, const char* file_name) {
-    if (s->use_gpu)
-        integrate_simulator_gpu(s, field, cur, file_name);
-    else if (s->n_cpu > 1)
-        integrate_simulator_multiple(s, field, cur, file_name);
-    else
-        integrate_simulator_single(s, field, cur, file_name);
-}
-
-double current_normalized_to_real(double density, grid_param_t gp) {
-    return 2.0 * QE * gp.avg_spin * fabs(gp.exchange) * density / (gp.lattice * gp.lattice * HBAR);
-}
-
-double current_real_to_normalized(double density, grid_param_t gp) {
-    return gp.lattice * gp.lattice * HBAR * density / (2.0 * QE * gp.avg_spin * fabs(gp.exchange));
-}
-
-/*v3d total_velocity(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
-    v3d ret = v3d_s(0.0);
-    for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
-        ret = v3d_add(ret, velocity(I, current, before, after, rows, cols, dx, dy, dt, pbc));
-    return v3d_scalar(ret, dx * dy);
-}*/
-
-/*v3d total_velocityW(v3d *current, v3d *before, v3d *after, int rows, int cols, double dx, double dy, double dt, pbc_t pbc) {
-    v3d ret = v3d_s(0.0);
-    for (uint64_t I = 0; I < (uint64_t)(rows * cols); ++I)
-        ret = v3d_add(ret, velocity_weighted(I, current, before, after, rows, cols, dx, dy, dt, pbc));
-    return ret;
-}*/
 
 void write_simulation_data(const char* root_path, simulator_t* s) {
     char *out_charge;

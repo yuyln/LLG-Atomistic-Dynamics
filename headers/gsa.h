@@ -3,95 +3,7 @@
 
 #include "helpers.h"
 
-void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field) {
-    grid_t g_min = grid_init_null(),
-         g_old = grid_init_null(); {
-        printf("qA: %e\n", param.qA);
-        printf("qT: %e\n", param.qT);
-        printf("qV: %e\n", param.qV);
-        printf("T0: %e\n", param.T0);
-        printf("outer_loop: %zu\n", param.outer_loop);
-        printf("inner_loop: %zu\n", param.inner_loop);
-    }
-
-    grid_copy(&g_min, g_in);
-    grid_copy(&g_old, g_in);
-    grid_copy(g_out, g_in);
-
-    double H_old = hamiltonian(&g_old, field, 0.0),
-           H_new = hamiltonian(g_out, field, 0.0),
-           H_min = hamiltonian(&g_min, field, 0.0);
-
-    double qA1 = param.qA - 1.0,
-           qV1 = param.qV - 1.0,
-           qT1 = param.qT - 1.0,
-           oneqA1 = 1.0 / qA1,
-           exp1 = 2.0 / (3.0 - param.qV),
-           exp2 = 1.0 / qV1 - 0.5;
-    
-    for (uint64_t outer = 1; outer <= param.outer_loop; ++outer) {
-        srand(time(NULL));
-        double t = 0.0,
-               Tqt = param.T0 * (pow(2.0, qT1) - 1.0);
-        for (uint64_t inner = 1; inner <= param.inner_loop; ++inner) {
-            t += 1.0;
-            double T = Tqt / (pow(t + 1.0, qT1) - 1.0);
-            if (inner % (param.inner_loop / param.print_param) == 0)
-                printf("outer: %zu inner: %zu H_min: %e T: %e\n", outer, inner, H_min, T);
-            
-            for (uint64_t I = 0; I < g_in->param.total; ++I) {
-                double R = rand_double();
-                double delta = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-                if (rand_double() < 0.5)
-                    delta = -delta;
-                g_out->grid[I].x = g_old.grid[I].x + delta;
-
-                //------------------------------
-
-                R = rand_double();
-                delta = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-                if (rand_double() < 0.5)
-                    delta = -delta;
-                g_out->grid[I].y = g_old.grid[I].y + delta;
-
-                //------------------------------
-
-                R = rand_double();
-                delta = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-                if (rand_double() < 0.5)
-                    delta = -delta;
-                g_out->grid[I].z = g_old.grid[I].z + delta;
-
-                g_out->grid[I] = grid_normalize(g_out->grid[I], g_out->pinning[I]);
-            }
-            
-            H_new = hamiltonian(g_out, field, 0.0);
-
-            if (H_new <= H_min) {
-                H_min = H_new;
-                copy_spins_to_allocated_grid(&g_min, g_out);   
-            }
-
-            if (H_new <= H_old) {
-                H_old = H_new;
-                copy_spins_to_allocated_grid(&g_old, g_out);
-            }
-            else {
-                double df_norm = (H_new - H_old);
-                double pqa = 1.0 / pow(1.0 + qA1 * df_norm / T, oneqA1);
-                if (rand_double() < pqa) {
-                    H_old = H_new;
-                    copy_spins_to_allocated_grid(&g_old, g_out);
-                }
-            }
-        }
-    }
-    grid_copy(g_out, &g_min);
-    grid_free(&g_min);
-    grid_free(&g_old);
-}
-
-void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *gpu) {
+void gsa(gsa_param_t param, grid_t* g_in, grid_t* g_out, gpu_t *gpu) {
     grid_t g_min = grid_init_null(),
          g_old = grid_init_null(); {
         printf("qA: %e\n", param.qA);
@@ -107,9 +19,9 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     grid_copy(g_out, g_in);
 
 
-    double H_old = hamiltonian(&g_old, field, 0.0),
-           H_new = hamiltonian(g_out, field, 0.0),
-           H_min = hamiltonian(&g_min, field, 0.0);
+    double H_old = hamiltonian(&g_old, 0.0),
+           H_new = hamiltonian(g_out, 0.0),
+           H_min = hamiltonian(&g_min, 0.0);
 
     grid_free(&g_min);
     grid_free(&g_old);
@@ -144,9 +56,8 @@ void gsa_gpu(gsa_param_t param, grid_t* g_in, grid_t* g_out, v3d field, gpu_t *g
     
     clw_set_kernel_arg(gpu->kernels[1], 0, sizeof(cl_mem), &g_out_buffer);
     clw_set_kernel_arg(gpu->kernels[1], 1, sizeof(cl_mem), &ham_buffer);
-    clw_set_kernel_arg(gpu->kernels[1], 2, sizeof(v3d), &field);
     double t_ = 0.0;
-    clw_set_kernel_arg(gpu->kernels[1], 3, sizeof(double), &t_);
+    clw_set_kernel_arg(gpu->kernels[1], 2, sizeof(double), &t_);
 
     clw_set_kernel_arg(gpu->kernels[2], 1, sizeof(cl_mem), &g_out_buffer);
 

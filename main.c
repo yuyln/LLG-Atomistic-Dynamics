@@ -5,41 +5,22 @@
 
 //TODO: Test regions
 int main(int argc, const char **argv) {
-    double J_norm = 1.0e-2;
-    double jx =  cos(45 * M_PI / 180.0),
-           jy =  sin(45 * M_PI / 180.0),
-           jz =  0.0;
-    double p = -1.0;
-    double theta_sh = 1.0;
-    double beta = 0.0;
-    CUR_TYPE cur_type = CUR_NONE;
-    double dh = 5.0e-10;
-
-    double Hz_norm =  0.5,
-           Hy_norm =  0.0,
-           Hx_norm =  0.0;
     if (argc < 2) {
         printf("No input file provided\n");
         return 1;
     }
+
     simulator_t s = init_simulator(argv[1]);
     export_simulator_path(&s, "./output/export_sim.out");
     printf("Grid size in bytes: %zu\n", find_grid_size_bytes(&s.g_old));
 
-    v3d field_joule = v3d_scalar(v3d_c(Hx_norm, Hy_norm, Hz_norm), s.g_old.param.dm * s.g_old.param.dm);
-    v3d field_real = field_joule_to_tesla(v3d_scalar(field_joule, fabs(s.real_param.exchange)), s.real_param.mu_s);
-    current_t cur;
-
     if (s.do_gsa) {
         dump_v3d_grid("./output/GSA_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
 
-        if (s.use_gpu) {
-            gsa_gpu(s.gsap, &s.g_old, &s.g_new, field_joule, &s.gpu);
-            grid_copy(&s.g_old, &s.g_new);
-            full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
-            full_grid_write_buffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
-        } else
-            gsa(s.gsap, &s.g_old, &s.g_new, field_joule);
+        gsa(s.gsap, &s.g_old, &s.g_new, &s.gpu);
+        grid_copy(&s.g_old, &s.g_new);
+        full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
+        full_grid_write_buffer(s.gpu.queue, s.g_new_buffer, &s.g_new);
 
         dump_v3d_grid("./output/GSA_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
     }
@@ -51,7 +32,7 @@ int main(int argc, const char **argv) {
     if (s.do_gradient) {
         dump_v3d_grid("./output/GRADIENT_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
 
-        gradient_descent(&s.g_old, &s.g_new, s.dt, s.alpha_gradient, s.beta_gradient, s.mass_gradient, s.gradient_steps, field_joule, s.temp_gradient, s.factor_gradient, &s.gpu, s.use_gpu, s.n_cpu);
+        gradient_descent(&s.g_old, &s.g_new, s.dt, s.alpha_gradient, s.beta_gradient, s.mass_gradient, s.gradient_steps, s.temp_gradient, s.factor_gradient, &s.gpu);
         copy_grid_to_allocated_grid(&s.g_old, &s.g_new);
 
         dump_v3d_grid("./output/GRADIENT_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
@@ -62,11 +43,10 @@ int main(int argc, const char **argv) {
 
 
     if (s.do_relax) {
-        cur = (current_t){0};
         printf("Relaxing\n");
         s.doing_relax = true;
         dump_v3d_grid("./output/RELAX_before.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
-        integrate_simulator(&s, field_joule, cur, "./output/did_relax");
+        integrate_simulator(&s, "./output/did_relax");
         dump_v3d_grid("./output/RELAX_after.bin", s.g_old.grid, s.g_old.param.rows, s.g_old.param.cols, s.g_old.param.lattice);
         s.doing_relax = false;
         printf("Done relaxing\n");
@@ -76,19 +56,8 @@ int main(int argc, const char **argv) {
     if (s.use_gpu)
         full_grid_write_buffer(s.gpu.queue, s.g_old_buffer, &s.g_old);
 
-    printf("-------------------------------------\n");
-    printf("Real values:\n");
-    printf("current  || Normalized: %.5e Real: %.5e A/m^2\n", J_norm, current_normalized_to_real(J_norm, s.real_param));
-    printf("Field    || Normalized: (%.5e, %.5e, %.5e) Real: (%.5e, %.5e, %.5e) T\n", field_joule.x, field_joule.y, field_joule.z,
-                                                                                      field_real.x, field_real.y, field_real.z);
-    printf("                       =(%.5e, %.5e, %.5e)D^2/J\n", Hx_norm, Hy_norm, Hz_norm);
-    printf("-------------------------------------\n");
-    v3d j = v3d_normalize(v3d_c(jx, jy, jz));
-    cur = (current_t){.thick = dh, .theta_sh = theta_sh, .j = v3d_scalar(j, J_norm), .P = p, .beta = beta, .type = cur_type,
-                      .p = v3d_scalar(j, J_norm)};
-
     if (s.do_integrate)
-        integrate_simulator(&s, field_joule, cur, "./output/integration_fly.bin");
+        integrate_simulator(&s, "./output/integration_fly.bin");
 
     if (s.write_to_file)
         dump_write_grid("./output/grid_anim_dump.bin", &s);

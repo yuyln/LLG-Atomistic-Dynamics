@@ -39,7 +39,7 @@ kernel void termal_step(global grid_t* g_out, global grid_t* g_old, double T, do
     g_out->grid[I] = local_g_out;
 }
 
-kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, v3d field, double norm_time) {
+kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, double norm_time) {
     size_t I = get_global_id(0);
     int col = I % COLS;
     int row = (I - col) / COLS;
@@ -53,7 +53,7 @@ kernel void hamiltonian_gpu(GLOBAL grid_t* g, GLOBAL double* ham_buffer, v3d fie
     v3d u = get_pbc_v3d(row + 1, col, g->grid, ROWS, COLS, gp.pbc);
     v3d d = get_pbc_v3d(row - 1, col, g->grid, ROWS, COLS, gp.pbc);
 
-    ham_buffer[I] = hamiltonian_I(row, col, c, l, r, u, d, gp, ani, region, field, norm_time);
+    ham_buffer[I] = hamiltonian_I(row, col, c, l, r, u, d, gp, ani, region, norm_time);
 }
 
 kernel void reset_gpu(global grid_t* g_old, global grid_t* g_new) {
@@ -66,7 +66,7 @@ kernel void reset_v3d_gpu(global v3d *v1, global v3d *v2) {
     v1[I] = v2[I];
 }
 
-kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, current_t cur, double norm_time) {
+kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, double dt, double norm_time) {
 	size_t I = get_global_id(0);
     int col = I % COLS;
     int row = (I - col) / COLS;
@@ -83,14 +83,14 @@ kernel void step_gpu(global grid_t *g_old, global grid_t *g_new, v3d field, doub
 
     v3d c_new = {0};
 
-    v3d dm = grid_step(row, col, c, l, r, u, d, gp, region, ani, field, cur, dt, norm_time);
+    v3d dm = grid_step(row, col, c, l, r, u, d, gp, region, ani, dt, norm_time);
 
 	c_new = v3d_add(c, dm);
     c_new = grid_normalize(c_new, pin);
     g_new->grid[I] = c_new;
 }
 
-kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, double dt, double norm_time, global info_pack_t *sim_info, int calc_energy) {
+kernel void process_data(global grid_t *g_old, global grid_t *g_new, double dt, double norm_time, global info_pack_t *sim_info, int calc_energy) {
     size_t I = get_global_id(0);
     int col = I % COLS;
     int row = (I - col) / COLS;
@@ -122,16 +122,16 @@ kernel void process_data(global grid_t *g_old, global grid_t *g_new, v3d field, 
     sim_info[I].charge_lattice = charge_i;
     sim_info[I].charge_finite = charge_i_old;
     if (calc_energy) {
-        sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, field, norm_time);
+        sim_info[I].energy = hamiltonian_I(row, col, c1, l1, r1, u1, d1, gp, ani, region, norm_time);
         sim_info[I].energy_exchange = 0.5 * exchange_energy(c1, l1, r1, u1, d1, gp, region);
         sim_info[I].energy_dm = 0.5 * dm_energy(c1, l1, r1, u1, d1, gp, region);
-        sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, field, norm_time);
+        sim_info[I].energy_zeeman = zeeman_energy(row, col, c1, gp, norm_time);
         sim_info[I].energy_anisotropy = anisotropy_energy(c1, ani);
         sim_info[I].energy_cubic_anisotropy = cubic_anisotropy_energy(c1, gp);
     }
 }
 
-kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d *g_c, global v3d *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed, v3d field) {
+kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d *g_c, global v3d *g_n, double dt, double alpha, double beta, double mass, double T, global double *H, int seed) {
     size_t j = get_global_id(0);
     int col = j % COLS;
     int row = (j - col) / COLS;
@@ -151,7 +151,7 @@ kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d 
     v3d gc = g_c[j];
 
     v3d vel = gradient_descente_velocity(gp, gn, dt);
-    v3d Heff = gradient_descent_force(row, col, c, l, r, u, d, gparam, region, ani, field, alpha, beta, vel);
+    v3d Heff = gradient_descent_force(row, col, c, l, r, u, d, gparam, region, ani, alpha, beta, vel);
 
     if (T != 0) {
         tyche_state state;
@@ -179,5 +179,5 @@ kernel void gradient_step_gpu(global grid_t *g_aux, global v3d *g_p, global v3d 
     u = get_pbc_v3d(row + 1, col, g_n, ROWS, COLS, gparam.pbc);
     d = get_pbc_v3d(row - 1, col, g_n, ROWS, COLS, gparam.pbc);
 
-    H[j] = hamiltonian_I(row, col, c, l, r, u, d, gparam, ani, region, field, 0.0);
+    H[j] = hamiltonian_I(row, col, c, l, r, u, d, gparam, ani, region, 0.0);
 }
