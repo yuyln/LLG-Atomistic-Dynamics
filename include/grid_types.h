@@ -18,7 +18,26 @@ typedef enum {
     CUR_BOTH = CUR_STT | CUR_SHE //=3
 } current_type;
 
-typedef int8_t pbc_rules;
+typedef int8_t pbc_directions;
+
+typedef struct {
+    union {
+        struct {uint64_t rows, cols, depths;};
+        uint64_t dim[3];
+    };
+} matrix_size;
+
+typedef struct {
+    union {
+        struct {int row, col, depth;};
+        int dim[3];
+    };
+} matrix_loc;
+
+typedef struct {
+    v3d m;
+    pbc_directions dirs;
+} pbc_rules;
 
 typedef struct {
     v3d j;
@@ -46,25 +65,19 @@ typedef struct {
     char pinned;
 } pinning;
 
-/*
- * Change to a grid struct with global parameters and a array of m?
- */
 typedef struct {
-    int row, col, depth;
+    matrix_loc loc;
     double exchange, dm, dm_ani, lattice, cubic_ani;
     double mu, alpha, gamma;
     dm_symmetry dm_sym;
     anisotropy ani;
     pinning pin;
-    v3d m;
-} grid_site;
+} grid_site_param;
 
 typedef struct {
-    uint64_t rows, cols, depths;
+    matrix_size size;
     pbc_rules pbc;
-    double time;
     double total_time;
 } grid_info;
-
 
 #endif
