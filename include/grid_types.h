@@ -1,10 +1,8 @@
 #ifndef __GRID_H
 #define __GRID_H
 
-#ifndef OPENCL_COMPILATION
 #include "v3d.h"
 #include <stdint.h>
-#endif
 
 typedef enum {
     R_ij_CROSS_Z = 0,

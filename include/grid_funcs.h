@@ -11,6 +11,7 @@ typedef struct {
 
 double shit_random(double from, double to);
 grid grid_init(matrix_size size);
+
 void grid_set_exchange_loc(grid *g, matrix_loc loc, double exchange);
 void grid_set_dm_loc(grid *g, matrix_loc loc, double dm, double dm_ani, dm_symmetry dm_sym);
 void grid_set_lattice_loc(grid *g, matrix_loc loc, double lattice);
@@ -21,6 +22,16 @@ void grid_set_gamma_loc(grid *g, matrix_loc loc, double gamma);
 void grid_set_anisotropy_loc(grid *g, matrix_loc loc, anisotropy ani);
 void grid_set_pinning_loc(grid *g, matrix_loc loc, pinning pin);
 void v3d_set_at_loc(v3d *v, matrix_size size, matrix_loc loc, v3d m);
+
+void grid_set_exchange(grid *g, double exchange);
+void grid_set_dm(grid *g, double dm, double dm_ani, dm_symmetry dm_sym);
+void grid_set_lattice(grid *g, double lattice);
+void grid_set_cubic_anisotropy(grid *g, double cubic_ani);
+void grid_set_mu(grid *g, double mu);
+void grid_set_alpha(grid *g, double alpha);
+void grid_set_gamma(grid *g, double gamma);
+void grid_set_anisotropy(grid *g, anisotropy ani);
+
 void grid_free(grid *g);
 
 cl_mem grid_to_gpu(grid *g, gpu_cl gpu);

@@ -24,7 +24,7 @@ typedef struct {
 } gpu_cl;
 
 gpu_cl gpu_cl_init(uint64_t plat_idx, uint64_t dev_idx);
-void gpu_cl_compile_source(gpu_cl *gpu, string_view source, const char *compile_opt);
+void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt);
 void gpu_cl_close(gpu_cl *gpu);
 
 

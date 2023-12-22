@@ -1,4 +1,6 @@
 main
+create_kernel
 *.exe
 *.dll
 *.txt
+*.cl

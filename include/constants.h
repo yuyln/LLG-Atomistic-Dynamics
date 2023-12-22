@@ -15,7 +15,7 @@
 #define UNUSED(x) ((void)x)
 #define SIGN(x) ((x) > 0 ? 1.0: -1.0)
 
-#define INCEPTION(...)
+#define INCEPTION(M)
 
 #define LOC(row, col, depth, rows, cols) ((col) + (row) * (cols) + (depth) * (cols) * (rows))
 

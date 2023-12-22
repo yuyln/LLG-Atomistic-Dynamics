@@ -24,6 +24,11 @@ grid grid_init(matrix_size size) {
     ret.gsp = calloc(sizeof(*ret.gsp) * size.rows * size.cols * size.depths, 1);
     ret.m = calloc(sizeof(*ret.m) * size.rows * size.cols * size.depths, 1);
 
+    if (!ret.gsp || !ret.m) {
+        fprintf(stderr, "[ FATAL ] Could not allocate grid. Buy more ram lol");
+        exit(1);
+    }
+
     grid_site_param default_grid = (grid_site_param){
         .exchange = 1.0e-3 * QE,
         .dm = 0.18 * 1.0e-3 * QE,
@@ -101,6 +106,64 @@ void grid_set_pinning_loc(grid *g, matrix_loc loc, pinning pin) {
 void v3d_set_at_loc(v3d *g, matrix_size size, matrix_loc loc, v3d m) {
     CHECK_BOUNDS(size, loc);
     g[LOC(loc.row, loc.col, loc.depth, size.rows, size.cols)] = m;
+}
+
+void grid_set_exchange(grid *g, double exchange) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_exchange_loc(g, (matrix_loc){.dim={r, c, d}}, exchange);
+}
+
+void grid_set_dm(grid *g, double dm, double dm_ani, dm_symmetry dm_sym) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_dm_loc(g, (matrix_loc){.dim={r, c, d}}, dm, dm_ani, dm_sym);
+}
+
+void grid_set_lattice(grid *g, double lattice) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_lattice_loc(g, (matrix_loc){.dim={r, c, d}}, lattice);
+
+}
+
+void grid_set_cubic_anisotropy(grid *g, double cubic_ani) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_cubic_anisotropy_loc(g, (matrix_loc){.dim={r, c, d}}, cubic_ani);
+}
+
+void grid_set_mu(grid *g, double mu) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_mu_loc(g, (matrix_loc){.dim={r, c, d}}, mu);
+}
+
+void grid_set_alpha(grid *g, double alpha) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_alpha_loc(g, (matrix_loc){.dim={r, c, d}}, alpha);
+
+}
+
+void grid_set_gamma(grid *g, double gamma) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_gamma_loc(g, (matrix_loc){.dim={r, c, d}}, gamma);
+}
+
+void grid_set_anisotropy(grid *g, anisotropy ani) {
+    for (uint64_t d = 0; d < g->g_info.size.dim[2]; ++d)
+        for (uint64_t r = 0; r < g->g_info.size.dim[0]; ++r)
+            for (uint64_t c = 0; c < g->g_info.size.dim[1]; ++c)
+                grid_set_anisotropy_loc(g, (matrix_loc){.dim={r, c, d}}, ani);
 }
 
 void grid_free(grid *g) {
