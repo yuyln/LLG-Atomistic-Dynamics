@@ -1,10 +1,12 @@
+#include <stdint.h>
+
 #include "gpu.h"
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include "openclwrapper.h"
 #include "constants.h"
 
 //@TODO: Create queue with properties
-gpu_cl gpu_cl_init(uint64_t plat_idx, uint64_t dev_idx) {
+gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {
     gpu_cl ret = {0};
     ret.platforms = clw_init_platforms(&ret.n_platforms);
     ret.plat_idx = plat_idx % ret.n_platforms;
@@ -30,7 +32,6 @@ void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_
 
     printf("[ INFO ] Compile OpenCL Options: %s\n", compile_opt.str);
     cl_int err_building = clw_build_program(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str);
-    clw_get_program_build_info(stdout, gpu->program, gpu->devices[gpu->dev_idx], err_building);
 
     uint64_t size;
     err = clGetProgramBuildInfo(gpu->program, gpu->devices[gpu->dev_idx], CL_PROGRAM_BUILD_LOG, 0, NULL, &size);

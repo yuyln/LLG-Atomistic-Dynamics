@@ -1,14 +1,15 @@
-#include "string_view.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#include "string_view.h"
 
 string string_init(uint64_t len) {
     return (string){.str = calloc(len, 1),
                     .len = len};
 }
 
-uint64_t string_clear(string *s) {
+int string_clear(string *s) {
     return s->len = 0;
 }
 

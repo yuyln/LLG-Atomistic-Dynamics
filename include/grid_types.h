@@ -2,7 +2,6 @@
 #define __GRID_H
 
 #include "v3d.h"
-#include <stdint.h>
 
 typedef enum {
     R_ij_CROSS_Z = 0,
@@ -16,12 +15,12 @@ typedef enum {
     CUR_BOTH = CUR_STT | CUR_SHE //=3
 } current_type;
 
-typedef int8_t pbc_directions;
+typedef char pbc_directions;
 
 typedef struct {
     union {
-        struct {uint64_t rows, cols, depths;};
-        uint64_t dim[3];
+        struct {int rows, cols, depths;};
+        int dim[3];
     };
 } matrix_size;
 
@@ -70,12 +69,11 @@ typedef struct {
     dm_symmetry dm_sym;
     anisotropy ani;
     pinning pin;
+    double total_time;
 } grid_site_param;
 
 typedef struct {
     matrix_size size;
     pbc_rules pbc;
-    double total_time;
 } grid_info;
-
 #endif

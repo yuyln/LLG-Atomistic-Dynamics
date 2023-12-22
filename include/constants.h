@@ -18,5 +18,17 @@
 #define INCEPTION(M)
 
 #define LOC(row, col, depth, rows, cols) ((col) + (row) * (cols) + (depth) * (cols) * (rows))
+#define EPS 1.0e-12
+#define CLOSE_ENOUGH(x, y, eps) ((SIGN((x) - (y)) * ((x) - (y))) <= (eps))
+
+#ifndef OPENCL_COMPILATION
+#define GLOBAL 
+#define LOCAL 
+#define PRIVATE 
+#else
+#define GLOBAL global
+#define LOCAL local
+#define PRIVATE private
+#endif
 
 #endif

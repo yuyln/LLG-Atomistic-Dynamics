@@ -11,4 +11,6 @@ v3d v3d_scalar(v3d v, double s);
 v3d v3d_sum(v3d v1, v3d v2);
 v3d v3d_sub(v3d v1, v3d v2);
 v3d v3d_cross(v3d v1, v3d v2);
+v3d v3d_normalize(v3d v);
+
 #endif

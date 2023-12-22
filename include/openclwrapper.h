@@ -16,7 +16,6 @@
 #endif
 #endif
 
-
 /*
     #if defined(unix) || defined(__unix) || defined(__unix)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
@@ -28,65 +27,65 @@
 */
 
 static const char *clw_errors[60] = {
-                                "CL_SUCCESS",
-                                "CL_DEVICE_NOT_FOUND",
-                                "CL_DEVICE_NOT_AVAILABLE",
-                                "CL_COMPILER_NOT_AVAILABLE",
-                                "CL_MEM_OBJECT_ALLOCATION_FAILURE",
-                                "CL_OUT_OF_RESOURCES",
-                                "CL_OUT_OF_HOST_MEMORY",
-                                "CL_PROFILING_INFO_NOT_AVAILABLE",
-                                "CL_MEM_COPY_OVERLAP",
-                                "CL_IMAGE_FORMAT_MISMATCH",
-                                "CL_IMAGE_FORMAT_NOT_SUPPORTED",
-                                "CL_BUILD_PROGRAM_FAILURE",
-                                "CL_MAP_FAILURE",
-                                "CL_MISALIGNED_SUB_BUFFER_OFFSET",
-                                "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
-                                "CL_COMPILE_PROGRAM_FAILURE",
-                                "CL_LINKER_NOT_AVAILABLE",
-                                "CL_LINK_PROGRAM_FAILURE",
-                                "CL_DEVICE_PARTITION_FAILED",
-                                "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
-                                "CL_INVALID_VALUE",
-                                "CL_INVALID_DEVICE_TYPE",
-                                "CL_INVALID_PLATFORM",
-                                "CL_INVALID_DEVICE",
-                                "CL_INVALID_CONTEXT",
-                                "CL_INVALID_QUEUE_PROPERTIES",
-                                "CL_INVALID_COMMAND_QUEUE",
-                                "CL_INVALID_HOST_PTR",
-                                "CL_INVALID_MEM_OBJECT",
-                                "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
-                                "CL_INVALID_IMAGE_SIZE",
-                                "CL_INVALID_SAMPLER",
-                                "CL_INVALID_BINARY",
-                                "CL_INVALID_BUILD_OPTIONS",
-                                "CL_INVALID_PROGRAM",
-                                "CL_INVALID_PROGRAM_EXECUTABLE",
-                                "CL_INVALID_KERNEL_NAME",
-                                "CL_INVALID_KERNEL_DEFINITION",
-                                "CL_INVALID_KERNEL",
-                                "CL_INVALID_ARG_INDEX",
-                                "CL_INVALID_ARG_VALUE",
-                                "CL_INVALID_ARG_SIZE",
-                                "CL_INVALID_KERNEL_ARGS",
-                                "CL_INVALID_WORK_DIMENSION",
-                                "CL_INVALID_WORK_GROUP_SIZE",
-                                "CL_INVALID_WORK_ITEM_SIZE",
-                                "CL_INVALID_GLOBAL_OFFSET",
-                                "CL_INVALID_EVENT_WAIT_LIST",
-                                "CL_INVALID_EVENT",
-                                "CL_INVALID_OPERATION",
-                                "CL_INVALID_GL_OBJECT",
-                                "CL_INVALID_BUFFER_SIZE",
-                                "CL_INVALID_MIP_LEVEL",
-                                "CL_INVALID_GLOBAL_WORK_SIZE",
-                                "CL_INVALID_PROPERTY",
-                                "CL_INVALID_IMAGE_DESCRIPTOR",
-                                "CL_INVALID_COMPILER_OPTIONS",
-                                "CL_INVALID_LINKER_OPTIONS",
-                                "CL_INVALID_DEVICE_PARTITION_COUNT",
+                                     "CL_SUCCESS",
+                                     "CL_DEVICE_NOT_FOUND",
+                                     "CL_DEVICE_NOT_AVAILABLE",
+                                     "CL_COMPILER_NOT_AVAILABLE",
+                                     "CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                                     "CL_OUT_OF_RESOURCES",
+                                     "CL_OUT_OF_HOST_MEMORY",
+                                     "CL_PROFILING_INFO_NOT_AVAILABLE",
+                                     "CL_MEM_COPY_OVERLAP",
+                                     "CL_IMAGE_FORMAT_MISMATCH",
+                                     "CL_IMAGE_FORMAT_NOT_SUPPORTED",
+                                     "CL_BUILD_PROGRAM_FAILURE",
+                                     "CL_MAP_FAILURE",
+                                     "CL_MISALIGNED_SUB_BUFFER_OFFSET",
+                                     "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
+                                     "CL_COMPILE_PROGRAM_FAILURE",
+                                     "CL_LINKER_NOT_AVAILABLE",
+                                     "CL_LINK_PROGRAM_FAILURE",
+                                     "CL_DEVICE_PARTITION_FAILED",
+                                     "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
+                                     "CL_INVALID_VALUE",
+                                     "CL_INVALID_DEVICE_TYPE",
+                                     "CL_INVALID_PLATFORM",
+                                     "CL_INVALID_DEVICE",
+                                     "CL_INVALID_CONTEXT",
+                                     "CL_INVALID_QUEUE_PROPERTIES",
+                                     "CL_INVALID_COMMAND_QUEUE",
+                                     "CL_INVALID_HOST_PTR",
+                                     "CL_INVALID_MEM_OBJECT",
+                                     "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
+                                     "CL_INVALID_IMAGE_SIZE",
+                                     "CL_INVALID_SAMPLER",
+                                     "CL_INVALID_BINARY",
+                                     "CL_INVALID_BUILD_OPTIONS",
+                                     "CL_INVALID_PROGRAM",
+                                     "CL_INVALID_PROGRAM_EXECUTABLE",
+                                     "CL_INVALID_KERNEL_NAME",
+                                     "CL_INVALID_KERNEL_DEFINITION",
+                                     "CL_INVALID_KERNEL",
+                                     "CL_INVALID_ARG_INDEX",
+                                     "CL_INVALID_ARG_VALUE",
+                                     "CL_INVALID_ARG_SIZE",
+                                     "CL_INVALID_KERNEL_ARGS",
+                                     "CL_INVALID_WORK_DIMENSION",
+                                     "CL_INVALID_WORK_GROUP_SIZE",
+                                     "CL_INVALID_WORK_ITEM_SIZE",
+                                     "CL_INVALID_GLOBAL_OFFSET",
+                                     "CL_INVALID_EVENT_WAIT_LIST",
+                                     "CL_INVALID_EVENT",
+                                     "CL_INVALID_OPERATION",
+                                     "CL_INVALID_GL_OBJECT",
+                                     "CL_INVALID_BUFFER_SIZE",
+                                     "CL_INVALID_MIP_LEVEL",
+                                     "CL_INVALID_GLOBAL_WORK_SIZE",
+                                     "CL_INVALID_PROPERTY",
+                                     "CL_INVALID_IMAGE_DESCRIPTOR",
+                                     "CL_INVALID_COMPILER_OPTIONS",
+                                     "CL_INVALID_LINKER_OPTIONS",
+                                     "CL_INVALID_DEVICE_PARTITION_COUNT",
                             };
 
 #define clw_print_cl_error(file, err, message, ...) {                                                                         \
@@ -145,6 +144,7 @@ static const char *clw_errors[60] = {
     //kernel arg related
     void clw_set_kernel_arg(kernel_t k, uint64_t argIndex, uint64_t argSize, void *arg);
 
+    //cleaning related
 #endif //__OPENCLW
 
 #ifdef OPENCLWRAPPER_IMPLEMENTATION
@@ -162,12 +162,13 @@ int clw_read_file(const char *path, char **out) {
         fprintf(stderr, "FILE (%s) IS NULL: %s", path, strerror(errno));
         return -1;
     }
+
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
     uint64_t filesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
-    *out = (char*)malloc(filesize + 1);
+    *out = (char*)CLW_ALLOC(filesize + 1);
     uint64_t readsize = fread((void *)(*out), 1, filesize, f);
     if (readsize != filesize) {
         clw_print_cl_error(stderr, -1, "READSIZE AND FILESIZE ARE NOT EQUAL");
@@ -177,11 +178,11 @@ int clw_read_file(const char *path, char **out) {
     return filesize;
 }
 
-uint64_t gcd(uint64_t a, uint64_t b) {
+uint64_t clw_gcd(uint64_t a, uint64_t b) {
     if (b == 0)
         return a;
     else
-        return gcd(b, a % b);
+        return clw_gcd(b, a % b);
 }
 
 cl_mem clw_create_buffer(uint64_t size, cl_context context, cl_mem_flags flags) {
@@ -216,7 +217,7 @@ cl_platform_id* clw_init_platforms(uint64_t *n) {
     clw_print_cl_error(stderr, err, "ERROR FINDING NUMBER OF PLATFORMS");
     *n = nn;
 
-    cl_platform_id *local = (cl_platform_id*)malloc(sizeof(cl_platform_id) * nn);
+    cl_platform_id *local = (cl_platform_id*)CLW_ALLOC(sizeof(cl_platform_id) * nn);
     err = clGetPlatformIDs(nn, local, NULL);
     clw_print_cl_error(stderr, err, "ERROR INIT PLATFORM");
     return local;
@@ -228,7 +229,7 @@ cl_device_id* clw_init_devices(cl_platform_id plat, uint64_t *n) {
     clw_print_cl_error(stderr, err, "ERROR FINDING NUMBER OF DEVICES");
     *n = nn;
 
-    cl_device_id *local = (cl_device_id*)malloc(sizeof(cl_device_id) * nn);
+    cl_device_id *local = (cl_device_id*)CLW_ALLOC(sizeof(cl_device_id) * nn);
     err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, nn, local, NULL);
     clw_print_cl_error(stderr, err, "ERROR INIT PLATFORM");
     return local;
@@ -269,7 +270,7 @@ kernel_t clw_init_kernel(cl_program program, const char *name) {
 }
 
 kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n) {
-    kernel_t *ret = (kernel_t*)malloc(sizeof(kernel_t) * n);
+    kernel_t *ret = (kernel_t*)CLW_ALLOC(sizeof(kernel_t) * n);
     for (uint64_t i = 0; i < n; ++i) {
         ret[i] = clw_init_kernel(program, names[i]);
     }
@@ -290,15 +291,15 @@ uint64_t clw_get_local_work_device_gcd_1d(uint64_t global, cl_device_id dev) {
     uint64_t devG;
     cl_int err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &devG, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE GCD");
-    return gcd(global, devG);
+    return clw_gcd(global, devG);
 }
 
 uint64_t clw_get_local_work_gdc_1d(uint64_t global, uint64_t fac) {
-    return gcd(global, fac);
+    return clw_gcd(global, fac);
 }
 
 uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_device_id dev) {
-    uint64_t *ret = (uint64_t*)malloc(sizeof(uint64_t) * ndim);
+    uint64_t *ret = (uint64_t*)CLW_ALLOC(sizeof(uint64_t) * ndim);
     for (uint64_t i = 0; i < ndim; ++i) {
         ret[i] = clw_get_local_work_device_gcd_1d(global[i], dev);
     }
@@ -306,7 +307,7 @@ uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_d
 }
 
 uint64_t *clw_get_local_work_gdc_nd(uint64_t ndim, uint64_t *global, uint64_t fac) {
-    uint64_t *ret = (uint64_t*)malloc(sizeof(uint64_t) * ndim);
+    uint64_t *ret = (uint64_t*)CLW_ALLOC(sizeof(uint64_t) * ndim);
     for (uint64_t i = 0; i < ndim; ++i) {
         ret[i] = clw_get_local_work_gdc_1d(global[i], fac);
     }
@@ -323,7 +324,7 @@ void clw_get_platform_info(FILE *file, cl_platform_id plat, uint64_t iplat) {
     cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE PLATFORM[%zu] NAME INFO", iplat);
 
-    char *info = (char*)malloc(n);
+    char *info = (char*)CLW_ALLOC(n);
     err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING PLATFORM[%zu] NAME INFO", iplat);
     fprintf(file, "---------------------------------\n");
@@ -345,7 +346,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
     err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING PLATFORM SIZE FROM DEVICE[%zu]", idev);
 
-    char *info = (char*)malloc(n);
+    char *info = (char*)CLW_ALLOC(n);
     err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING PLATFORM NAME FROM DEVICE[%zu]", idev);
 
@@ -354,7 +355,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
 
     err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VENDOR INFO", idev);
-    info = (char*)malloc(n);
+    info = (char*)CLW_ALLOC(n);
     err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VENDOR INFO", idev);
     fprintf(file, "DEVICE[%zu] VENDOR: %s\n", idev, info);
@@ -362,7 +363,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
 
     err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VERSION INFO", idev);
-    info = (char*)malloc(n);
+    info = (char*)CLW_ALLOC(n);
     err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VERSION INFO", idev);
     fprintf(file, "DEVICE[%zu] VERSION: %s\n", idev, info);
@@ -370,7 +371,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
 
     err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] DRIVER VERSION INFO", idev);
-    info = (char*)malloc(n);
+    info = (char*)CLW_ALLOC(n);
     err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] DRIVER VERSION INFO", idev);
     fprintf(file, "DEVICE[%zu] DRIVER VERSION: %s\n", idev, info);
@@ -378,7 +379,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
 
     err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n);
     clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] NAME INFO", idev);
-    info = (char*)malloc(n);
+    info = (char*)CLW_ALLOC(n);
     err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] NAME INFO", idev);
     fprintf(file, "DEVICE[%zu] NAME: %s\n", idev, info);
@@ -394,10 +395,10 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
     fprintf(file, "DEVICE[%zu] GLOBAL MEM: %.4f MB\n", idev, memsize / (1e6));
 
 
-    cl_ulong memalloc;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &memalloc, NULL);
+    cl_ulong meCLW_ALLOC;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &meCLW_ALLOC, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
-    fprintf(file, "DEVICE[%zu] ALLOCATABLE MEM: %.4f MB\n", idev, memalloc / (1e6));
+    fprintf(file, "DEVICE[%zu] ALLOCATABLE MEM: %.4f MB\n", idev, meCLW_ALLOC / (1e6));
 
     cl_uint maxcomp;
     err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL);
@@ -414,7 +415,7 @@ void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev) {
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
     fprintf(file, "DEVICE[%zu] MAX DIMENSIONS: %u\n", idev, dimension);
 
-    uint64_t *dim_size = (uint64_t*)malloc(sizeof(uint64_t) * dimension);
+    uint64_t *dim_size = (uint64_t*)CLW_ALLOC(sizeof(uint64_t) * dimension);
     err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP PER DIMENSION", idev);
 
@@ -436,7 +437,7 @@ void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, c
     cl_int err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
     clw_print_cl_error(stderr, err, "ERROR GETTING BUILD LOG SIZE");
 
-    char *info = (char*)malloc(size);
+    char *info = (char*)CLW_ALLOC(size);
 
     err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, size, info, NULL);
     clw_print_cl_error(stderr, err, "ERROR GETTING BUILD LOG");
