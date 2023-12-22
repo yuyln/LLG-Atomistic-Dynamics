@@ -9,6 +9,7 @@ typedef struct {
     v3d *m;
 } grid;
 
+double shit_random(double from, double to);
 grid grid_init(matrix_size size);
 void grid_set_exchange_loc(grid *g, matrix_loc loc, double exchange);
 void grid_set_dm_loc(grid *g, matrix_loc loc, double dm, double dm_ani, dm_symmetry dm_sym);
@@ -22,7 +23,10 @@ void grid_set_pinning_loc(grid *g, matrix_loc loc, pinning pin);
 void v3d_set_at_loc(v3d *v, matrix_size size, matrix_loc loc, v3d m);
 void grid_free(grid *g);
 
-cl_mem grid_to_gpu(grid g, gpu_data gpu);
-void grid_from_gpu(grid *g, cl_mem g_buffer, gpu_data gpu);
-void v3d_from_gpu(v3d *g, matrix_size sz, cl_mem grid_buffer, gpu_data gpu);
+cl_mem grid_to_gpu(grid *g, gpu_cl gpu);
+void grid_from_gpu(grid *g, cl_mem g_buffer, gpu_cl gpu);
+void v3d_from_gpu(v3d *g, matrix_size sz, cl_mem grid_buffer, gpu_cl gpu);
+
+void v3d_dump(FILE *f, v3d *v, matrix_size sz);
+void grid_full_dump(FILE *f, grid *g);
 #endif

@@ -11,6 +11,11 @@
     return; \
 }} while(0)
 
+double shit_random(double from, double to) {
+    double r = (double)rand() / (double)RAND_MAX;
+    return from + r * (to - from);
+}
+
 grid grid_init(matrix_size size) {
     grid ret = {0};
     ret.g_info.size = size;
@@ -104,27 +109,27 @@ void grid_free(grid *g) {
     memset(g, 0, sizeof(grid));
 }
 
-cl_mem grid_to_gpu(grid g, gpu_data gpu) {
-    uint64_t gsp_size_bytes = g.g_info.size.rows * g.g_info.size.cols * g.g_info.size.depths * sizeof(grid_site_param);
-    uint64_t v3d_size_bytes = g.g_info.size.rows * g.g_info.size.cols * g.g_info.size.depths * sizeof(v3d);
+cl_mem grid_to_gpu(grid *g, gpu_cl gpu) {
+    uint64_t gsp_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(*g->gsp);
+    uint64_t v3d_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(*g->m);
     uint64_t grid_size_bytes = gsp_size_bytes + v3d_size_bytes;
 
     cl_int err;
     cl_mem g_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, grid_size_bytes, NULL, &err);
     clw_print_cl_error(stderr, err, "[ FATAL ] Creating grid with size %zu B to GPU", grid_size_bytes);
 
-    err = clEnqueueWriteBuffer(gpu.queue, g_buffer, CL_TRUE, 0, gsp_size_bytes, g.gsp, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(gpu.queue, g_buffer, CL_TRUE, 0, gsp_size_bytes, g->gsp, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gsp_size_bytes);
 
-    err = clEnqueueWriteBuffer(gpu.queue, g_buffer, CL_TRUE, gsp_size_bytes, v3d_size_bytes, g.m, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(gpu.queue, g_buffer, CL_TRUE, gsp_size_bytes, v3d_size_bytes, g->m, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", gsp_size_bytes);
 
     return g_buffer;
 }
 
-void grid_from_gpu(grid *g, cl_mem g_buffer, gpu_data gpu) {
-    uint64_t gsp_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(grid_site_param);
-    uint64_t v3d_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(v3d);
+void grid_from_gpu(grid *g, cl_mem g_buffer, gpu_cl gpu) {
+    uint64_t gsp_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(*g->gsp);
+    uint64_t v3d_size_bytes = g->g_info.size.rows * g->g_info.size.cols * g->g_info.size.depths * sizeof(*g->m);
 
     cl_int err = clEnqueueReadBuffer(gpu.queue, g_buffer, CL_TRUE, 0, gsp_size_bytes, g->gsp, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid site params with size %zu B from GPU", gsp_size_bytes);
@@ -133,10 +138,21 @@ void grid_from_gpu(grid *g, cl_mem g_buffer, gpu_data gpu) {
     clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid vectors with size %zu B from GPU", v3d_size_bytes);
 }
 
-void v3d_from_gpu(v3d *g, matrix_size sz, cl_mem grid_buffer, gpu_data gpu) {
+INCEPTION("[ DANGER ] using sizeof on type, not on variable, check on changes")
+void v3d_from_gpu(v3d *g, matrix_size sz, cl_mem grid_buffer, gpu_cl gpu) {
     uint64_t gsp_size_bytes = sz.rows * sz.cols * sz.depths * sizeof(grid_site_param);
-    uint64_t v3d_size_bytes = sz.rows * sz.cols * sz.depths * sizeof(v3d);
+    uint64_t v3d_size_bytes = sz.rows * sz.cols * sz.depths * sizeof(*g);
 
     cl_int err = clEnqueueReadBuffer(gpu.queue, grid_buffer, CL_TRUE, gsp_size_bytes, v3d_size_bytes, g, 0, NULL, NULL);
     clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid vectors with size %zu B from GPU", v3d_size_bytes);
+}
+
+void v3d_dump(FILE *f, v3d *v, matrix_size sz) {
+    fwrite(v, sz.dim[0] * sz.dim[1] * sz.dim[2] * sizeof(*v), 1, f);
+}
+
+void grid_full_dump(FILE *f, grid *g) {
+    fwrite(&g->g_info, sizeof(g->g_info), 1, f);
+    fwrite(g->gsp, sizeof(*g->gsp) * g->g_info.size.dim[0] * g->g_info.size.dim[1] * g->g_info.size.dim[2], 1, f);
+    fwrite(g->m, sizeof(*g->m) * g->g_info.size.dim[0] * g->g_info.size.dim[1] * g->g_info.size.dim[2], 1, f);
 }

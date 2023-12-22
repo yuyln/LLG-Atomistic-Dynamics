@@ -27,7 +27,7 @@
     #endif
 */
 
-static const char *errors[60] = {
+static const char *clw_errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
                                 "CL_DEVICE_NOT_AVAILABLE",
@@ -95,7 +95,7 @@ static const char *errors[60] = {
                                                 int err_ = abs((err));                                                        \
                                                 if (err_ >= 30)                                                               \
                                                     err_ = err_ - 10;                                                         \
-                                                fprintf((file), "%s | ", errors[err_]);                                       \
+                                                fprintf((file), "%s | ", clw_errors[err_]);                                       \
                                                 fprintf((file), (message), ##__VA_ARGS__);                                    \
                                                 fprintf((file), "\n");                                                        \
                                                 exit((err));                                                                  \
