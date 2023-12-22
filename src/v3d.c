@@ -50,3 +50,7 @@ v3d v3d_cross(v3d v1, v3d v2) {
     v.z *= M1;
     return v;
  }
+
+double v3d_dot(v3d v1, v3d v2) {
+    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
