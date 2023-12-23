@@ -49,7 +49,7 @@ typedef struct {
 } pinning;
 
 typedef struct {
-    int row, col, depth;
+    int row, col;
     //double y, x, z;
     double exchange, dm, dm_ani, lattice, cubic_ani;
     double mu, alpha, gamma;
@@ -59,15 +59,12 @@ typedef struct {
 } grid_site_param;
 
 typedef struct {
-    unsigned int rows, cols, depths;
+    unsigned int rows, cols;
     pbc_rules pbc;
 } grid_info;
 
 typedef struct {
     v3d left, right, up, down;
-#ifndef NBULK
-    v3d front, back;
-#endif
 } neighbors_set;
 
 #endif
