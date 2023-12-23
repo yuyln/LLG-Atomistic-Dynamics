@@ -5,16 +5,15 @@
 #include "v3d.h"
 #include "grid_types.h"
 
+//@TODO: Test optimization without parameters struct
 typedef struct {
     grid_site_param gs;
-    v3d c, l, r, u, d;
-#ifndef NBULK
-    v3d f, b;
-#endif
+    v3d m;
+    neighbors_set neigh;
     double time;
 } parameters;
 
-v3d apply_pbc(GLOBAL v3d *v, matrix_size size, matrix_loc loc, pbc_rules pbc);
+v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col, int depth);
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym);
 v3d generate_magnetic_field(grid_site_param gs, double time);
 current generate_current(grid_site_param gs, double time);

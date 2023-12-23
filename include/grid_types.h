@@ -18,20 +18,6 @@ typedef enum {
 typedef char pbc_directions;
 
 typedef struct {
-    union {
-        struct {int rows, cols, depths;};
-        int dim[3];
-    };
-} matrix_size;
-
-typedef struct {
-    union {
-        struct {int row, col, depth;};
-        int dim[3];
-    };
-} matrix_loc;
-
-typedef struct {
     v3d m;
     pbc_directions dirs;
 } pbc_rules;
@@ -63,17 +49,25 @@ typedef struct {
 } pinning;
 
 typedef struct {
-    matrix_loc loc;
+    int row, col, depth;
+    //double y, x, z;
     double exchange, dm, dm_ani, lattice, cubic_ani;
     double mu, alpha, gamma;
     dm_symmetry dm_sym;
     anisotropy ani;
     pinning pin;
-    double total_time;
 } grid_site_param;
 
 typedef struct {
-    matrix_size size;
+    unsigned int rows, cols, depths;
     pbc_rules pbc;
 } grid_info;
+
+typedef struct {
+    v3d left, right, up, down;
+#ifndef NBULK
+    v3d front, back;
+#endif
+} neighbors_set;
+
 #endif

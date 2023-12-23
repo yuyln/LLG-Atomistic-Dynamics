@@ -43,7 +43,9 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
 v3d generate_magnetic_field(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
-    return v3d_s(0);
+    double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;
+    double real = normalized / gs.mu;
+    return v3d_c(0, 0, real);
 }
 
 current generate_current(grid_site_param gs, double time) {
@@ -117,14 +119,41 @@ v3d effective_field(parameters param) {
 
     ret = v3d_sub(ret, v3d_scalar(param.gs.ani.dir, 2.0 * param.gs.ani.ani * v3d_dot(param.c, param.gs.ani.dir)));
 
-    return ret;
+    return v3d_scalar(ret, -1.0 / param.gs.mu);
+}
+
+//@TODO: Add current
+v3d dm_dt(parameters param) {
+    v3d H_eff = effective_field(param);
+    v3d v = v3d_scalar(v3d_cross(param.c, H_eff), -param.gs.gamma);
+    return v3d_scalar(v3d_sum(v, v3d_scalar(v3d_cross(param.c, v), param.gs.alpha)), 1.0 / (1.0 + param.gs.alpha * param.gs.alpha));
+}
+
+//@TODO: implement RK2 and euler
+v3d step(parameters param, double dt) {
+    v3d rk1, rk2, rk3, rk4;
+    v3d c_ori = param.c;
+    double time_ori = param.time;
+    rk1 = dm_dt(param);
+
+    param.c = v3d_sum(c_ori, v3d_scalar(rk1, dt / 2.0));
+    param.time = time_ori + dt / 2.0;
+    rk2 = dm_dt(param);
+
+    param.c = v3d_sum(c_ori, v3d_scalar(rk2, dt / 2.0));
+    param.time = time_ori + dt / 2.0;
+    rk3 = dm_dt(param);
+
+    param.c = v3d_sum(c_ori, v3d_scalar(rk3, dt));
+    param.time = time_ori + dt;
+    rk4 = dm_dt(param);
+
+    return v3d_scalar(v3d_sum(v3d_sum(rk1, v3d_scalar(rk2, 2.0)), v3d_sum(v3d_scalar(rk3, 2.0), rk4)), dt / 6.0);
 }
 
 /*
 
 
-v3d dm_dt(parameters param);
-v3d step(parameters param, double dt);
 
 double charge_derivative(parameters param);
 double charge_lattice(parameters param);

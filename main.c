@@ -1,5 +1,7 @@
 #include "gpu.h"
+#include "grid_funcs.h"
 #include "string_view.h"
+#include <stdint.h>
 
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
@@ -13,6 +15,7 @@ int main(void) {
     string_view compile_opt = (string_view){.str = cmp, .len = strlen(cmp) + 1};
     gpu_cl_compile_source(&gpu, kernel_view, compile_opt);
     free(kernel);
+
     gpu_cl_close(&gpu);
     return 0;
 }
