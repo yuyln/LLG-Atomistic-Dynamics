@@ -63,3 +63,14 @@ void gpu_cl_close(gpu_cl *gpu) {
     free(gpu->platforms);
     memset(gpu, 0, sizeof(*gpu));
 }
+
+uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel) {
+    cl_int err;
+    gpu->kernels = realloc(gpu->kernels, sizeof(*gpu->kernels) * (gpu->n_kernels + 1));
+    gpu->kernels[gpu->n_kernels].name = kernel;
+    gpu->kernels[gpu->n_kernels].kernel = clCreateKernel(gpu->program, kernel, &err);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Could not load kernel %s", kernel);
+    uint64_t index = gpu->n_kernels;
+    ++gpu->n_kernels;
+    return index;
+}

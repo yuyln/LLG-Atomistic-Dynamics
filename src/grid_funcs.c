@@ -5,7 +5,7 @@
 #include "constants.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
-    row < 0 || col < 0) { \
+        row < 0 || col < 0) { \
     fprintf(stderr, "[ WARNING ] Location (%d %d) out of bounds (%u %u)\n", row, col, rows, cols);\
     return; \
 }} while(0)
@@ -107,9 +107,9 @@ void v3d_set_at_loc(v3d *g, unsigned int rows, unsigned int cols, int row, int c
 }
 
 void grid_set_exchange(grid *g, double exchange) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_exchange_loc(g, r, c, exchange);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_exchange_loc(g, r, c, exchange);
 }
 
 void grid_set_dm(grid *g, double dm, double dm_ani, dm_symmetry dm_sym) {
@@ -126,34 +126,40 @@ void grid_set_lattice(grid *g, double lattice) {
 }
 
 void grid_set_cubic_anisotropy(grid *g, double cubic_ani) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_cubic_anisotropy_loc(g, r, c, cubic_ani);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_cubic_anisotropy_loc(g, r, c, cubic_ani);
 }
 
 void grid_set_mu(grid *g, double mu) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_mu_loc(g, r, c, mu);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_mu_loc(g, r, c, mu);
 }
 
 void grid_set_alpha(grid *g, double alpha) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_alpha_loc(g, r, c, alpha);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_alpha_loc(g, r, c, alpha);
 
 }
 
 void grid_set_gamma(grid *g, double gamma) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_gamma_loc(g, r, c, gamma);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_gamma_loc(g, r, c, gamma);
 }
 
 void grid_set_anisotropy(grid *g, anisotropy ani) {
-        for (unsigned int r = 0; r < g->gi.rows; ++r)
-            for (unsigned int c = 0; c < g->gi.cols; ++c)
-                grid_set_anisotropy_loc(g, r, c, ani);
+    for (unsigned int r = 0; r < g->gi.rows; ++r)
+        for (unsigned int c = 0; c < g->gi.cols; ++c)
+            grid_set_anisotropy_loc(g, r, c, ani);
+}
+
+void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols) {
+    for (unsigned int r = 0; r < rows; ++r)
+        for (unsigned int c = 0; c < cols; ++c)
+            v3d_set_at_loc(v, rows, cols, r, c, v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0))));
 }
 
 void grid_free(grid *g) {

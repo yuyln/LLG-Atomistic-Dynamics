@@ -34,6 +34,7 @@ void grid_set_mu(grid *g, double mu);
 void grid_set_alpha(grid *g, double alpha);
 void grid_set_gamma(grid *g, double gamma);
 void grid_set_anisotropy(grid *g, anisotropy ani);
+void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
 
 void grid_free(grid *g);
 void grid_release_from_gpu(grid *g);

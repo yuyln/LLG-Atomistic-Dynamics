@@ -26,6 +26,7 @@ typedef struct {
 gpu_cl gpu_cl_init(int plat_idx, int dev_idx);
 void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt);
 void gpu_cl_close(gpu_cl *gpu);
+uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel);
 
 
 #endif
