@@ -27,9 +27,9 @@ kernel void exchange_grid(GLOBAL v3d *to, GLOBAL v3d *from) {
 }
 
 kernel void v3d_to_rgb(GLOBAL v3d *input, GLOBAL char4 *rgb) {
-    double3 start = {0, 0, 1};
+    double3 start = {0x03 / 255.0, 0x7f / 255.0, 0xff / 255.0};
     double3 middle = {1, 1, 1};
-    double3 end = {1, 0, 0};
+    double3 end = {0xf4 / 255.0, 0x05 / 255.0, 0x01 / 255.0};
     size_t id = get_global_id(0);
     v3d m = input[id];
     m = v3d_normalize(m);

@@ -26,7 +26,7 @@ int main(void) {
     uint64_t k3 = gpu_append_kernel(&gpu, "v3d_to_rgb");
 
 
-    grid g = grid_init(32, 32);
+    grid g = grid_init(272, 272);
     v3d_fill_with_random(g.m, g.gi.rows, g.gi.cols);
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir=v3d_c(0, 0, 1)});
     grid_to_gpu(&g, gpu);
@@ -61,11 +61,17 @@ int main(void) {
     stbi_write_png("before.png", g.gi.cols, g.gi.rows, 4, rgba, g.gi.cols * sizeof(uint32_t));
 
     printf("Start\n");
+    unsigned int i = 0;
     while (time <= 1 * NS) {
         clw_enqueue_nd(gpu.queue, gpu.kernels[k1], 1, NULL, &global, &local);
+        clw_finish(gpu.queue);
         clw_enqueue_nd(gpu.queue, gpu.kernels[k2], 1, NULL, &global, &local);
+        clw_finish(gpu.queue);
         time += dt;
+        if (i % 1000 == 0)
+            printf("%f\n", time / (1.0 * NS));
         //printf("%e\n", time);
+        i++;
     }
     printf("End\n");
 
