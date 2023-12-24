@@ -177,21 +177,21 @@ void grid_release_from_gpu(grid *g) {
 }
 
 void grid_to_gpu(grid *g, gpu_cl gpu) {
-    int gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
-    int m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
+    uint64_t gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
+    uint64_t m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
 
     cl_int err;
     g->gp_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, gp_size_bytes, NULL, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Creating grid site param buffer with size %d B to GPU", gp_size_bytes);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Creating grid site param buffer with size %zu B to GPU", gp_size_bytes);
 
     g->m_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, m_size_bytes, NULL, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Creating vectors grid buffer with size %d B to GPU", m_size_bytes);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Creating vectors grid buffer with size %zu B to GPU", m_size_bytes);
 
     err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %d B to GPU", gp_size_bytes);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gp_size_bytes);
 
     err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %d B to GPU", m_size_bytes);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", m_size_bytes);
 }
 
 void grid_from_gpu(grid *g, gpu_cl gpu) {

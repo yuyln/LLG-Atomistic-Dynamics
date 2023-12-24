@@ -67,4 +67,20 @@ typedef struct {
     v3d left, right, up, down;
 } neighbors_set;
 
+typedef struct {
+    v3d avg_B;
+    v3d avg_E;
+    v3d avg_m;
+
+    double charge_lattice;
+    double charge_finite;
+
+    double exchange_energy;
+    double dm_energy;
+    double field_energy;
+    double anisotropy_energy;
+    double cubic_energy;
+    double energy;
+} information_packed;
+
 #endif

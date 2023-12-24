@@ -18,7 +18,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     param.neigh.down = apply_pbc(input, gi, row - 1, col);
     param.time = time;
 
-    out[id] = v3d_normalize(v3d_sum(param.m, step(param, dt)));
+    out[id] =  v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
 }
 
 kernel void exchange_grid(GLOBAL v3d *to, GLOBAL v3d *from) {
