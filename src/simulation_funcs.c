@@ -34,7 +34,7 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
 v3d generate_magnetic_field(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
-    double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;
+    double normalized = 0.7 * gs.dm * gs.dm / gs.exchange;
     double real = normalized / gs.mu;
     return v3d_c(0, 0, real);
 }
