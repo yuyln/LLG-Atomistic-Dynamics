@@ -1,13 +1,12 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
-char4 mz_linear_mapping(double mz, double3 start, double3 middle, double3 end) {
-    double mapping = (mz + 1.0) / 2.0;
+char4 linear_mapping(double t, double3 start, double3 middle, double3 end) {
     double3 color;
-    if (mapping < 0.5) {
-        color = (middle - start) * 2.0 * mapping + start;
+    if (t < 0.5) {
+        color = (middle - start) * 2.0 * t + start;
     } else {
-        color = (end - middle) * (2.0 * mapping - 1.0) + middle;
+        color = (end - middle) * (2.0 * t - 1.0) + middle;
     }
     //RGBA -> BGRA
     return (char4){color.z * 255, color.y * 255, color.x * 255, 255};
@@ -21,7 +20,7 @@ char4 m_bwr_mapping(v3d m) {
     m = v3d_normalize(m);
     double mz = m.z;
 
-    return mz_linear_mapping(mz, start, middle, end);
+    return linear_mapping(0.5 * mz + 0.5, start, middle, end);
 }
 
 double _v(double m1, double m2, double hue) {
@@ -96,22 +95,72 @@ kernel void v3d_to_rgb(GLOBAL v3d *input, GLOBAL char4 *rgb) {
 }
 
 
-kernel void render_grid(GLOBAL v3d *input, unsigned int rows, unsigned int cols,
+kernel void render_grid(GLOBAL v3d *input, grid_info gi,
                         GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
 
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
-    int vcol = (float)icol / width * cols;
-    int vrow = (float)irow / height * rows;
+    int vcol = (float)icol / width * gi.cols;
+    int vrow = (float)irow / height * gi.rows;
 
     //rendering inverts the grid, need to invert back
-    vrow = rows - 1 - vrow;
+    vrow = gi.rows - 1 - vrow;
 
-    if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
+    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
         return;
 
-    v3d m = input[vrow * cols + vcol];
+    v3d m = input[vrow * gi.cols + vcol];
 
     rgba[id] = m_to_hsl(m);
+}
+
+kernel void render_topological_charge(GLOBAL v3d *input, grid_info gi,
+                                      GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+    size_t id = get_global_id(0);
+    int icol = id % width;
+    int irow = (id - icol) / width;
+    int vcol = (float)icol / width * gi.cols;
+    int vrow = (float)irow / height * gi.rows;
+
+    //rendering inverts the grid, need to invert back
+    vrow = gi.rows - 1 - vrow;
+
+    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
+        return;
+
+    v3d left = apply_pbc(input, gi, vrow, vcol - 1);
+    v3d right = apply_pbc(input, gi, vrow, vcol + 1);
+    v3d up = apply_pbc(input, gi, vrow + 1, vcol);
+    v3d down = apply_pbc(input, gi, vrow - 1, vcol);
+    v3d m = input[vrow * gi.cols + vcol];
+    double3 start = {0.0, 0.0, 0.0};
+    double3 middle = {0.5, 0.5, 0.5};
+    double3 end = {1.0, 1.0, 1.0};
+    rgba[id] = linear_mapping(clamp(charge_lattice(m, left, right, up, down), 0.0, 1.0), start, middle, end);
+}
+
+kernel void render_emergent_magnetic_field(GLOBAL v3d *input, grid_info gi,
+                                           GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+    size_t id = get_global_id(0);
+    int icol = id % width;
+    int irow = (id - icol) / width;
+    int vcol = (float)icol / width * gi.cols;
+    int vrow = (float)irow / height * gi.rows;
+
+    //rendering inverts the grid, need to invert back
+    vrow = gi.rows - 1 - vrow;
+
+    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
+        return;
+
+    v3d left = apply_pbc(input, gi, vrow, vcol - 1);
+    v3d right = apply_pbc(input, gi, vrow, vcol + 1);
+    v3d up = apply_pbc(input, gi, vrow + 1, vcol);
+    v3d down = apply_pbc(input, gi, vrow - 1, vcol);
+    v3d m = input[vrow * gi.cols + vcol];
+    double3 start = {0.0, 0.0, 0.0};
+    double3 middle = {0.5, 0.5, 0.5};
+    double3 end = {1.0, 1.0, 1.0};
+    rgba[id] = linear_mapping(clamp(charge_lattice(m, left, right, up, down), 0.0, 1.0), start, middle, end);
 }

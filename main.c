@@ -26,8 +26,6 @@ int main(void) {
     grid_set_anisotropy(g, (anisotropy){.ani=0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     grid_set_dm(g, 1.0 * QE * 1.0e-3, 0.0, R_ij);
     g->gi.pbc.dirs = 0;
-    integrate(g);
-    return 0;
     //integrate(&g, dt, 1.0 * NS, 100, 1000, (string_view){0}, (string_view){0}, "./output/");
 
 
@@ -41,8 +39,9 @@ int main(void) {
     free(kernel);
     uint64_t step_id = gpu_append_kernel(&gpu, "gpu_step");
     uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
-    uint64_t to_rgb_id = gpu_append_kernel(&gpu, "v3d_to_rgb");
-    uint64_t render_id = gpu_append_kernel(&gpu, "render_grid");
+    uint64_t render_grid_id = gpu_append_kernel(&gpu, "render_grid");
+    uint64_t render_charge_id = gpu_append_kernel(&gpu, "render_topological_charge");
+    uint64_t render_id = render_grid_id;
 
     unsigned int w_width = 800;
     unsigned int w_height = w_width * ratio;
@@ -85,11 +84,10 @@ int main(void) {
 
 
     clw_set_kernel_arg(gpu.kernels[render_id], 0, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[render_id], 1, sizeof(unsigned int), &g->gi.rows);
-    clw_set_kernel_arg(gpu.kernels[render_id], 2, sizeof(unsigned int), &g->gi.cols);
-    clw_set_kernel_arg(gpu.kernels[render_id], 3, sizeof(cl_mem), &rgba_buffer);
-    clw_set_kernel_arg(gpu.kernels[render_id], 4, sizeof(unsigned int), &w_width);
-    clw_set_kernel_arg(gpu.kernels[render_id], 5, sizeof(unsigned int), &w_height);
+    clw_set_kernel_arg(gpu.kernels[render_id], 1, sizeof(grid_info), &g->gi);
+    clw_set_kernel_arg(gpu.kernels[render_id], 2, sizeof(cl_mem), &rgba_buffer);
+    clw_set_kernel_arg(gpu.kernels[render_id], 3, sizeof(unsigned int), &w_width);
+    clw_set_kernel_arg(gpu.kernels[render_id], 4, sizeof(unsigned int), &w_height);
 
     Window window = XCreateSimpleWindow(
             display,
@@ -148,6 +146,23 @@ int main(void) {
                     }
                 }
                 break;
+                case KeyPress: {
+                    switch (XLookupKeysym(&event.xkey, 0)) {
+                        case 'q':
+                            render_id = render_charge_id;
+                            break;
+                        case 'g':
+                            render_id = render_grid_id;
+                            break;
+                        default:
+                            break;
+                    }
+                    clw_set_kernel_arg(gpu.kernels[render_id], 0, sizeof(cl_mem), &g->m_buffer);
+                    clw_set_kernel_arg(gpu.kernels[render_id], 1, sizeof(grid_info), &g->gi);
+                    clw_set_kernel_arg(gpu.kernels[render_id], 2, sizeof(cl_mem), &rgba_buffer);
+                    clw_set_kernel_arg(gpu.kernels[render_id], 3, sizeof(unsigned int), &w_width);
+                    clw_set_kernel_arg(gpu.kernels[render_id], 4, sizeof(unsigned int), &w_height);
+                }
                 default:
                     break;
             }
