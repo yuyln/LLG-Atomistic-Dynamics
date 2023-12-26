@@ -188,7 +188,8 @@ kernel void render_topological_charge(GLOBAL information_packed *info, grid_info
     double3 end = {1, 1, 1};
 
     double charge = info[vrow * gi.cols + vcol].charge_lattice;
-    rgba[id] = linear_mapping((charge - charge_min) / (charge_max - charge_min), start, middle, end);
+    charge = (charge - charge_min) / (charge_max - charge_min);
+    rgba[id] = linear_mapping(clamp(charge, 0.0, 1.0), start, middle, end);
 }
 
 kernel void render_magnetic_field(GLOBAL information_packed *info, grid_info gi, double field_min, double field_max,
@@ -252,5 +253,6 @@ kernel void render_energy(GLOBAL information_packed *info, grid_info gi, double 
     double3 end = {1, 1, 1};
 
     double energy = info[vrow * gi.cols + vcol].energy;
-    rgba[id] = linear_mapping((energy - energy_min) / (energy_max - energy_min), start, middle, end);
+    energy = (energy - energy_min) / (energy_max - energy_min);
+    rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
