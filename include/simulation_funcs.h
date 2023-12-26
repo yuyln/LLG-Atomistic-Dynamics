@@ -27,6 +27,7 @@ double energy(parameters param);
 
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param);
+v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
 v3d step(parameters param, double dt);
 
 double charge_derivative(parameters param);

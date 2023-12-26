@@ -53,6 +53,10 @@ kernel void render_grid(GLOBAL v3d *input, unsigned int rows, unsigned int cols,
     int irow = (id - icol) / width;
     int vcol = (float)icol / width * cols;
     int vrow = (float)irow / height * rows;
+
+    //rendering inverts the grid, need to invert back
+    vrow = rows - 1 - vrow;
+
     if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
         return;
 

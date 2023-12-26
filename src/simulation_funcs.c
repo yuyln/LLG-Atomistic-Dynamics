@@ -1,4 +1,6 @@
+#include "constants.h"
 #include "simulation_funcs.h"
+#include <math.h>
 
 v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
     int pbc_x = info.pbc.dirs & (1 << 0);
@@ -34,7 +36,9 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
 v3d generate_magnetic_field(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
-    double normalized = 0.7 * gs.dm * gs.dm / gs.exchange;
+    double normalized = 0.5;
+    //normalized += sin(time / 0.1e-11) * 0.2;
+    normalized *= gs.dm * gs.dm / gs.exchange;
     double real = normalized / gs.mu;
     return v3d_c(0, 0, real);
 }
@@ -42,7 +46,12 @@ v3d generate_magnetic_field(grid_site_param gs, double time) {
 current generate_current(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
-    return (current) {0};
+    current ret = {0};
+    ret.type = CUR_STT;
+    ret.stt.polarization = -1.0;
+    ret.stt.beta = 0.0;
+    ret.stt.j = v3d_scalar(v3d_c(1, 0, 0), 1.0e11);
+    return ret;
 }
 
 double exchange_energy(parameters param) {
@@ -98,10 +107,56 @@ v3d effective_field(parameters param) {
     return v3d_scalar(ret, -1.0 / param.gs.mu);
 }
 
+//@TODO: Add Z derivative
+v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
+    v3d ret = {0};
+    ret.x = v.x * (neigh.right.x - neigh.left.x) / (2.0 * dx) +
+            v.y * (neigh.up.x - neigh.down.x) / (2.0 * dy);
+
+    ret.y = v.x * (neigh.right.y - neigh.left.y) / (2.0 * dx) +
+            v.y * (neigh.up.y - neigh.down.y) / (2.0 * dy);
+
+    ret.z = v.x * (neigh.right.z - neigh.left.z) / (2.0 * dx) +
+            v.y * (neigh.up.z - neigh.down.z) / (2.0 * dy);
+
+    return ret;
+}
+
 //@TODO: Add current
 v3d dm_dt(parameters param) {
     v3d H_eff = effective_field(param);
     v3d v = v3d_scalar(v3d_cross(param.m, H_eff), -param.gs.gamma);
+    current cur = generate_current(param.gs, param.time);
+    switch (cur.type) {
+        case CUR_STT: {
+            v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.gs.lattice, param.gs.lattice);
+            common = v3d_scalar(common, cur.stt.polarization * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * QE));
+            v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
+            v = v3d_sum(v, v3d_sub(common, beta));
+        }
+        break;
+        case CUR_SHE: {
+            v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * cur.she.thickness * QE));
+            v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
+            v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
+        }
+        break;
+        case CUR_BOTH: {
+            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.gs.lattice, param.gs.lattice);
+            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * QE));
+            v3d stt_beta = v3d_scalar(v3d_cross(param.m, stt_common), cur.stt.beta);
+            v = v3d_sum(v, v3d_sub(stt_common, stt_beta));
+
+
+            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * cur.she.thickness * QE));
+            v3d she_beta = v3d_scalar(v3d_cross(param.m, she_common), cur.stt.beta);
+            v = v3d_sum(v, v3d_sub(v3d_cross(she_common, param.m), she_beta));
+        }
+        break;
+        case CUR_NONE:
+        break;
+    }
+
     return v3d_scalar(v3d_sum(v, v3d_scalar(v3d_cross(param.m, v), param.gs.alpha)), 1.0 / (1.0 + param.gs.alpha * param.gs.alpha));
 }
 

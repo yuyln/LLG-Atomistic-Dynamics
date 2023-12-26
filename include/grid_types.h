@@ -24,12 +24,12 @@ typedef struct {
 
 typedef struct {
     v3d j;
-    double polarization;
+    double polarization, beta;
 } stt_current;
 
 typedef struct {
     v3d p;
-    double thickness, theta_sh;
+    double thickness, theta_sh, beta;
 } she_current;
 
 typedef struct {

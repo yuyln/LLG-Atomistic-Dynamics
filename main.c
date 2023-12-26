@@ -8,6 +8,7 @@
 
 #include "grid_funcs.h"
 #include "integrate.h"
+#include "simulation_funcs.h"
 
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
@@ -22,8 +23,9 @@ int main(void) {
     grid g_ = grid_init(rows, cols);
     grid *g = &g_;
     v3d_fill_with_random(g->m, g->gi.rows, g->gi.cols);
-    grid_set_anisotropy(g, (anisotropy){.ani=0.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-    grid_set_dm(g, 0.1 * QE * 1.0e-3, 0.0, 0);
+    grid_set_anisotropy(g, (anisotropy){.ani=0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    grid_set_dm(g, 1.0 * QE * 1.0e-3, 0.0, 0);
+    g->gi.pbc.dirs = 0;
     //integrate(&g, dt, 1.0 * NS, 100, 1000, (string_view){0}, (string_view){0}, "./output/");
 
 
@@ -124,12 +126,15 @@ int main(void) {
 
     int quit = 0;
     double passed = 0.0;
-    int factor = 10;
+    int factor = 5;
     while (!quit) {
-        for (int A = 0; A < factor; ++A)
+        for (int A = 0; A < factor; ++A) {
             integrate_step(passed, &gpu, step_id, exchange_id, global_sim, local_sim);
+            passed += dt;
+        }
         clw_enqueue_nd(gpu.queue, gpu.kernels[render_id], 1, NULL, &global_ren, &local_ren);
         clw_read_buffer(rgba_buffer, rgba, sizeof(cl_char4) * w_width * w_height, 0, gpu.queue);
+        //printf("%e\n", generate_magnetic_field(g->gp[0], passed).z);
 
         while (XPending(display) > 0) {
             XEvent event = {0};
@@ -156,7 +161,6 @@ int main(void) {
         swap_info.swap_window = window;
         swap_info.swap_action = 0;
         XdbeSwapBuffers(display, &swap_info, 1);
-        passed += dt;
     }
 
     XCloseDisplay(display);
