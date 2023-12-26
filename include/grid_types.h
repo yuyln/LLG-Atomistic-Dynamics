@@ -68,8 +68,9 @@ typedef struct {
 } neighbors_set;
 
 typedef struct {
-    v3d avg_B;
-    v3d avg_E;
+    v3d magnetic_field_derivative;
+    v3d magnetic_field_lattice;
+    v3d eletric_field;
     v3d avg_m;
 
     double charge_lattice;

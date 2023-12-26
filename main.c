@@ -1,3 +1,4 @@
+#include "grid_types.h"
 #include <time.h>
 #include <stdlib.h>
 
@@ -24,9 +25,8 @@ int main(void) {
     grid *g = &g_;
     v3d_fill_with_random(g->m, g->gi.rows, g->gi.cols);
     grid_set_anisotropy(g, (anisotropy){.ani=0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-    grid_set_dm(g, 1.0 * QE * 1.0e-3, 0.0, R_ij);
-    g->gi.pbc.dirs = 0;
-    //integrate(&g, dt, 1.0 * NS, 100, 1000, (string_view){0}, (string_view){0}, "./output/");
+    grid_set_dm(g, 0.6 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    //integrate(g, .output_path = sv_from_cstr("./simulation_info.csv"), .dt=dt);
 
 
     gpu_cl gpu = gpu_cl_init(0, 0);
@@ -38,10 +38,10 @@ int main(void) {
     gpu_cl_compile_source(&gpu, kernel_view, compile_opt);
     free(kernel);
     uint64_t step_id = gpu_append_kernel(&gpu, "gpu_step");
+    uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
     uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
     uint64_t render_grid_id = gpu_append_kernel(&gpu, "render_grid");
     uint64_t render_charge_id = gpu_append_kernel(&gpu, "render_topological_charge");
-    uint64_t render_magnetic_field_id = gpu_append_kernel(&gpu, "render_emergent_magnetic_field");
     uint64_t render_id = render_grid_id;
 
     unsigned int w_width = 800;
@@ -54,14 +54,37 @@ int main(void) {
     cl_mem swap_buffer = clw_create_buffer(g->gi.rows * g->gi.cols * sizeof(*g->m), gpu.ctx, CL_MEM_READ_WRITE);
     cl_mem rgba_buffer = clw_create_buffer(w_width * w_height * sizeof(cl_char4), gpu.ctx, CL_MEM_READ_WRITE);
 
+    information_packed *info = calloc(g->gi.rows * g->gi.cols, sizeof(information_packed));
+    cl_mem info_buffer = clw_create_buffer(g->gi.rows * g->gi.cols * sizeof(*info), gpu.ctx, CL_MEM_READ_WRITE);
+
+    int quit = 0;
+    double passed = 0.0;
+    int factor = 100;
+    uint64_t step = 0;
+
     clw_set_kernel_arg(gpu.kernels[step_id], 0, sizeof(cl_mem), &g->gp_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 1, sizeof(cl_mem), &g->m_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 2, sizeof(cl_mem), &swap_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 3, sizeof(double), &dt);
+    clw_set_kernel_arg(gpu.kernels[step_id], 4, sizeof(double), &passed);
     clw_set_kernel_arg(gpu.kernels[step_id], 5, sizeof(grid_info), &g->gi);
+
+    clw_set_kernel_arg(gpu.kernels[info_id], 0, sizeof(cl_mem), &g->gp_buffer);
+    clw_set_kernel_arg(gpu.kernels[info_id], 1, sizeof(cl_mem), &g->m_buffer);
+    clw_set_kernel_arg(gpu.kernels[info_id], 2, sizeof(cl_mem), &swap_buffer);
+    clw_set_kernel_arg(gpu.kernels[info_id], 3, sizeof(cl_mem), &info_buffer);
+    clw_set_kernel_arg(gpu.kernels[info_id], 4, sizeof(double), &dt);
+    clw_set_kernel_arg(gpu.kernels[info_id], 5, sizeof(double), &passed);
+    clw_set_kernel_arg(gpu.kernels[info_id], 6, sizeof(grid_info), &g->gi);
 
     clw_set_kernel_arg(gpu.kernels[exchange_id], 0, sizeof(cl_mem), &g->m_buffer);
     clw_set_kernel_arg(gpu.kernels[exchange_id], 1, sizeof(cl_mem), &swap_buffer);
+
+    clw_set_kernel_arg(gpu.kernels[render_id], 0, sizeof(cl_mem), &g->m_buffer);
+    clw_set_kernel_arg(gpu.kernels[render_id], 1, sizeof(grid_info), &g->gi);
+    clw_set_kernel_arg(gpu.kernels[render_id], 2, sizeof(cl_mem), &rgba_buffer);
+    clw_set_kernel_arg(gpu.kernels[render_id], 3, sizeof(unsigned int), &w_width);
+    clw_set_kernel_arg(gpu.kernels[render_id], 4, sizeof(unsigned int), &w_height);
 
     size_t global_sim = g->gi.rows * g->gi.cols;
     size_t local_sim = clw_gcd(global_sim, 32);
@@ -82,13 +105,6 @@ int main(void) {
         fprintf(stderr, "XDBE is not supported!!!1\n");
         exit(1);
     }
-
-
-    clw_set_kernel_arg(gpu.kernels[render_id], 0, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[render_id], 1, sizeof(grid_info), &g->gi);
-    clw_set_kernel_arg(gpu.kernels[render_id], 2, sizeof(cl_mem), &rgba_buffer);
-    clw_set_kernel_arg(gpu.kernels[render_id], 3, sizeof(unsigned int), &w_width);
-    clw_set_kernel_arg(gpu.kernels[render_id], 4, sizeof(unsigned int), &w_height);
 
     Window window = XCreateSimpleWindow(
             display,
@@ -125,13 +141,49 @@ int main(void) {
 
     XMapWindow(display, window);
 
-    int quit = 0;
-    double passed = 0.0;
-    int factor = 5;
+
+    FILE *output_info = fopen("./simulation_info.csv", "w");
+    fprintf(output_info, "time(s),energy(eV),exchange_energy(eV),dm_energy(eV),field_energy(eV),anisotropy_energy(eV),cubic_anisotropy_energy(eV),");
+    fprintf(output_info, "charge_finite,charge_lattice,");
+    fprintf(output_info, "avg_mx,avg_my,avg_mz,");
+    fprintf(output_info, "eletric_x,eletric_y,eletric_z,");
+    fprintf(output_info, "magnetic_lattice_x,magnetic_lattice_y,magnetic_lattice_z,");
+    fprintf(output_info, "magnetic_derivative_x,magnetic_derivative_y,magnetic_derivative_z\n");
+
     while (!quit) {
         for (int A = 0; A < factor; ++A) {
-            integrate_step(passed, &gpu, step_id, exchange_id, global_sim, local_sim);
+            integrate_step(passed, &gpu, step_id, global_sim, local_sim);
+
+            if (step % 100 == 0) {
+                integrate_get_info(passed, &gpu, info_id, global_sim, local_sim);
+                clw_print_cl_error(stderr, clEnqueueReadBuffer(gpu.queue, info_buffer, CL_TRUE, 0, sizeof(*info) * g->gi.rows * g->gi.cols, info, 0, NULL, NULL), "[ FATAL ] Could not read info_buiffer");
+                information_packed local = {0};
+                for (uint64_t i = 0; i < g->gi.rows * g->gi.cols; ++i) {
+                    local.energy += info[i].energy;
+                    local.cubic_energy += info[i].cubic_energy;
+                    local.anisotropy_energy += info[i].anisotropy_energy;
+                    local.field_energy += info[i].field_energy;
+                    local.dm_energy += info[i].dm_energy;
+                    local.exchange_energy += info[i].exchange_energy;
+                    local.charge_finite += info[i].charge_finite;
+                    local.charge_lattice += info[i].charge_lattice;
+                    local.avg_m = v3d_sum(local.avg_m, v3d_scalar(info[i].avg_m, 1.0 / (g->gi.rows * g->gi.cols)));
+                    local.eletric_field = v3d_sum(local.eletric_field , info[i].eletric_field);
+                    local.magnetic_field_lattice = v3d_sum(local.magnetic_field_lattice, info[i].magnetic_field_lattice);
+                    local.magnetic_field_derivative = v3d_sum(local.magnetic_field_derivative, info[i].magnetic_field_derivative);
+                }
+                fprintf(output_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", passed, local.energy, local.exchange_energy, local.dm_energy, local.field_energy, local.anisotropy_energy, local.cubic_energy);
+                fprintf(output_info, "%.15e,%.15e,", local.charge_finite, local.charge_lattice);
+                fprintf(output_info, "%.15e,%.15e,%.15e,", local.avg_m.x, local.avg_m.y, local.avg_m.z);
+                fprintf(output_info, "%.15e,%.15e,%.15e,", local.eletric_field.x, local.eletric_field.y, local.eletric_field.z);
+                fprintf(output_info, "%.15e,%.15e,%.15e,", local.magnetic_field_lattice.x, local.magnetic_field_lattice.y, local.magnetic_field_lattice.z);
+                fprintf(output_info, "%.15e,%.15e,%.15e\n", local.magnetic_field_derivative.x, local.magnetic_field_derivative.y, local.magnetic_field_derivative.z);
+            }
+
+            integrate_exchange_grids(&gpu, exchange_id, global_sim, local_sim);
+
             passed += dt;
+            step++;
         }
         clw_enqueue_nd(gpu.queue, gpu.kernels[render_id], 1, NULL, &global_ren, &local_ren);
         clw_read_buffer(rgba_buffer, rgba, sizeof(cl_char4) * w_width * w_height, 0, gpu.queue);
@@ -154,9 +206,6 @@ int main(void) {
                             break;
                         case 'g':
                             render_id = render_grid_id;
-                            break;
-                        case 'b':
-                            render_id = render_magnetic_field_id;
                             break;
                         default:
                             break;
@@ -189,11 +238,13 @@ int main(void) {
 
     clw_print_cl_error(stderr, clReleaseMemObject(swap_buffer), "[ FATAL ] Could not release swap buffer from GPU");
     clw_print_cl_error(stderr, clReleaseMemObject(rgba_buffer), "[ FATAL ] Could not release rgb buffer from GPU");
+    clw_print_cl_error(stderr, clReleaseMemObject(info_buffer), "[ FATAL ] Could not release info buffer from GPU");
 
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
     free(rgba);
 
     grid_free(&g_);
+    fclose(output_info);
     return 0;
 }

@@ -80,6 +80,40 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     out[id] =  v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
 }
 
+kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
+    size_t id = get_global_id(0);
+    int col = id % gi.cols;
+    int row = (id - col) / gi.cols;
+
+    if (col >= gi.cols || row >= gi.rows)
+        return;
+
+    parameters param;
+    param.gs = gs[id];
+    param.m = m0[id];
+    v3d dm = v3d_sub(m1[id], param.m);
+    param.neigh.left = apply_pbc(m0, gi, row, col - 1);
+    param.neigh.right = apply_pbc(m0, gi, row, col + 1);
+    param.neigh.up = apply_pbc(m0, gi, row + 1, col);
+    param.neigh.down = apply_pbc(m0, gi, row - 1, col);
+    param.time = time;
+    information_packed local_info = {0};
+
+    local_info.exchange_energy = exchange_energy(param);
+    local_info.dm_energy = dm_energy(param);
+    local_info.field_energy = field_energy(param);
+    local_info.anisotropy_energy = anisotropy_energy(param);
+    local_info.cubic_energy = cubic_anisotropy_energy(param);
+    local_info.energy = 0.5 * local_info.exchange_energy + 0.5 * local_info.dm_energy + local_info.field_energy + local_info.anisotropy_energy + local_info.cubic_energy;
+    local_info.charge_finite = charge_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.charge_lattice = charge_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.avg_m = param.m;
+    local_info.eletric_field = emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice);
+    local_info.magnetic_field_derivative = emergent_magnetic_field_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.magnetic_field_lattice = emergent_magnetic_field_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    info[id] = local_info;
+}
+
 kernel void exchange_grid(GLOBAL v3d *to, GLOBAL v3d *from) {
     size_t id = get_global_id(0);
     to[id] = from[id];
@@ -95,7 +129,7 @@ kernel void v3d_to_rgb(GLOBAL v3d *input, GLOBAL char4 *rgb) {
 }
 
 
-kernel void render_grid(GLOBAL v3d *input, grid_info gi,
+kernel void render_grid(GLOBAL v3d *input, grid_info gi, double range_start, double range_to,
                         GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
 
     size_t id = get_global_id(0);
@@ -115,7 +149,7 @@ kernel void render_grid(GLOBAL v3d *input, grid_info gi,
     rgba[id] = m_to_hsl(m);
 }
 
-kernel void render_topological_charge(GLOBAL v3d *input, grid_info gi,
+kernel void render_topological_charge(GLOBAL v3d *input, grid_info gi, double range_start, double range_to,
                                       GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
@@ -137,27 +171,6 @@ kernel void render_topological_charge(GLOBAL v3d *input, grid_info gi,
     double3 start = {0.0, 0.0, 0.0};
     double3 middle = {0.5, 0.5, 0.5};
     double3 end = {1.0, 1.0, 1.0};
-    rgba[id] = linear_mapping(clamp(charge_lattice(m, left, right, up, down), 0.0, 1.0), start, middle, end);
-}
-
-kernel void render_emergent_magnetic_field(GLOBAL v3d *input, grid_info gi,
-                                           GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
-    size_t id = get_global_id(0);
-    int icol = id % width;
-    int irow = (id - icol) / width;
-    int vcol = (float)icol / width * gi.cols;
-    int vrow = (float)irow / height * gi.rows;
-
-    //rendering inverts the grid, need to invert back
-    vrow = gi.rows - 1 - vrow;
-
-    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
-        return;
-
-    v3d left = apply_pbc(input, gi, vrow, vcol - 1);
-    v3d right = apply_pbc(input, gi, vrow, vcol + 1);
-    v3d up = apply_pbc(input, gi, vrow + 1, vcol);
-    v3d down = apply_pbc(input, gi, vrow - 1, vcol);
-    v3d m = input[vrow * gi.cols + vcol];
-    rgba[id] = m_bwr_mapping((emergent_magnetic_field_lattice(m, left, right, up, down)));
+    double charge = charge_lattice(m, left, right, up, down);
+    rgba[id] = linear_mapping((charge - range_start) / (range_to - range_start), start, middle, end);
 }

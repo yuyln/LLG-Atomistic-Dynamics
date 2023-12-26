@@ -8,6 +8,7 @@
 #include "string_view.h"
 #include "constants.h"
 #include "stb_image_write.h"
+#include "openclwrapper.h"
 
 #define integrate(grid, ...) integrate_vars(grid, (integration_params){\
                                                                        .dt=1.0e-15,\
@@ -32,6 +33,8 @@ typedef struct {
 
 void integrate_vars(grid *g, integration_params param);
 void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out);
-void integrate_step(double time, gpu_cl *gpu, uint64_t step_id, uint64_t exchange_id, uint64_t global, uint64_t local);
+void integrate_step(double time, gpu_cl *gpu, uint64_t step_id, uint64_t global, uint64_t local);
+void integrate_exchange_grids(gpu_cl *gpu, uint64_t exchange_id, uint64_t global, uint64_t local);
+void integrate_get_info(double time, gpu_cl *gpu, uint64_t info_id, uint64_t global, uint64_t local);
 
 #endif
