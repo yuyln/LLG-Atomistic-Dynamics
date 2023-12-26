@@ -2,18 +2,30 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-void integrate(grid *g, double dt, double duration, int interval_info, int interval_grid, string_view func_current, string_view func_field, const char *dir_out) {
+#define fill_default(f, v) param.f = param.f ? param.f: (v)
+
+void integrate_vars(grid *g, integration_params param) {
+    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path);
+}
+
+void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out) {
     UNUSED(interval_info);
     UNUSED(func_field);
     UNUSED(func_current);
+
     gpu_cl gpu = gpu_cl_init(0, 0);
+
     char *kernel;
     clw_read_file("./kernel_complete.cl", &kernel);
+
     const char cmp[] = "-DOPENCL_COMPILATION";
-    string_view kernel_view = (string_view){.str = kernel, .len = strlen(kernel)};
-    string_view compile_opt = (string_view){.str = (char *const)cmp, .len = strlen(cmp) + 1};
+    string_view kernel_view = sv_from_cstr(kernel);
+    string_view compile_opt = sv_from_cstr(cmp);
+
     gpu_cl_compile_source(&gpu, kernel_view, compile_opt);
+
     free(kernel);
+
     uint64_t step_id = gpu_append_kernel(&gpu, "gpu_step");
     uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
     uint64_t to_rgb_id = gpu_append_kernel(&gpu, "v3d_to_rgb");
@@ -69,9 +81,9 @@ void integrate(grid *g, double dt, double duration, int interval_info, int inter
     clw_print_cl_error(stderr, clReleaseMemObject(rgb_buffer), "[ FATAL ] Could not release rgb buffer from GPU");
 
     grid_release_from_gpu(g);
-    gpu_cl_close(&gpu);
     free(rgba);
     free(tmp);
+    gpu_cl_close(&gpu);
 }
 
 void integrate_step(double time, gpu_cl *gpu, uint64_t step_id, uint64_t exchange_id, uint64_t global, uint64_t local) {

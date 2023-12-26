@@ -6,11 +6,7 @@
 
 string string_init(uint64_t len) {
     return (string){.str = calloc(len, 1),
-                    .len = len};
-}
-
-int string_clear(string *s) {
-    return s->len = 0;
+                    .len = len + 1};
 }
 
 void string_free(string *s) {
@@ -32,7 +28,7 @@ const char *string_as_cstr(string *s) {
 
 string string_from_cstr(const char *str) {
     string ret = string_init(strlen(str));
-    memcpy(ret.str, str, ret.len);
+    memcpy(ret.str, str, strlen(str));
     return ret;
 }
 
@@ -42,4 +38,8 @@ string_view sv_from_string(string s, uint64_t start, uint64_t end) {
     if (end >= s.len)
         end = s.len - 1;
     return (string_view){.str = &s.str[start], .len = end - start};
+}
+
+string_view sv_from_cstr(const char *str) {
+    return (string_view){.str = (char *const) str, .len = strlen(str)};
 }
