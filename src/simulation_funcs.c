@@ -221,3 +221,11 @@ double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
     double q_041 = q_ijk(m, down, right);
     return 1.0 / (4.0 * M_PI) * (q_012 + q_023 + q_034 + q_041);
 }
+
+v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
+    return v3d_c(0.0, 0.0, HBAR / QE * charge_lattice(m, left, right, up, down));
+}
+
+v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {
+    return v3d_c(0.0, 0.0, HBAR / QE * charge_derivative(m, left, right, up, down));
+}

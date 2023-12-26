@@ -41,6 +41,7 @@ int main(void) {
     uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
     uint64_t render_grid_id = gpu_append_kernel(&gpu, "render_grid");
     uint64_t render_charge_id = gpu_append_kernel(&gpu, "render_topological_charge");
+    uint64_t render_magnetic_field_id = gpu_append_kernel(&gpu, "render_emergent_magnetic_field");
     uint64_t render_id = render_grid_id;
 
     unsigned int w_width = 800;
@@ -153,6 +154,9 @@ int main(void) {
                             break;
                         case 'g':
                             render_id = render_grid_id;
+                            break;
+                        case 'b':
+                            render_id = render_magnetic_field_id;
                             break;
                         default:
                             break;

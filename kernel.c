@@ -159,8 +159,5 @@ kernel void render_emergent_magnetic_field(GLOBAL v3d *input, grid_info gi,
     v3d up = apply_pbc(input, gi, vrow + 1, vcol);
     v3d down = apply_pbc(input, gi, vrow - 1, vcol);
     v3d m = input[vrow * gi.cols + vcol];
-    double3 start = {0.0, 0.0, 0.0};
-    double3 middle = {0.5, 0.5, 0.5};
-    double3 end = {1.0, 1.0, 1.0};
-    rgba[id] = linear_mapping(clamp(charge_lattice(m, left, right, up, down), 0.0, 1.0), start, middle, end);
+    rgba[id] = m_bwr_mapping((emergent_magnetic_field_lattice(m, left, right, up, down)));
 }
