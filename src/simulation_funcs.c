@@ -24,7 +24,7 @@ v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
     switch (dm_sym) {
         case R_ij_CROSS_Z: {
-            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, 1)), dm);
+            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, -1)), dm);
         }
         case R_ij: {
             return v3d_scalar(dr, dm);
@@ -47,7 +47,7 @@ current generate_current(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
     current ret = {0};
-    ret.type = CUR_STT;
+    ret.type = CUR_NONE;
     ret.stt.polarization = -1.0;
     ret.stt.beta = 0.0;
     ret.stt.j = v3d_scalar(v3d_c(1, 0, 0), 1.0e11);
