@@ -1,16 +1,7 @@
-#include "grid_types.h"
+#include "atomistic_simulation.h"
 #include <float.h>
 #include <time.h>
 #include <stdlib.h>
-
-#include <X11/Xlib.h>
-#define XK_LATIN1
-#include <X11/keysymdef.h>
-#include <X11/extensions/Xdbe.h>
-
-#include "grid_funcs.h"
-#include "integrate.h"
-#include "simulation_funcs.h"
 
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
