@@ -8,7 +8,11 @@
 //@TODO: Do 3D
 //@TODO: This is a f*** mess, need to organize better later
 int main(void) {
-    srand(time(NULL));
+    simulation_window *window = window_init(800, 600);
+    while (!window_should_close(window)) {
+        window_poll(window);
+    }
+    /*srand(time(NULL));
     double dt = 6.0e-15;
     unsigned int rows = 64;
     unsigned int cols = 64;
@@ -90,54 +94,6 @@ int main(void) {
     size_t global_ren = w_width * w_height;
     size_t local_ren = clw_gcd(global_ren, 32);
 
-    Display *display = XOpenDisplay(NULL);
-    if (display == NULL) {
-        fprintf(stderr, "ERROR: could not open the default display\n");
-        exit(1);
-    }
-
-    int major_version_return, minor_version_return;
-    if(XdbeQueryExtension(display, &major_version_return, &minor_version_return)) {
-        printf("XDBE version %d.%d\n", major_version_return, minor_version_return);
-    } else {
-        fprintf(stderr, "XDBE is not supported!!!1\n");
-        exit(1);
-    }
-
-    Window window = XCreateSimpleWindow(
-            display,
-            XDefaultRootWindow(display),
-            0, 0,
-            w_width, w_height,
-            0,
-            0,
-            0);
-
-    XdbeBackBuffer back_buffer = XdbeAllocateBackBufferName(display, window, 0);
-    printf("back_buffer ID: %lu\n", back_buffer);
-
-    XWindowAttributes wa = {0};
-    XGetWindowAttributes(display, window, &wa);
-
-    XImage *image = XCreateImage(display,
-            wa.visual,
-            wa.depth,
-            ZPixmap,
-            0,
-            (char*) rgba,
-            w_width,
-            w_height,
-            sizeof(cl_char4) * 8,
-            w_width * sizeof(cl_char4));
-
-    GC gc = XCreateGC(display, window, 0, NULL);
-
-    Atom wm_delete_window = XInternAtom(display, "WM_DELETE_WINDOW", False);
-    XSetWMProtocols(display, window, &wm_delete_window, 1);
-
-    XSelectInput(display, window, KeyPressMask);
-
-    XMapWindow(display, window);
 
 
     FILE *output_info = fopen("./simulation_info.csv", "w");
@@ -303,6 +259,6 @@ int main(void) {
     free(rgba);
 
     grid_free(&g_);
-    fclose(output_info);
+    fclose(output_info);*/
     return 0;
 }

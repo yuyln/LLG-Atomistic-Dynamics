@@ -1,9 +1,11 @@
-#include "render.h"
-
 #include <X11/Xlib.h>
+#include <string.h>
 #define XK_LATIN1
 #include <X11/keysymdef.h>
 #include <X11/extensions/Xdbe.h>
+#include <stdbool.h>
+
+#include "render.h"
 
 struct simulation_window {
     unsigned int width;
@@ -16,9 +18,12 @@ struct simulation_window {
     XImage *image;
     GC gc;
     Atom wm_delete_window;
+    bool should_close;
+
+    window_input input;
 };
 
-simulation_window render_init(unsigned int width, unsigned int height) {
+simulation_window *window_init(unsigned int width, unsigned int height) {
     simulation_window ret = {.width = width, .height = height};
     ret.buffer = calloc(width * height, sizeof(*ret.buffer));
 
@@ -48,7 +53,7 @@ simulation_window render_init(unsigned int width, unsigned int height) {
     ret.back_buffer = XdbeAllocateBackBufferName(ret.display, ret.window, 0);
     printf("back_buffer ID: %lu\n", ret.back_buffer);
 
-    ret.wa = {0};
+    ret.wa = (XWindowAttributes){0};
     XGetWindowAttributes(ret.display, ret.window, &ret.wa);
 
     ret.image = XCreateImage(ret.display,
@@ -71,5 +76,45 @@ simulation_window render_init(unsigned int width, unsigned int height) {
 
     XMapWindow(ret.display, ret.window);
 
-    return ret;
+    simulation_window *ret_ = calloc(1, sizeof(*ret_));
+    memcpy(ret_, &ret, sizeof(*ret_));
+
+    return ret_;
+}
+
+bool window_should_close(simulation_window *w) {
+    return w->should_close;
+}
+
+//@TODO: Make resize possible
+void window_poll(simulation_window *w) {
+    memset(w->input.key_pressed, 0, sizeof(w->input.key_pressed));
+    while (XPending(w->display) > 0) {
+        XEvent event = (XEvent){0};
+        XNextEvent(w->display, &event);
+        switch (event.type) {
+            case ClientMessage:
+                if ((Atom) event.xclient.data.l[0] == w->wm_delete_window)
+                    w->should_close = true;
+                break;
+            case KeyPress: {
+                unsigned long code = XLookupKeysym(&event.xkey, 0);
+                if (code < 255)
+                    w->input.key_pressed[code] = true;
+            }
+                break;
+            case ResizeRequest: 
+                printf("Resize\n");
+                break;
+            default: {}
+        }
+    }
+}
+
+void window_close(simulation_window *w) {
+    free(w);
+}
+
+bool window_key_pressed(simulation_window *w, char k) {
+    return w->input.key_pressed[(int)k];
 }
