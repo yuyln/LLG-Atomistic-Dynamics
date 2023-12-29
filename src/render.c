@@ -137,7 +137,7 @@ void window_render(render_window *w) {
 
     XdbeSwapInfo swap_info = (XdbeSwapInfo){.swap_window = w->window, .swap_action = 0};
     XdbeSwapBuffers(w->display, &swap_info, 1);
-    memset(w->buffer, 0, sizeof(*w->buffer) * w->width * w->height);
+    //memset(w->buffer, 0, sizeof(*w->buffer) * w->width * w->height);
 }
 
 void window_draw_from_bytes(render_window *w, RGBA32 *bytes, int x0, int y0, int width, int height) {

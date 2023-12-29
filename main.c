@@ -1,17 +1,13 @@
 #include "atomistic_simulation.h"
+#include <time.h>
+#include <math.h>
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
 //@TODO: This is a f*** mess, need to organize better later
 int main(void) {
     render_window *window = window_init(800, 600);
-    int w = 800;
-    int h = 600;
-    RGBA32 *b = calloc(w * h, sizeof(*b));
-    for (int i = 0; i < w * h; ++i)
-        b[i] = (RGBA32){.b = (double)i / (w * h) * 255, .a = 255};
     while (!window_should_close(window)) {
-        window_draw_from_bytes(window, b, 0, 0, w, h);
         window_render(window);
         window_poll(window);
     }
