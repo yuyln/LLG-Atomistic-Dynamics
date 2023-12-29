@@ -43,14 +43,6 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
                                               &time, sizeof(double),
                                               &g->gi, sizeof(grid_info));
 
-    /*clw_set_kernel_arg(gpu.kernels[step_id], 0, sizeof(cl_mem), &g->gp_buffer);
-    clw_set_kernel_arg(gpu.kernels[step_id], 1, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[step_id], 2, sizeof(cl_mem), &swap_buffer);
-    clw_set_kernel_arg(gpu.kernels[step_id], 3, sizeof(double), &dt);
-    clw_set_kernel_arg(gpu.kernels[step_id], 4, sizeof(double), &time);
-    clw_set_kernel_arg(gpu.kernels[step_id], 5, sizeof(grid_info), &g->gi);*/
-
-
     gpu_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
                                               &g->m_buffer, sizeof(cl_mem),
                                               &swap_buffer, sizeof(cl_mem),
@@ -59,19 +51,8 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
                                               &time, sizeof(double),
                                               &g->gi, sizeof(grid_info));
 
-    /*clw_set_kernel_arg(gpu.kernels[info_id], 0, sizeof(cl_mem), &g->gp_buffer);
-    clw_set_kernel_arg(gpu.kernels[info_id], 1, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[info_id], 2, sizeof(cl_mem), &swap_buffer);
-    clw_set_kernel_arg(gpu.kernels[info_id], 3, sizeof(cl_mem), &info_buffer);
-    clw_set_kernel_arg(gpu.kernels[info_id], 4, sizeof(double), &dt);
-    clw_set_kernel_arg(gpu.kernels[info_id], 5, sizeof(double), &time);
-    clw_set_kernel_arg(gpu.kernels[info_id], 6, sizeof(grid_info), &g->gi);*/
-
     gpu_fill_kernel_args(&gpu, exchange_id, 0, 2, &g->m_buffer, sizeof(cl_mem),
                                                   &swap_buffer, sizeof(cl_mem));
-
-    /*clw_set_kernel_arg(gpu.kernels[exchange_id], 0, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[exchange_id], 1, sizeof(cl_mem), &swap_buffer);*/
 
     size_t global = g->gi.rows * g->gi.cols;
     size_t local = clw_gcd(global, 32);

@@ -35,6 +35,12 @@ typedef struct {
     string_view compile_augment;
 } integration_params;
 
+typedef struct {
+    cl_mem swap_buffer;
+    uint64_t step_id;
+    uint64_t exchage_id;
+} integrate_context;
+
 
 void integrate_vars(grid *g, integration_params param);
 void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment);

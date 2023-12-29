@@ -8,14 +8,32 @@
 //@TODO: This is a f*** mess, need to organize better later
 //
 int main(void) {
-    render_window *window = window_init(800, 600);
+    render_window *window = window_init(800, 800);
     grid g = grid_init(64, 64);
     for (int i = 0; i < 64 * 64; ++i)
         g.m[i] = v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0)));
     grid_renderer gr = grid_renderer_init(&g, window, (string_view){0}, (string_view){0});
 
+    double passed = 0.0;
+    int state;
     while(!window_should_close(window)) {
-        grid_renderer_charge(&gr);
+        switch (state) {
+            case 'q':
+                grid_renderer_charge(&gr);
+                break;
+            case 'e':
+                grid_renderer_energy(&gr, passed);
+                break;
+            default:
+                grid_renderer_hsl(&gr);
+        }
+        if (window_key_pressed(window, 'q'))
+            state = 'q';
+        else if (window_key_pressed(window, 'e'))
+            state = 'e';
+        else if (window_key_pressed(window, 'g'))
+            state = 0;
+
         window_render(window);
         window_poll(window);
     }
