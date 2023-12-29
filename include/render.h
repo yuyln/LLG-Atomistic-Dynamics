@@ -24,5 +24,6 @@ void window_render(render_window *window);
 void window_draw_from_bytes(render_window *window, RGBA32 *bytes, int x, int y, int width, int height);
 int window_width(render_window *window);
 int window_height(render_window *window);
+void window_resize(render_window *window); //@TODO
 
 #endif

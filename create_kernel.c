@@ -53,12 +53,18 @@ int main(int argc, const char **argv) {
         fprintf(stderr, "Usage %s file1 file2 file3 ...\n", program);
         return 1;
     }
-    FILE *f = fopen("./kernel_complete.cl", "wb");
+
+    FILE *f = fopen("./src/complete_kernel.c", "wb");
+    fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = \"");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));
-        fwrite(data, strlen(data), 1, f);
+        char *ptr = data;
+        while (*ptr)
+            fprintf(f, "\\x%x", *ptr++);
         free(data);
     }
+    fprintf(f, "\";");
     fclose(f);
+
     return 0;
 }

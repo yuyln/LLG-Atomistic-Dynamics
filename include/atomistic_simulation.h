@@ -12,5 +12,6 @@
 #include "simulation_funcs.h"
 #include "string_view.h"
 #include "v3d.h"
+#include "complete_kernel.h"
 
 #endif

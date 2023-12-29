@@ -5,7 +5,7 @@
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include "openclwrapper.h"
 #include "constants.h"
-static_assert(sizeof(cl_char4) == sizeof(uint32_t));
+static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the same as the size of uint32_t, which should not happen");
 
 //@TODO: Create queue with properties
 gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {
@@ -75,4 +75,15 @@ uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel) {
     uint64_t index = gpu->n_kernels;
     ++gpu->n_kernels;
     return index;
+}
+
+void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...) {
+    va_list arg_list;
+    va_start(arg_list, nargs);
+    for (uint64_t i = offset; i < offset + nargs; ++i) {
+        void *item = (void*)va_arg(arg_list,  uint64_t);
+        uint64_t sz = va_arg(arg_list, uint64_t);
+        clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[kernel].kernel, i, sz, item), "[ FATAL ] Could not set argument %d of kernel %s", (int)i, gpu->kernels[kernel].name);
+    }
+    va_end(arg_list);
 }

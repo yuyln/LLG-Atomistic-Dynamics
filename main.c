@@ -9,10 +9,17 @@
 //
 int main(void) {
     render_window *window = window_init(800, 600);
-    while (!window_should_close(window)) {
+    grid g = grid_init(64, 64);
+    for (int i = 0; i < 64 * 64; ++i)
+        g.m[i] = v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0)));
+    grid_renderer gr = grid_renderer_init(&g, window, (string_view){0}, (string_view){0});
+
+    while(!window_should_close(window)) {
+        grid_renderer_charge(&gr);
         window_render(window);
         window_poll(window);
     }
+
     /*srand(time(NULL));
     double dt = 6.0e-15;
     unsigned int rows = 64;

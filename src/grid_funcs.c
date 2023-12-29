@@ -167,16 +167,21 @@ void grid_free(grid *g) {
     free(g->m);
     g->gp = NULL;
     g->m = NULL;
-    memset(g, 0, sizeof(g->gi));
+    grid_release_from_gpu(g);
+    memset(g, 0, sizeof(*g));
 }
 
 void grid_release_from_gpu(grid *g) {
-    grid_free(g);
     clw_print_cl_error(stderr, clReleaseMemObject(g->gp_buffer), "[ FATAL ] Could not release gp buffer from GPU");
     clw_print_cl_error(stderr, clReleaseMemObject(g->m_buffer), "[ FATAL ] Could not release m buffer from GPU");
+    g->on_gpu = false;
 }
 
 void grid_to_gpu(grid *g, gpu_cl gpu) {
+    if (g->on_gpu) {
+        fprintf(stderr, "[ WARNING ] Trying to send grid to gpu with the grid already being on the gpu, only write will be performed");
+    }
+
     uint64_t gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     uint64_t m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
 
@@ -187,14 +192,23 @@ void grid_to_gpu(grid *g, gpu_cl gpu) {
     g->m_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, m_size_bytes, NULL, &err);
     clw_print_cl_error(stderr, err, "[ FATAL ] Creating vectors grid buffer with size %zu B to GPU", m_size_bytes);
 
-    err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gp_size_bytes);
+    g->on_gpu = true;
+    
+    if (g->on_gpu) {
+        err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
+        clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gp_size_bytes);
 
-    err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", m_size_bytes);
+        err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
+        clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", m_size_bytes);
+    }
 }
 
 void grid_from_gpu(grid *g, gpu_cl gpu) {
+    if (!g->on_gpu) {
+        fprintf(stderr, "[ WARNING ] Trying to read grid from gpu without the grid being on the gpu");
+        return;
+    }
+
     int gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     int m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
 

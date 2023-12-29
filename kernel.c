@@ -78,7 +78,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     param.neigh.down = apply_pbc(input, gi, row - 1, col);
     param.time = time;
 
-    out[id] =  v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
+    out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
 }
 
 kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
@@ -120,19 +120,8 @@ kernel void exchange_grid(GLOBAL v3d *to, GLOBAL v3d *from) {
     to[id] = from[id];
 }
 
-kernel void v3d_to_rgb(GLOBAL v3d *input, GLOBAL char4 *rgb) {
-    size_t id = get_global_id(0);
-    v3d m = input[id];
-    //char4 ret = m_bwr_mapping(m);
-    char4 ret = m_to_hsl(m);
-    //BGRA -> RGBA 
-    rgb[id] = (char4){ret.z, ret.y, ret.x, ret.w};
-}
-
-
-kernel void render_grid(GLOBAL v3d *input, grid_info gi, 
+kernel void render_grid_bwr(GLOBAL v3d *v, grid_info gi,
                         GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
-
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -145,13 +134,13 @@ kernel void render_grid(GLOBAL v3d *input, grid_info gi,
     if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
         return;
 
-    v3d m = input[vrow * gi.cols + vcol];
+    v3d m = v[vrow * gi.cols + vcol];
 
-    rgba[id] = m_to_hsl(m);
+    rgba[id] = m_bwr_mapping(m);
 }
 
-kernel void render_grid_compa(GLOBAL information_packed *info, grid_info gi, double charge_min, double charge_max,
-                              GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+kernel void render_grid_hsl(GLOBAL v3d *v, grid_info gi,
+                        GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -164,95 +153,92 @@ kernel void render_grid_compa(GLOBAL information_packed *info, grid_info gi, dou
     if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
         return;
 
-    v3d m = info[vrow * gi.cols + vcol].avg_m;
+    v3d m = v[vrow * gi.cols + vcol];
 
     rgba[id] = m_to_hsl(m);
 }
 
-kernel void render_topological_charge(GLOBAL information_packed *info, grid_info gi, double charge_min, double charge_max,
+kernel void calculate_charge_to_render(GLOBAL v3d *v, grid_info gi, GLOBAL double *out) {
+    size_t id = get_global_id(0);
+    int col = id % gi.cols;
+    int row = (id - col) / gi.cols;
+
+    if (col >= gi.cols || row >= gi.rows)
+        return;
+
+    v3d m = v[id];
+    v3d left = apply_pbc(v, gi, row, col - 1);
+    v3d right = apply_pbc(v, gi, row, col + 1);
+    v3d up = apply_pbc(v, gi, row + 1, col);
+    v3d down = apply_pbc(v, gi, row - 1, col);
+
+    out[id] = charge_lattice(m, left, right, up, down);
+}
+
+kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int cols, double charge_min, double charge_max,
                                       GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
-    int vcol = (float)icol / width * gi.cols;
-    int vrow = (float)irow / height * gi.rows;
+    int vcol = (float)icol / width * cols;
+    int vrow = (float)irow / height * rows;
 
     //rendering inverts the grid, need to invert back
-    vrow = gi.rows - 1 - vrow;
+    vrow = rows - 1 - vrow;
 
-    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
+    if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
         return;
 
     double3 start = {0, 0, 0};
     double3 middle = {0.5, 0.5, 0.5};
     double3 end = {1, 1, 1};
 
-    double charge = info[vrow * gi.cols + vcol].charge_lattice;
+    double charge = input[vrow * cols + vcol];
     charge = (charge - charge_min) / (charge_max - charge_min);
     rgba[id] = linear_mapping(clamp(charge, 0.0, 1.0), start, middle, end);
 }
 
-kernel void render_magnetic_field(GLOBAL information_packed *info, grid_info gi, double field_min, double field_max,
-                                  GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+kernel void calculate_energy_to_render(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
     size_t id = get_global_id(0);
-    int icol = id % width;
-    int irow = (id - icol) / width;
-    int vcol = (float)icol / width * gi.cols;
-    int vrow = (float)irow / height * gi.rows;
+    int col = id % gi.cols;
+    int row = (id - col) / gi.cols;
 
-    //rendering inverts the grid, need to invert back
-    vrow = gi.rows - 1 - vrow;
-
-    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
+    if (col >= gi.cols || row >= gi.rows)
         return;
 
-    v3d field = info[vrow * gi.cols + vcol].magnetic_field_lattice;
-    field.x = (field.x - field_min) / (field_max - field_min);
-    field.y = (field.y - field_min) / (field_max - field_min);
-    field.z = (field.z - field_min) / (field_max - field_min);
-    rgba[id] = m_to_hsl(field);
+    parameters param;
+    param.gs = gs[id];
+    param.m = v[id];
+    param.neigh.left = apply_pbc(v, gi, row, col - 1);
+    param.neigh.right = apply_pbc(v, gi, row, col + 1);
+    param.neigh.up = apply_pbc(v, gi, row + 1, col);
+    param.neigh.down = apply_pbc(v, gi, row - 1, col);
+    param.time = time;
+
+    out[id] = energy(param);
 }
 
-kernel void render_eletric_field(GLOBAL information_packed *info, grid_info gi, double field_min, double field_max,
+kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int cols, double energy_min, double energy_max,
                                  GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
-    int vcol = (float)icol / width * gi.cols;
-    int vrow = (float)irow / height * gi.rows;
+    int vcol = (float)icol / width * cols;
+    int vrow = (float)irow / height * rows;
 
     //rendering inverts the grid, need to invert back
-    vrow = gi.rows - 1 - vrow;
+    vrow = rows - 1 - vrow;
 
-    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
-        return;
-
-    v3d field = info[vrow * gi.cols + vcol].eletric_field;
-    //field.x = (field.x - field_min) / (field_max - field_min);
-    //field.y = (field.y - field_min) / (field_max - field_min);
-    //field.z = (field.z - field_min) / (field_max - field_min);
-    rgba[id] = m_to_hsl(v3d_normalize(field));
-}
-
-kernel void render_energy(GLOBAL information_packed *info, grid_info gi, double energy_min, double energy_max,
-                                 GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
-    size_t id = get_global_id(0);
-    int icol = id % width;
-    int irow = (id - icol) / width;
-    int vcol = (float)icol / width * gi.cols;
-    int vrow = (float)irow / height * gi.rows;
-
-    //rendering inverts the grid, need to invert back
-    vrow = gi.rows - 1 - vrow;
-
-    if (vrow >= gi.rows || vcol >= gi.cols || icol >= width || irow >= height)
+    if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
         return;
 
     double3 start = {0, 0, 0};
     double3 middle = {0.5, 0.5, 0.5};
     double3 end = {1, 1, 1};
 
-    double energy = info[vrow * gi.cols + vcol].energy;
+    double energy = ene[vrow * cols + vcol];
     energy = (energy - energy_min) / (energy_max - energy_min);
     rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
+
+//%s

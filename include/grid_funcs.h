@@ -1,5 +1,6 @@
 #ifndef __GRID_FUNCS_H
 #define __GRID_FUNCS_H
+#include <stdbool.h>
 #include "grid_types.h"
 #include "gpu.h"
 
@@ -10,6 +11,8 @@ typedef struct {
 
     cl_mem gp_buffer;
     cl_mem m_buffer;
+
+    bool on_gpu;
 } grid;
 
 double shit_random(double from, double to);

@@ -41,11 +41,13 @@ v3d generate_magnetic_field(grid_site_param gs, double time) {
     normalized *= gs.dm * gs.dm / gs.exchange;
     double real = normalized / gs.mu;
     return v3d_c(0, 0, -real);
+    //%s
 }
 
 current generate_current(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
+    //%s
     current ret = {0};
     ret.type = CUR_STT;
     ret.stt.polarization = -1.0;

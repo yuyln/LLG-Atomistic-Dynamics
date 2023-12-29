@@ -3,28 +3,25 @@
 #include "stb_image_write.h"
 
 void integrate_vars(grid *g, integration_params param) {
-    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path);
+    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path, param.kernel_augment, param.compile_augment);
 }
 
-void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out) {
+void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment) {
     UNUSED(interval_info);
     UNUSED(func_field);
     UNUSED(func_current);
     UNUSED(interval_grid);
     UNUSED(dir_out);
+    UNUSED(kernel_augment);
+    UNUSED(compile_augment);
 
     gpu_cl gpu = gpu_cl_init(0, 0);
 
-    char *kernel;
-    clw_read_file("./kernel_complete.cl", &kernel);
-
     const char cmp[] = "-DOPENCL_COMPILATION";
-    string_view kernel_view = sv_from_cstr(kernel);
     string_view compile_opt = sv_from_cstr(cmp);
 
-    gpu_cl_compile_source(&gpu, kernel_view, compile_opt);
+    gpu_cl_compile_source(&gpu, sv_from_cstr(complete_kernel), compile_opt);
 
-    free(kernel);
 
     uint64_t step_id = gpu_append_kernel(&gpu, "gpu_step");
     uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
@@ -39,23 +36,42 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
     double time = 0.0;
 
-    clw_set_kernel_arg(gpu.kernels[step_id], 0, sizeof(cl_mem), &g->gp_buffer);
+    gpu_fill_kernel_args(&gpu, step_id, 0, 6, &g->gp_buffer, sizeof(cl_mem),
+                                              &g->m_buffer, sizeof(cl_mem),
+                                              &swap_buffer, sizeof(cl_mem),
+                                              &dt, sizeof(double),
+                                              &time, sizeof(double),
+                                              &g->gi, sizeof(grid_info));
+
+    /*clw_set_kernel_arg(gpu.kernels[step_id], 0, sizeof(cl_mem), &g->gp_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 1, sizeof(cl_mem), &g->m_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 2, sizeof(cl_mem), &swap_buffer);
     clw_set_kernel_arg(gpu.kernels[step_id], 3, sizeof(double), &dt);
     clw_set_kernel_arg(gpu.kernels[step_id], 4, sizeof(double), &time);
-    clw_set_kernel_arg(gpu.kernels[step_id], 5, sizeof(grid_info), &g->gi);
+    clw_set_kernel_arg(gpu.kernels[step_id], 5, sizeof(grid_info), &g->gi);*/
 
-    clw_set_kernel_arg(gpu.kernels[info_id], 0, sizeof(cl_mem), &g->gp_buffer);
+
+    gpu_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
+                                              &g->m_buffer, sizeof(cl_mem),
+                                              &swap_buffer, sizeof(cl_mem),
+                                              &info_buffer, sizeof(cl_mem),
+                                              &dt, sizeof(double),
+                                              &time, sizeof(double),
+                                              &g->gi, sizeof(grid_info));
+
+    /*clw_set_kernel_arg(gpu.kernels[info_id], 0, sizeof(cl_mem), &g->gp_buffer);
     clw_set_kernel_arg(gpu.kernels[info_id], 1, sizeof(cl_mem), &g->m_buffer);
     clw_set_kernel_arg(gpu.kernels[info_id], 2, sizeof(cl_mem), &swap_buffer);
     clw_set_kernel_arg(gpu.kernels[info_id], 3, sizeof(cl_mem), &info_buffer);
     clw_set_kernel_arg(gpu.kernels[info_id], 4, sizeof(double), &dt);
     clw_set_kernel_arg(gpu.kernels[info_id], 5, sizeof(double), &time);
-    clw_set_kernel_arg(gpu.kernels[info_id], 6, sizeof(grid_info), &g->gi);
+    clw_set_kernel_arg(gpu.kernels[info_id], 6, sizeof(grid_info), &g->gi);*/
 
-    clw_set_kernel_arg(gpu.kernels[exchange_id], 0, sizeof(cl_mem), &g->m_buffer);
-    clw_set_kernel_arg(gpu.kernels[exchange_id], 1, sizeof(cl_mem), &swap_buffer);
+    gpu_fill_kernel_args(&gpu, exchange_id, 0, 2, &g->m_buffer, sizeof(cl_mem),
+                                                  &swap_buffer, sizeof(cl_mem));
+
+    /*clw_set_kernel_arg(gpu.kernels[exchange_id], 0, sizeof(cl_mem), &g->m_buffer);
+    clw_set_kernel_arg(gpu.kernels[exchange_id], 1, sizeof(cl_mem), &swap_buffer);*/
 
     size_t global = g->gi.rows * g->gi.cols;
     size_t local = clw_gcd(global, 32);
