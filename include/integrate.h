@@ -36,16 +36,24 @@ typedef struct {
 } integration_params;
 
 typedef struct {
+    grid *g;
+    gpu_cl *gpu;
+    double dt;
+    double time;
     cl_mem swap_buffer;
     uint64_t step_id;
-    uint64_t exchage_id;
+    uint64_t exchange_id;
+    uint64_t global;
+    uint64_t local;
 } integrate_context;
 
+integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt);
 
 void integrate_vars(grid *g, integration_params param);
 void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment);
-void integrate_step(double time, gpu_cl *gpu, uint64_t step_id, uint64_t global, uint64_t local);
-void integrate_exchange_grids(gpu_cl *gpu, uint64_t exchange_id, uint64_t global, uint64_t local);
-void integrate_get_info(double time, gpu_cl *gpu, uint64_t info_id, uint64_t global, uint64_t local);
+
+void integrate_step(integrate_context *ctx);
+void integrate_exchange_grids(integrate_context *ctx);
+void integrate_get_info(integrate_context *ctx, uint64_t info_id);
 
 #endif

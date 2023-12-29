@@ -2,6 +2,31 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
+    integrate_context ctx = {0};
+    ctx.g = grid;
+    ctx.gpu = gpu;
+    grid_to_gpu(grid, *gpu);
+    ctx.dt = dt;
+    ctx.time = 0.0;
+    ctx.swap_buffer = clw_create_buffer(sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, gpu->ctx, CL_MEM_READ_WRITE);
+    ctx.step_id = gpu_append_kernel(gpu, "gpu_step");
+    ctx.exchange_id = gpu_append_kernel(gpu, "exchange_grid");
+
+    gpu_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_buffer, sizeof(cl_mem),
+                                                 &grid->m_buffer, sizeof(cl_mem),
+                                                 &ctx.swap_buffer, sizeof(cl_mem),
+                                                 &dt, sizeof(double),
+                                                 &ctx.time, sizeof(double),
+                                                 &grid->gi, sizeof(grid_info));
+
+    gpu_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_buffer, sizeof(cl_mem), &ctx.swap_buffer, sizeof(cl_mem));
+    ctx.global = grid->gi.cols * grid->gi.rows;
+    ctx.local = clw_gcd(ctx.global, 32);
+
+    return ctx;
+}
+
 void integrate_vars(grid *g, integration_params param) {
     integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path, param.kernel_augment, param.compile_augment);
 }
@@ -16,46 +41,24 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     UNUSED(compile_augment);
 
     gpu_cl gpu = gpu_cl_init(0, 0);
-
-    const char cmp[] = "-DOPENCL_COMPILATION";
-    string_view compile_opt = sv_from_cstr(cmp);
-
-    gpu_cl_compile_source(&gpu, sv_from_cstr(complete_kernel), compile_opt);
-
-
-    uint64_t step_id = gpu_append_kernel(&gpu, "gpu_step");
-    uint64_t exchange_id = gpu_append_kernel(&gpu, "exchange_grid");
-    uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
-
+    integrate_context ctx = integrate_context_init(g, &gpu, dt);
     grid_to_gpu(g, gpu);
 
-    cl_mem swap_buffer = clw_create_buffer(g->gi.rows * g->gi.cols * sizeof(*g->m), gpu.ctx, CL_MEM_READ_WRITE);
+    const char cmp[] = "-DOPENCL_COMPILATION";
+    gpu_cl_compile_source(&gpu, sv_from_cstr(complete_kernel), sv_from_cstr(cmp));
+
+    uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
 
     information_packed *info = calloc(g->gi.rows * g->gi.cols, sizeof(information_packed));
     cl_mem info_buffer = clw_create_buffer(g->gi.rows * g->gi.cols * sizeof(*info), gpu.ctx, CL_MEM_READ_WRITE);
 
-    double time = 0.0;
-
-    gpu_fill_kernel_args(&gpu, step_id, 0, 6, &g->gp_buffer, sizeof(cl_mem),
-                                              &g->m_buffer, sizeof(cl_mem),
-                                              &swap_buffer, sizeof(cl_mem),
-                                              &dt, sizeof(double),
-                                              &time, sizeof(double),
-                                              &g->gi, sizeof(grid_info));
-
     gpu_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
                                               &g->m_buffer, sizeof(cl_mem),
-                                              &swap_buffer, sizeof(cl_mem),
+                                              &ctx.swap_buffer, sizeof(cl_mem),
                                               &info_buffer, sizeof(cl_mem),
                                               &dt, sizeof(double),
-                                              &time, sizeof(double),
+                                              &ctx.time, sizeof(double),
                                               &g->gi, sizeof(grid_info));
-
-    gpu_fill_kernel_args(&gpu, exchange_id, 0, 2, &g->m_buffer, sizeof(cl_mem),
-                                                  &swap_buffer, sizeof(cl_mem));
-
-    size_t global = g->gi.rows * g->gi.cols;
-    size_t local = clw_gcd(global, 32);
 
     uint64_t step = 0;
 
@@ -68,11 +71,11 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     fprintf(output_info, "magnetic_derivative_x,magnetic_derivative_y,magnetic_derivative_z\n");
 
 
-    while (time <= duration) {
-        integrate_step(time, &gpu, step_id, global, local);
+    while (ctx.time <= duration) {
+        integrate_step(&ctx);
 
         if (step % interval_info == 0) {
-            integrate_get_info(time, &gpu, info_id, global, local);
+            integrate_get_info(&ctx, info_id);
             clw_print_cl_error(stderr, clEnqueueReadBuffer(gpu.queue, info_buffer, CL_TRUE, 0, sizeof(*info) * g->gi.rows * g->gi.cols, info, 0, NULL, NULL), "[ FATAL ] Could not read info_buiffer");
             information_packed info_local = {0};
             for (uint64_t i = 0; i < g->gi.rows * g->gi.cols; ++i) {
@@ -89,7 +92,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
                 info_local.magnetic_field_lattice = v3d_sum(info_local.magnetic_field_lattice, info[i].magnetic_field_lattice);
                 info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, info[i].magnetic_field_derivative);
             }
-            fprintf(output_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", time, info_local.energy, info_local.exchange_energy, info_local.dm_energy, info_local.field_energy, info_local.anisotropy_energy, info_local.cubic_energy);
+            fprintf(output_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", ctx.time, info_local.energy, info_local.exchange_energy, info_local.dm_energy, info_local.field_energy, info_local.anisotropy_energy, info_local.cubic_energy);
             fprintf(output_info, "%.15e,%.15e,", info_local.charge_finite, info_local.charge_lattice);
             fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.avg_m.x, info_local.avg_m.y, info_local.avg_m.z);
             fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.eletric_field.x, info_local.eletric_field.y, info_local.eletric_field.z);
@@ -97,13 +100,13 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
             fprintf(output_info, "%.15e,%.15e,%.15e\n", info_local.magnetic_field_derivative.x, info_local.magnetic_field_derivative.y, info_local.magnetic_field_derivative.z);
         }
 
-        integrate_exchange_grids(&gpu, exchange_id, global, local);
-        time += dt;
+        integrate_exchange_grids(&ctx);
+        ctx.time += dt;
         step++;
     }
     fclose(output_info);
 
-    clw_print_cl_error(stderr, clReleaseMemObject(swap_buffer), "[ FATAL ] Could not release swap buffer from GPU");
+    clw_print_cl_error(stderr, clReleaseMemObject(ctx.swap_buffer), "[ FATAL ] Could not release ctx swap buffer from GPU");
     clw_print_cl_error(stderr, clReleaseMemObject(info_buffer), "[ FATAL ] Could not release info buffer from GPU");
 
     grid_release_from_gpu(g);
@@ -111,16 +114,16 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     free(info);
 }
 
-void integrate_step(double time, gpu_cl *gpu, uint64_t step_id, uint64_t global, uint64_t local) {
-    clw_set_kernel_arg(gpu->kernels[step_id], 4, sizeof(double), &time);
-    clw_enqueue_nd(gpu->queue, gpu->kernels[step_id], 1, NULL, &global, &local);
+void integrate_step(integrate_context *ctx) {
+    clw_set_kernel_arg(ctx->gpu->kernels[ctx->step_id], 4, sizeof(double), &ctx->time);
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
 }
 
-void integrate_get_info(double time, gpu_cl *gpu, uint64_t info_id, uint64_t global, uint64_t local) {
-    clw_set_kernel_arg(gpu->kernels[info_id], 5, sizeof(double), &time);
-    clw_enqueue_nd(gpu->queue, gpu->kernels[info_id], 1, NULL, &global, &local);
+void integrate_get_info(integrate_context *ctx, uint64_t info_id) {
+    clw_set_kernel_arg(ctx->gpu->kernels[info_id], 5, sizeof(double), &ctx->time);
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[info_id], 1, NULL, &ctx->global, &ctx->local);
 }
 
-void integrate_exchange_grids(gpu_cl *gpu, uint64_t exchange_id, uint64_t global, uint64_t local) {
-    clw_enqueue_nd(gpu->queue, gpu->kernels[exchange_id], 1, NULL, &global, &local);
+void integrate_exchange_grids(integrate_context *ctx) {
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
 }

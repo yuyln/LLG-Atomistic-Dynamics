@@ -3,9 +3,11 @@
 #include "constants.h"
 #include <float.h>
 
-grid_renderer grid_renderer_init(grid *g, render_window *window, string_view kernel_augment, string_view compile_augment) {
+grid_renderer grid_renderer_init(grid *g, render_window *window, string_view current_generation_func, string_view field_generation_func, string_view kernel_augment, string_view compile_augment) {
     UNUSED(kernel_augment);
     UNUSED(compile_augment);
+    UNUSED(current_generation_func);
+    UNUSED(field_generation_func);
     grid_renderer ret = {0};
     ret.width = window_width(window);
     ret.height = window_height(window);

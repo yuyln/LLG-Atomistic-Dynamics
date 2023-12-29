@@ -28,7 +28,7 @@ typedef struct {
 } grid_renderer;
 
 //@TODO: optimize rendering
-grid_renderer grid_renderer_init(grid *g, render_window *window, string_view kernel_augment, string_view compile_augment);
+grid_renderer grid_renderer_init(grid *g, render_window *window, string_view current_generation_func, string_view field_generation_func, string_view kernel_augment, string_view compile_augment);
 void grid_renderer_close(grid_renderer *gr);
 void grid_renderer_hsl(grid_renderer *gr);
 void grid_renderer_bwr(grid_renderer *gr);
