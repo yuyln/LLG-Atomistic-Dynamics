@@ -2,25 +2,25 @@
 #define __RENDER_H
 #include <stdint.h>
 #include <stdbool.h>
-#include "openclwrapper.h"
-#include "integrate.h"
 
 typedef union {
-    struct { uint8_t r, g, b, a; };
-    cl_char4 cl_rgba;
-    uint32_t rgba;
+    struct { uint8_t b, g, r, a; };
+    //cl_char4 cl_rgba;
+    uint32_t bgra;
 } RGBA32;
 
-typedef struct simulation_window simulation_window;
+typedef struct render_window render_window;
 
 typedef struct {
     bool key_pressed[256];
 } window_input;
 
-simulation_window *window_init(unsigned int width, unsigned int height);
-bool window_should_close(simulation_window *window);
-void window_poll(simulation_window *window);
-void window_close(simulation_window *w);
-bool window_key_pressed(simulation_window *w, char k);
+render_window *window_init(unsigned int width, unsigned int height);
+bool window_should_close(render_window *window);
+void window_poll(render_window *window);
+void window_close(render_window *window);
+bool window_key_pressed(render_window *window, char c);
+void window_render(render_window *window);
+void window_draw_from_bytes(render_window *window, RGBA32 *bytes, int x, int y, int width, int height);
 
 #endif

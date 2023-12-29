@@ -1,9 +1,11 @@
 #include <stdint.h>
+#include <assert.h>
 
 #include "gpu.h"
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include "openclwrapper.h"
 #include "constants.h"
+static_assert(sizeof(cl_char4) == sizeof(uint32_t));
 
 //@TODO: Create queue with properties
 gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {

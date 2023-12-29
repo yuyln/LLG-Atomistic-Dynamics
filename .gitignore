@@ -4,3 +4,4 @@ create_kernel
 *.dll
 *.txt
 *.cl
+*.a
