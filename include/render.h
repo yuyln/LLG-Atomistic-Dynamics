@@ -22,5 +22,7 @@ void window_close(render_window *window);
 bool window_key_pressed(render_window *window, char c);
 void window_render(render_window *window);
 void window_draw_from_bytes(render_window *window, RGBA32 *bytes, int x, int y, int width, int height);
+int window_width(render_window *window);
+int window_height(render_window *window);
 
 #endif

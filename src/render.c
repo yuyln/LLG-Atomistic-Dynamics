@@ -145,3 +145,11 @@ void window_draw_from_bytes(render_window *w, RGBA32 *bytes, int x0, int y0, int
         for (int x = x0; (x < x0 + width) && (x >= 0) && (x < (int)w->width); ++x)
             w->buffer[y * w->width + x] = bytes[(y - y0) * width + (x - x0)];
 }
+
+int window_width(render_window *window) {
+    return window->width;
+}
+
+int window_height(render_window *window) {
+    return window->height;
+}

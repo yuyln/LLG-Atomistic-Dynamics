@@ -4,6 +4,7 @@
 #include "gpu.h"
 #include "grid_funcs.h"
 #include "grid_types.h"
+#include "grid_render.h"
 #include "integrate.h"
 #include "openclwrapper.h"
 //#include "profiler.h"

@@ -1,10 +1,12 @@
 #include "atomistic_simulation.h"
 #include <time.h>
 #include <math.h>
+
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
 //@TODO: This is a f*** mess, need to organize better later
+//
 int main(void) {
     render_window *window = window_init(800, 600);
     while (!window_should_close(window)) {
