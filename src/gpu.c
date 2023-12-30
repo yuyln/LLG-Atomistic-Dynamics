@@ -22,7 +22,18 @@ gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {
         clw_get_device_info(stdout, ret.devices[i], i);
 
     ret.ctx = clw_init_context(ret.devices, ret.n_devices);
+#ifndef PROFILING
     ret.queue = clw_init_queue(ret.ctx, ret.devices[ret.dev_idx]);
+#else
+    cl_int err;
+    cl_queue_properties properties[] = {
+        CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
+        0
+    };
+
+    ret.queue = clCreateCommandQueueWithProperties(ret.ctx, ret.devices[ret.dev_idx], properties, &err);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Could not create command queue");
+#endif
     return ret;
 }
 
@@ -86,4 +97,15 @@ void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_
         clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[kernel].kernel, i, sz, item), "[ FATAL ] Could not set argument %d of kernel %s", (int)i, gpu->kernels[kernel].name);
     }
     va_end(arg_list);
+}
+
+uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
+    uint64_t start, end, duration;
+    uint64_t size;
+    clw_print_cl_error(stderr, clWaitForEvents(1, &ev), "[ FATAL ] Could not wait for event \"%s\"", description);
+    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(start), &start, &size), "[ FATAL ] Could not retrieve submit information from profiling \"%s\"", description);
+    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size), "[ FATAL ] Could not retrieve complete information from profiling \"%s\"", description);
+    duration = end - start;
+    fprintf(f, "%s Spent %e us\n", description, (double)duration / 1000.0);
+    return duration;
 }

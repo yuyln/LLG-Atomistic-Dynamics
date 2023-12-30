@@ -25,6 +25,7 @@ typedef struct {
 
     double *buffer_cpu;
     cl_mem buffer_gpu;
+
 } grid_renderer;
 
 //@TODO: optimize rendering

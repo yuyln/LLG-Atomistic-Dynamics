@@ -1,34 +1,24 @@
 #include "atomistic_simulation.h"
+#include <sys/time.h>
+#include <time.h>
 
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
-//@TODO: This is a f*** mess, need to organize better later
-//@TODO: Clear integrate ctx
 int main(void) {
-    double dt = 5.0e-15;
+    double dt = HBAR / (1.0e-3 * QE) * 0.01;
     int rows = 272;
-    int cols = 272;
+    int cols = 272 * 2;
     double ratio = (double)cols / rows;
     render_window *window = window_init(800, 800 / ratio);
     grid g = grid_init(rows, cols);
     g.gi.pbc.m = v3d_normalize(v3d_c(1.0, 0.0, 0.0));
     for (int i = 0; i < rows * cols; ++i)
         g.m[i] = v3d_c(0.0, 0.0, 1.0);
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 30, rows / 2.0, cols / 2.0, -1.0, 1.0, M_PI / 2.0);
-        //g.m[i] = v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0)));
+    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 15, rows / 2.0, cols / 2.0, -1.0, 1.0, M_PI / 2.0);
 
-    grid_set_dm(&g, 0.1 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
-    //grid_set_anisotropy(&g, (anisotropy){.ani = 0.01 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-
-    //for (int row = 0; row < g.gi.rows; ++row) {
-    //    for (int col = 0; col < g.gi.cols / 2; ++col) {
-    //        grid_set_anisotropy_loc(&g, row, col, (anisotropy){.ani = -2.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-    //    }
-    //}
-
-    
-    //integrate(&g, .dt=dt);
+    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
 
     grid_renderer gr = grid_renderer_init(&g, window, sv_from_cstr("current ret = (current){0};\nret.type = CUR_STT;\nret.stt.j = v3d_c((time > 0.1 * NS) * 1.0e11, 0.0, 0.0);\nret.stt.polarization = -1.0;\nret.stt.beta = 0.0;\nreturn ret;"),
                                                       sv_from_cstr("double normalized = 0.5;\ndouble real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\nreturn v3d_c(0.0, 0.0, real);"),
@@ -36,7 +26,15 @@ int main(void) {
                                                       (string_view){0});
     integrate_context ctx = integrate_context_init(&g, &gr.gpu, dt);
 
+    struct timespec current_time;
+    clock_gettime(CLOCK_REALTIME, &current_time);
     int state = 'h';
+
+    double time_for_print = 1.0;
+    double stopwatch_print = -1.0;
+    int frames = 0;
+    const int steps = 50;
+
     while(!window_should_close(window)) {
         switch (state) {
             case 'q':
@@ -63,7 +61,7 @@ int main(void) {
         else if (window_key_pressed(window, 'b'))
             state = 'b';
 
-        for (int i = 0; i < 100; ++i) {
+        for (int i = 0; i < steps; ++i) {
             integrate_step(&ctx);
             integrate_exchange_grids(&ctx);
             ctx.time += dt;
@@ -71,6 +69,18 @@ int main(void) {
 
         window_render(window);
         window_poll(window);
+
+        struct timespec new_time;
+        clock_gettime(CLOCK_REALTIME, &new_time);
+        double dt_real = (new_time.tv_sec + new_time.tv_nsec * 1.0e-9) - (current_time.tv_sec + current_time.tv_nsec * 1.0e-9);
+        current_time = new_time;
+        stopwatch_print += dt_real;
+        frames++;
+        if (stopwatch_print >= 0) {
+            printf("FPS: %d - Frame Time: %e ms - System Steps: %d - System dt: %e - System Time: %e\n", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3, steps * frames, frames * steps * dt, ctx.time);
+            stopwatch_print = -1.0;
+            frames = 0;
+        }
     }
 
     integrate_context_close(&ctx);

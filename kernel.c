@@ -18,7 +18,7 @@ char4 m_bwr_mapping(v3d m) {
     double3 middle = {1, 1, 1};
     double3 end = {0xf4 / 255.0, 0x05 / 255.0, 0x01 / 255.0};
 
-    m = v3d_normalize(m);
+    //m = v3d_normalize(m);
     double mz = m.z;
 
     return linear_mapping(0.5 * mz + 0.5, start, middle, end);
@@ -52,7 +52,7 @@ char4 hsl_to_rgb(double h, double s, double l) {
 }
 
 char4 m_to_hsl(v3d m) {
-    m = v3d_normalize(m);
+    //m = v3d_normalize(m);
     double angle = atan2(m.y, m.x) / M_PI;
     angle = (angle + 1.0) / 2.0;
     double l = (m.z + 1.0) / 2.0;

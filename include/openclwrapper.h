@@ -132,7 +132,7 @@ static const char *clw_errors[60] = {
     void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from clw_build_program returned call
 
     //queue related
-    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
+    cl_event clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
     void clw_finish(cl_command_queue queue);
 
     //work related
@@ -277,9 +277,11 @@ kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n) {
     return ret;
 }
 
-void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local) {
-    cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, NULL);
+cl_event clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local) {
+    cl_event ev;
+    cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, &ev);
     clw_print_cl_error(stderr, err, "ERROR ENQUEUING KERNEL %s", k.name);
+    return ev;
 }
 
 void clw_finish(cl_command_queue queue) {
