@@ -27,6 +27,10 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     return ctx;
 }
 
+void integrate_context_close(integrate_context *ctx) {
+    clw_print_cl_error(stderr, clReleaseMemObject(ctx->swap_buffer), "[ FATAL ] Could not release ctx swap buffer from GPU");
+}
+
 void integrate_vars(grid *g, integration_params param) {
     integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path, param.kernel_augment, param.compile_augment);
 }
@@ -41,11 +45,11 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     UNUSED(compile_augment);
 
     gpu_cl gpu = gpu_cl_init(0, 0);
-    integrate_context ctx = integrate_context_init(g, &gpu, dt);
     grid_to_gpu(g, gpu);
 
     const char cmp[] = "-DOPENCL_COMPILATION";
     gpu_cl_compile_source(&gpu, sv_from_cstr(complete_kernel), sv_from_cstr(cmp));
+    integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
     uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
 
@@ -63,6 +67,10 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     uint64_t step = 0;
 
     FILE *output_info = fopen(dir_out.str, "w");
+    if (!output_info) {
+        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)dir_out.len, dir_out.str, strerror(errno));
+        exit(1);
+    }
     fprintf(output_info, "time(s),energy(eV),exchange_energy(eV),dm_energy(eV),field_energy(eV),anisotropy_energy(eV),cubic_anisotropy_energy(eV),");
     fprintf(output_info, "charge_finite,charge_lattice,");
     fprintf(output_info, "avg_mx,avg_my,avg_mz,");
@@ -106,7 +114,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     }
     fclose(output_info);
 
-    clw_print_cl_error(stderr, clReleaseMemObject(ctx.swap_buffer), "[ FATAL ] Could not release ctx swap buffer from GPU");
+    v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
+
+    integrate_context_close(&ctx);
     clw_print_cl_error(stderr, clReleaseMemObject(info_buffer), "[ FATAL ] Could not release info buffer from GPU");
 
     grid_release_from_gpu(g);

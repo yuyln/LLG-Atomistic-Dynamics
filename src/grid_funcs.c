@@ -19,7 +19,7 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     grid ret = {0};
     ret.gi.rows = rows;
     ret.gi.cols = cols;
-    ret.gi.pbc = (pbc_rules){.dirs = (1 << 0) | (1 << 1) | (1 << 2), .m = {0}};
+    ret.gi.pbc = (pbc_rules){.dirs = (1 << 0) | (1 << 1), .m = {0}};
     ret.gp = calloc(sizeof(*ret.gp) * rows * cols, 1);
     ret.m = calloc(sizeof(*ret.m) * rows * cols, 1);
     ret.on_gpu = false;
@@ -168,7 +168,8 @@ void grid_free(grid *g) {
     free(g->m);
     g->gp = NULL;
     g->m = NULL;
-    grid_release_from_gpu(g);
+    if (g->on_gpu)
+        grid_release_from_gpu(g);
     memset(g, 0, sizeof(*g));
 }
 

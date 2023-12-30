@@ -8,11 +8,29 @@
 int main(void) {
     double dt = 5.0e-15;
     render_window *window = window_init(800, 800);
-    grid g = grid_init(64, 64);
-    for (int i = 0; i < 64 * 64; ++i)
+    int rows = 32;
+    int cols = 32;
+    grid g = grid_init(rows, cols);
+    g.gi.pbc.m = v3d_normalize(v3d_c(1.0, 0.0, 0.0));
+    for (int i = 0; i < rows * cols; ++i)
         g.m[i] = v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0)));
-    grid_set_dm(&g, 0.6 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
-    grid_renderer gr = grid_renderer_init(&g, window, (string_view){0}, (string_view){0}, (string_view){0}, (string_view){0});
+
+    grid_set_dm(&g, 1.5 * QE * 1.0e-3, 0.0, R_ij);
+    //grid_set_anisotropy(&g, (anisotropy){.ani = 0.05 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+
+    //for (int row = 0; row < g.gi.rows; ++row) {
+    //    for (int col = 0; col < g.gi.cols / 2; ++col) {
+    //        grid_set_anisotropy_loc(&g, row, col, (anisotropy){.ani = -2.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    //    }
+    //}
+
+    
+    //integrate(&g, .dt=dt);
+
+    grid_renderer gr = grid_renderer_init(&g, window, sv_from_cstr("current ret = (current){0};\nret.type = CUR_STT;\nret.stt.j = v3d_c(1.0e10, 0.0, 0.0);\nret.stt.polarization = -1.0;\nret.stt.beta = 0.0;\nreturn ret;"),
+                                                      sv_from_cstr("double normalized = 0.5;\ndouble real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\nreturn v3d_c(0.0, 0.0, real);"),
+                                                      (string_view){0},
+                                                      (string_view){0});
     integrate_context ctx = integrate_context_init(&g, &gr.gpu, dt);
 
     int state = 'h';
@@ -51,5 +69,10 @@ int main(void) {
         window_render(window);
         window_poll(window);
     }
-     return 0;
+
+    integrate_context_close(&ctx);
+    grid_renderer_close(&gr);
+    grid_free(&g);
+    window_close(window);
+    return 0;
 }

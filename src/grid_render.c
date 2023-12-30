@@ -1,13 +1,10 @@
 #include "grid_render.h"
 #include "complete_kernel.h"
 #include "constants.h"
+#include "kernel_funcs.h"
 #include <float.h>
 
 grid_renderer grid_renderer_init(grid *g, render_window *window, string_view current_generation_func, string_view field_generation_func, string_view kernel_augment, string_view compile_augment) {
-    UNUSED(kernel_augment);
-    UNUSED(compile_augment);
-    UNUSED(current_generation_func);
-    UNUSED(field_generation_func);
     grid_renderer ret = {0};
     ret.width = window_width(window);
     ret.height = window_height(window);
@@ -28,7 +25,11 @@ grid_renderer grid_renderer_init(grid *g, render_window *window, string_view cur
 
 
     const char cmp[] = "-DOPENCL_COMPILATION";
-    gpu_cl_compile_source(&ret.gpu, sv_from_cstr(complete_kernel), sv_from_cstr(cmp));
+    string kernel = fill_functions_on_kernel(current_generation_func, field_generation_func, kernel_augment);
+    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
+    gpu_cl_compile_source(&ret.gpu, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
+    string_free(&kernel);
+    string_free(&compile);
 
 
     ret.grid_hsl_id = gpu_append_kernel(&ret.gpu, "render_grid_hsl");
@@ -38,11 +39,6 @@ grid_renderer grid_renderer_init(grid *g, render_window *window, string_view cur
     ret.calc_charge_id = gpu_append_kernel(&ret.gpu, "calculate_charge_to_render");
     ret.calc_energy_id = gpu_append_kernel(&ret.gpu, "calculate_energy_to_render");
 
-    /*clw_set_kernel_arg(ret.gpu.kernels[ret.grid_bwr_id], 0, sizeof(cl_mem), &ret.g->m_buffer);
-    clw_set_kernel_arg(ret.gpu.kernels[ret.grid_bwr_id], 1, sizeof(ret.g->gi), &ret.g->gi);
-    clw_set_kernel_arg(ret.gpu.kernels[ret.grid_bwr_id], 2, sizeof(cl_mem), &ret.rgba_gpu);
-    clw_set_kernel_arg(ret.gpu.kernels[ret.grid_bwr_id], 3, sizeof(ret.width), &ret.width);
-    clw_set_kernel_arg(ret.gpu.kernels[ret.grid_bwr_id], 4, sizeof(ret.height), &ret.height);*/
 
     gpu_fill_kernel_args(&ret.gpu, ret.grid_hsl_id, 0, 5, &ret.g->m_buffer, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
 

@@ -1,10 +1,11 @@
 #include "constants.h"
 #include "simulation_funcs.h"
 #include <math.h>
+#include <stdbool.h>
 
 v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
-    int pbc_x = info.pbc.dirs & (1 << 0);
-    int pbc_y = info.pbc.dirs & (1 << 1);
+    bool pbc_x = info.pbc.dirs & (1 << 0);
+    bool pbc_y = info.pbc.dirs & (1 << 1);
 
     if (row >= (int)info.rows || row < 0) {
         if (!pbc_y)
@@ -33,21 +34,13 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
     return v3d_s(0);
 }
 
-v3d generate_magnetic_field(grid_site_param gs, double time) {
+//MOVED TO THE END OF FILE DUE TO WHATEVER
+/*current generate_current(grid_site_param gs, double time) {
     UNUSED(gs);
     UNUSED(time);
+    {
     //%s
-    double normalized = 0.5;
-    //normalized += sin(time / 0.1e-11) * 0.2;
-    normalized *= gs.dm * gs.dm / gs.exchange;
-    double real = normalized / gs.mu;
-    return v3d_c(0, 0, -real);
-}
-
-current generate_current(grid_site_param gs, double time) {
-    UNUSED(gs);
-    UNUSED(time);
-    //%s
+    }
     current ret = {0};
     ret.type = CUR_STT;
     ret.stt.polarization = -1.0;
@@ -55,6 +48,19 @@ current generate_current(grid_site_param gs, double time) {
     ret.stt.j = v3d_scalar(v3d_c(1, 0, 0), 1.0e11);
     return ret;
 }
+
+v3d generate_magnetic_field(grid_site_param gs, double time) {
+    UNUSED(gs);
+    UNUSED(time);
+    {
+    //%s
+    }
+    double normalized = 0.5;
+    //normalized += sin(time / 0.1e-11) * 0.2;
+    normalized *= gs.dm * gs.dm / gs.exchange;
+    double real = normalized / gs.mu;
+    return v3d_c(0, 0, real);
+}*/
 
 double exchange_energy(parameters param) {
     return -(v3d_dot(param.m, param.neigh.left) + v3d_dot(param.m, param.neigh.right) +

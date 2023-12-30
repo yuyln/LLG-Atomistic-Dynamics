@@ -12,10 +12,10 @@ typedef struct {
     uint64_t len;
 } string;
 
-string string_init(uint64_t len);
+void string_add_cstr(string *s, const char *str);
 void string_free(string *s);
 const char *string_as_cstr(string *s);
-string string_from_cstr(const char *str);
+void string_add_sv(string *s, string_view sv);
 
 string_view sv_from_string(string s, uint64_t start, uint64_t end);
 string_view sv_from_cstr(const char *str);

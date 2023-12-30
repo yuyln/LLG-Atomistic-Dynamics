@@ -4,9 +4,18 @@
 
 #include "string_view.h"
 
-string string_init(uint64_t len) {
-    return (string){.str = calloc(len, 1),
-                    .len = len + 1};
+void string_add_cstr(string *s, const char *str) {
+    uint64_t old_len = s->len;
+    s->len += strlen(str);
+    s->str = realloc(s->str, s->len);
+    memcpy(&s->str[old_len], str, strlen(str));
+}
+
+void string_add_sv(string *s, string_view sv) {
+    uint64_t old_len = s->len;
+    s->str = realloc(s->str, old_len + sv.len);
+    s->len += sv.len;
+    memcpy(&s->str[old_len], sv.str, sv.len);
 }
 
 void string_free(string *s) {
@@ -24,12 +33,6 @@ const char *string_as_cstr(string *s) {
     s->str[s->len] = '\0';
     s->len++;
     return s->str;
-}
-
-string string_from_cstr(const char *str) {
-    string ret = string_init(strlen(str));
-    memcpy(ret.str, str, strlen(str));
-    return ret;
 }
 
 string_view sv_from_string(string s, uint64_t start, uint64_t end) {

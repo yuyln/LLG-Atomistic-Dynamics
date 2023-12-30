@@ -71,7 +71,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
 
     parameters param;
     param.gs = gs[id];
-    param.m = input[id];
+    param.m = apply_pbc(input, gi, row, col);
     param.neigh.left = apply_pbc(input, gi, row, col - 1);
     param.neigh.right = apply_pbc(input, gi, row, col + 1);
     param.neigh.up = apply_pbc(input, gi, row + 1, col);
@@ -241,4 +241,4 @@ kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int co
     rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
 
-//%s
+

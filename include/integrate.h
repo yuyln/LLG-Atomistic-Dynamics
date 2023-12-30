@@ -18,7 +18,7 @@
                                                                        .interval_for_writing_grid=1000,\
                                                                        .current_generation_function=(string_view){0},\
                                                                        .field_generation_function=(string_view){0},\
-                                                                       .output_path = sv_from_cstr("./output/"),\
+                                                                       .output_path = sv_from_cstr("./integration_info.dat"),\
                                                                        .kernel_augment = (string_view){0},\
                                                                        .compile_augment = (string_view){0},\
                                                                        __VA_ARGS__})
@@ -48,6 +48,7 @@ typedef struct {
 } integrate_context;
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt);
+void integrate_context_close(integrate_context *ctx);
 
 void integrate_vars(grid *g, integration_params param);
 void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment);
