@@ -1,3 +1,4 @@
+#define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
 #include <sys/time.h>
 #include <time.h>
@@ -7,23 +8,42 @@
 //@TODO: Do 3D
 int main(void) {
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
-    int rows = 272;
-    int cols = 272 * 2;
+    int rows = 64;
+    int cols = 64;
     double ratio = (double)cols / rows;
     render_window *window = window_init(800, 800 / ratio);
     grid g = grid_init(rows, cols);
     g.gi.pbc.m = v3d_normalize(v3d_c(1.0, 0.0, 0.0));
     for (int i = 0; i < rows * cols; ++i)
         g.m[i] = v3d_c(0.0, 0.0, 1.0);
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 15, rows / 2.0, cols / 2.0, -1.0, 1.0, M_PI / 2.0);
+    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / 4.0, -1.0, 1.0, M_PI / 2.0);
 
-    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_dm(&g, 0.9 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
 
-    grid_renderer gr = grid_renderer_init(&g, window, sv_from_cstr("current ret = (current){0};\nret.type = CUR_STT;\nret.stt.j = v3d_c((time > 0.1 * NS) * 1.0e11, 0.0, 0.0);\nret.stt.polarization = -1.0;\nret.stt.beta = 0.0;\nreturn ret;"),
-                                                      sv_from_cstr("double normalized = 0.5;\ndouble real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\nreturn v3d_c(0.0, 0.0, real);"),
-                                                      (string_view){0},
-                                                      (string_view){0});
+    for (int r = 0; r < g.gi.rows; ++r)
+        for (int c = g.gi.cols / 2.0; c < g.gi.cols; ++c)
+            grid_set_anisotropy_loc(&g, r, c, (anisotropy){.ani = 0.05 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+
+    string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
+                                                                   "ret.type = CUR_STT;\n"\
+                                                                   "time -= 0.1 * NS;\n"\
+                                                                   "double j_ac = 5.0e10 * (time > 0);\n"\
+                                                                   "double j_dc = 1.0e10 * (time > 0);\n"\
+                                                                   "double omega = 319145920.365;\n"\
+                                                                   "ret.stt.j = v3d_c(j_dc, j_ac * sin(omega * time), 0.0);\n"\
+                                                                   "ret.stt.polarization = -1.0;\n"\
+                                                                   "ret.stt.beta = 0.0;\n"\
+                                                                   "return ret;");
+    string_view field_func = sv_from_cstr("double normalized = 0.5;\ndouble real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\nreturn v3d_c(0.0, 0.0, real);");
+    string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
+    profiler_start_measure("Integration");
+    integrate(&g, .dt = dt, .duration = 10.0 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile, .interval_for_information=1519268);
+    profiler_end_measure("Integration");
+    profiler_print_measures(stdout);
+    return 0;
+
+    grid_renderer gr = grid_renderer_init(&g, window, current_func, field_func, (string_view){0}, (string_view){0});
     integrate_context ctx = integrate_context_init(&g, &gr.gpu, dt);
 
     struct timespec current_time;
@@ -33,7 +53,7 @@ int main(void) {
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
     int frames = 0;
-    const int steps = 50;
+    const int steps = 100;
 
     while(!window_should_close(window)) {
         switch (state) {

@@ -7,7 +7,7 @@
 #include "grid_render.h"
 #include "integrate.h"
 #include "openclwrapper.h"
-//#include "profiler.h"
+#include "profiler.h"
 #include "render.h"
 #include "simulation_funcs.h"
 #include "string_view.h"

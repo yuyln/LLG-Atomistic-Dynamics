@@ -1,6 +1,7 @@
 #include "integrate.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include "kernel_funcs.h"
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     integrate_context ctx = {0};
@@ -48,7 +49,12 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     grid_to_gpu(g, gpu);
 
     const char cmp[] = "-DOPENCL_COMPILATION";
-    gpu_cl_compile_source(&gpu, sv_from_cstr(complete_kernel), sv_from_cstr(cmp));
+    string kernel = fill_functions_on_kernel(func_current, func_field, kernel_augment);
+    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
+    gpu_cl_compile_source(&gpu, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
+    string_free(&kernel);
+    string_free(&compile);
+
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
     uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
@@ -112,6 +118,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
         ctx.time += dt;
         step++;
     }
+    printf("Steps: %d\n", (int)step);
     fclose(output_info);
 
     v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);

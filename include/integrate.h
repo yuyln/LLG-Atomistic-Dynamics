@@ -16,8 +16,8 @@
                                                                        .duration=1.0 * NS,\
                                                                        .interval_for_information=100,\
                                                                        .interval_for_writing_grid=1000,\
-                                                                       .current_generation_function=(string_view){0},\
-                                                                       .field_generation_function=(string_view){0},\
+                                                                       .current_generation_function=sv_from_cstr("return (current){0};"),\
+                                                                       .field_generation_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
                                                                        .output_path = sv_from_cstr("./integration_info.dat"),\
                                                                        .kernel_augment = (string_view){0},\
                                                                        .compile_augment = (string_view){0},\
