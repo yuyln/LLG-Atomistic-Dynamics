@@ -4,19 +4,16 @@
 #include <stdbool.h>
 
 v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
-    bool pbc_x = info.pbc.dirs & (1 << 0);
-    bool pbc_y = info.pbc.dirs & (1 << 1);
-
     if (row >= (int)info.rows || row < 0) {
-        if (!pbc_y)
+        if (!info.pbc.pbc_y)
             return info.pbc.m;
-        row = ((row % info.rows) + info.rows) % info.rows;
+        row = ((row % (int)info.rows) + (int)info.rows) % info.rows;
     }
 
     if (col >= (int)info.cols || col < 0) {
-        if (!pbc_x)
+        if (!info.pbc.pbc_x)
             return info.pbc.m;
-        col = ((col % info.cols) + info.cols) % info.cols;
+        col = ((col % (int)info.cols) + (int)info.cols) % info.cols;
     }
 
     return v[row * info.cols + col];
@@ -25,7 +22,7 @@ v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
     switch (dm_sym) {
         case R_ij_CROSS_Z: {
-            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, 1)), dm);
+            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, -1)), dm);
         }
         case R_ij: {
             return v3d_scalar(dr, dm);

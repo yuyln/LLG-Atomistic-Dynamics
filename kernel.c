@@ -66,8 +66,9 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     int col = id % gi.cols;
     int row = (id - col) / gi.cols;
 
-    if (col >= gi.cols || row >= gi.rows)
+    if (col >= gi.cols || row >= gi.rows) {
         return;
+    }
 
     parameters param;
     param.gs = gs[id];

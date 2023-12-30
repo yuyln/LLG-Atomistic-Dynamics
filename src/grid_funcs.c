@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "grid_funcs.h"
@@ -19,7 +20,7 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     grid ret = {0};
     ret.gi.rows = rows;
     ret.gi.cols = cols;
-    ret.gi.pbc = (pbc_rules){.dirs = (1 << 0) | (1 << 1), .m = {0}};
+    ret.gi.pbc = (pbc_rules){.pbc_x = true, .pbc_y = true, .m = {0}};
     ret.gp = calloc(sizeof(*ret.gp) * rows * cols, 1);
     ret.m = calloc(sizeof(*ret.m) * rows * cols, 1);
     ret.on_gpu = false;
@@ -244,4 +245,33 @@ void grid_full_dump(FILE *f, grid *g) {
     fwrite(&g->gi, sizeof(g->gi), 1, f);
     fwrite(g->gp, sizeof(*g->gp) * g->gi.rows * g->gi.cols, 1, f);
     fwrite(g->m, sizeof(*g->m) * g->gi.rows * g->gi.cols, 1, f);
+}
+
+void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta) {
+    double R2 = radius * radius;
+    for (int i = row - 2 * radius; i < row + 2 * radius; ++i) {
+        double dy = (double)i - row;
+        int il = ((i % rows) + rows) % rows;
+        for (int j = col - 2 * radius; j < col + 2 * radius; ++j) {
+            int jl = ((j % cols) + cols) % cols;
+
+            double dx = (double)j - col;
+            double r2 = dx * dx + dy * dy;
+
+            double r = sqrt(r2);
+
+            if (r > (2.0 * radius))
+                continue;
+
+            v[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
+
+            if (r != 0) {
+                v[il * cols + jl].x = (-dy * cos(theta) + dx * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
+                v[il * cols + jl].y = (dx * cos(theta) + dy * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
+            } else {
+                v[il * cols + jl].x = 0.0;
+                v[il * cols + jl].y = 0.0;
+            }
+        }
+    }
 }

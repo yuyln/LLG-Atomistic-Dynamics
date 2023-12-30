@@ -2,6 +2,7 @@
 #define __GRID_H
 
 #include "v3d.h"
+#include <stdbool.h>
 
 typedef enum {
     R_ij_CROSS_Z = 0,
@@ -15,11 +16,11 @@ typedef enum {
     CUR_BOTH = CUR_STT | CUR_SHE //=3
 } current_type;
 
-typedef char pbc_directions;
 
 typedef struct {
     v3d m;
-    pbc_directions dirs;
+    int pbc_x;
+    int pbc_y;
 } pbc_rules;
 
 typedef struct {
