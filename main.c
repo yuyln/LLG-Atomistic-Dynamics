@@ -18,7 +18,7 @@ int main(void) {
         g.m[i] = v3d_c(0.0, 0.0, 1.0);
     v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / 4.0, -1.0, 1.0, M_PI / 2.0);
 
-    grid_set_dm(&g, 0.9 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
 
     for (int r = 0; r < g.gi.rows; ++r)
@@ -34,16 +34,21 @@ int main(void) {
                                                                    "ret.stt.j = v3d_c(j_dc, j_ac * sin(omega * time), 0.0);\n"\
                                                                    "ret.stt.polarization = -1.0;\n"\
                                                                    "ret.stt.beta = 0.0;\n"\
+                                                                   "return (current){0};\n"\
                                                                    "return ret;");
-    string_view field_func = sv_from_cstr("double normalized = 0.5;\ndouble real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\nreturn v3d_c(0.0, 0.0, real);");
+    string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
+                                          "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
+                                          "double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
+                                          "real = real * (1.0 + 1 * osc);\n"\
+                                          "return v3d_c(0.0, 0.0, real);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
-    profiler_start_measure("Integration");
+    /*profiler_start_measure("Integration");
     integrate(&g, .dt = dt, .duration = 10.0 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile, .interval_for_information=1519268);
     profiler_end_measure("Integration");
     profiler_print_measures(stdout);
-    return 0;
+    return 0;*/
 
-    grid_renderer gr = grid_renderer_init(&g, window, current_func, field_func, (string_view){0}, (string_view){0});
+    grid_renderer gr = grid_renderer_init(&g, window, current_func, field_func, (string_view){0}, compile);
     integrate_context ctx = integrate_context_init(&g, &gr.gpu, dt);
 
     struct timespec current_time;
