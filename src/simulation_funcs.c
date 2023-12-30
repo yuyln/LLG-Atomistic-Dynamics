@@ -3,20 +3,20 @@
 #include <math.h>
 #include <stdbool.h>
 
-v3d apply_pbc(GLOBAL v3d *v, grid_info info, int row, int col) {
-    if (row >= (int)info.rows || row < 0) {
-        if (!info.pbc.pbc_y)
-            return info.pbc.m;
-        row = ((row % (int)info.rows) + (int)info.rows) % info.rows;
+v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols) {
+    if (row >= rows || row < 0) {
+        if (!pbc.pbc_y)
+            return pbc.m;
+        row = ((row % rows) + rows) % rows;
     }
 
-    if (col >= (int)info.cols || col < 0) {
-        if (!info.pbc.pbc_x)
-            return info.pbc.m;
-        col = ((col % (int)info.cols) + (int)info.cols) % info.cols;
+    if (col >= cols || col < 0) {
+        if (!pbc.pbc_x)
+            return pbc.m;
+        col = ((col % cols) + cols) % cols;
     }
 
-    return v[row * info.cols + col];
+    return v[row * cols + col];
 }
 
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {

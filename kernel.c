@@ -72,11 +72,11 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
 
     parameters param;
     param.gs = gs[id];
-    param.m = apply_pbc(input, gi, row, col);
-    param.neigh.left = apply_pbc(input, gi, row, col - 1);
-    param.neigh.right = apply_pbc(input, gi, row, col + 1);
-    param.neigh.up = apply_pbc(input, gi, row + 1, col);
-    param.neigh.down = apply_pbc(input, gi, row - 1, col);
+    param.m = apply_pbc(input, gi.pbc, row, col, gi.rows, gi.cols);
+    param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, gi.rows, gi.cols);
+    param.neigh.right = apply_pbc(input, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    param.neigh.up = apply_pbc(input, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
 
     out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
@@ -94,10 +94,10 @@ kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d 
     param.gs = gs[id];
     param.m = m0[id];
     v3d dm = v3d_sub(m1[id], param.m);
-    param.neigh.left = apply_pbc(m0, gi, row, col - 1);
-    param.neigh.right = apply_pbc(m0, gi, row, col + 1);
-    param.neigh.up = apply_pbc(m0, gi, row + 1, col);
-    param.neigh.down = apply_pbc(m0, gi, row - 1, col);
+    param.neigh.left = apply_pbc(m0, gi.pbc, row, col - 1, gi.rows, gi.cols);
+    param.neigh.right = apply_pbc(m0, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
     information_packed local_info = {0};
 
@@ -168,10 +168,10 @@ kernel void calculate_charge_to_render(GLOBAL v3d *v, grid_info gi, GLOBAL doubl
         return;
 
     v3d m = v[id];
-    v3d left = apply_pbc(v, gi, row, col - 1);
-    v3d right = apply_pbc(v, gi, row, col + 1);
-    v3d up = apply_pbc(v, gi, row + 1, col);
-    v3d down = apply_pbc(v, gi, row - 1, col);
+    v3d left = apply_pbc(v, gi.pbc, row, col - 1, gi.rows, gi.cols);
+    v3d right = apply_pbc(v, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    v3d up = apply_pbc(v, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    v3d down = apply_pbc(v, gi.pbc, row - 1, col, gi.rows, gi.cols);
 
     out[id] = charge_lattice(m, left, right, up, down);
 }
@@ -210,10 +210,10 @@ kernel void calculate_energy_to_render(GLOBAL grid_site_param *gs, GLOBAL v3d *v
     parameters param;
     param.gs = gs[id];
     param.m = v[id];
-    param.neigh.left = apply_pbc(v, gi, row, col - 1);
-    param.neigh.right = apply_pbc(v, gi, row, col + 1);
-    param.neigh.up = apply_pbc(v, gi, row + 1, col);
-    param.neigh.down = apply_pbc(v, gi, row - 1, col);
+    param.neigh.left = apply_pbc(v, gi.pbc, row, col - 1, gi.rows, gi.cols);
+    param.neigh.right = apply_pbc(v, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    param.neigh.up = apply_pbc(v, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    param.neigh.down = apply_pbc(v, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
 
     out[id] = energy(param);
