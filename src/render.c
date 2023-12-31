@@ -141,9 +141,20 @@ void window_render(render_window *w) {
 }
 
 void window_draw_from_bytes(render_window *w, RGBA32 *bytes, int x0, int y0, int width, int height) {
-    for (int y = y0; (y < y0 + height) && (y >= 0) && (y < (int)w->height); ++y)
+    int b_w = width;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 >= (int)w->width) x0 = w->width - 1;
+    if (y0 >= (int)w->height) y0 = w->height - 1;
+    if (x0 + width >= (int)w->width) width = w->width - x0;
+    if (y0 + height >= (int)w->height) width = w->width - x0;
+
+    for (int y = y0; y < y0 + height; ++y)
+        memmove(&w->buffer[y * w->width + x0], &bytes[(y - y0) * b_w], width * sizeof(*bytes));
+
+    /*for (int y = y0; (y < y0 + height) && (y >= 0) && (y < (int)w->height); ++y)
         for (int x = x0; (x < x0 + width) && (x >= 0) && (x < (int)w->width); ++x)
-            w->buffer[y * w->width + x] = bytes[(y - y0) * width + (x - x0)];
+            w->buffer[y * w->width + x] = bytes[(y - y0) * width + (x - x0)];*/
 }
 
 int window_width(render_window *window) {

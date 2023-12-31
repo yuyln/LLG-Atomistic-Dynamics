@@ -8,8 +8,8 @@
 //@TODO: Do 3D
 int main(void) {
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
-    int rows = 64;
-    int cols = 64;
+    int rows = 272;
+    int cols = 272;
     double ratio = (double)cols / rows;
     render_window *window = window_init(800, 800 / ratio);
     grid g = grid_init(rows, cols);
