@@ -8,22 +8,35 @@
 //@TODO: Do 3D
 int main(void) {
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
-    int rows = 272;
-    int cols = 272;
+    int rows = 64;
+    int cols = rows * 2;
     double ratio = (double)cols / rows;
-    render_window *window = window_init(800, 800 / ratio);
+    render_window *window = window_init(800 * ratio, 800);
     grid g = grid_init(rows, cols);
     g.gi.pbc.m = v3d_normalize(v3d_c(1.0, 0.0, 0.0));
     for (int i = 0; i < rows * cols; ++i)
         g.m[i] = v3d_c(0.0, 0.0, 1.0);
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / 4.0, -1.0, 1.0, M_PI / 2.0);
 
-    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_dm(&g, 1.0 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
 
-    for (int r = 0; r < g.gi.rows; ++r)
-        for (int c = g.gi.cols / 2.0; c < g.gi.cols; ++c)
-            grid_set_anisotropy_loc(&g, r, c, (anisotropy){.ani = 0.05 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    int n_stripes = 8;
+    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / n_stripes / 2.0, -1.0, 1.0, M_PI / 2.0);
+
+    for (int i = 1; i <= n_stripes; ++i) {
+        double a;
+        if (i % 2 == 1) a = 0.05 * QE * 1.0e-3;
+        if (i % 2 == 0) a = 0.02 * QE * 1.0e-3;
+
+        int start = (i - 1) * (cols / n_stripes);
+        int end = i * (cols / n_stripes);
+
+        for (int r = 0; r < g.gi.rows; ++r)
+            for (int c = start; c < end; ++c)
+                grid_set_anisotropy_loc(&g, r, c, (anisotropy){.ani = a, .dir = v3d_c(0.0, 0.0, 1.0)});
+
+    }
+
 
     string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
                                                                    "ret.type = CUR_STT;\n"\
@@ -34,12 +47,11 @@ int main(void) {
                                                                    "ret.stt.j = v3d_c(j_dc, j_ac * sin(omega * time), 0.0);\n"\
                                                                    "ret.stt.polarization = -1.0;\n"\
                                                                    "ret.stt.beta = 0.0;\n"\
-                                                                   "return (current){0};\n"\
                                                                    "return ret;");
     string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
-                                          "double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
-                                          "real = real * (1.0 + 1 * osc);\n"\
+                                          "//double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
+                                          "//real = real * (1.0 + 1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
     /*profiler_start_measure("Integration");
@@ -58,7 +70,7 @@ int main(void) {
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
     int frames = 0;
-    const int steps = 100;
+    const int steps = 500;
 
     while(!window_should_close(window)) {
         switch (state) {
