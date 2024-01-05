@@ -2,6 +2,10 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
+double nsrandom(tyche_i_state state, double start, double end) {
+    return tyche_i_double(state) * (end - start) + start;
+}
+
 char4 linear_mapping(double t, double3 start, double3 middle, double3 end) {
     double3 color;
     if (t < 0.5) {
