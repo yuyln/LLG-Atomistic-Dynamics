@@ -22,7 +22,7 @@ v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
     switch (dm_sym) {
         case R_ij_CROSS_Z: {
-            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, -1)), dm);
+            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, 1)), dm);
         }
         case R_ij: {
             return v3d_scalar(dr, dm);
@@ -92,6 +92,7 @@ double energy(parameters param) {
     return 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param);
 }
 
+//@TODO: Check DM interaction vectors
 v3d effective_field(parameters param) {
     v3d ret = v3d_s(0);
 
@@ -107,7 +108,7 @@ v3d effective_field(parameters param) {
                              v3d_cross(get_dm_vec(v3d_c(0, -1, 0), param.gs.dm - param.gs.dm_ani, param.gs.dm_sym), param.neigh.down));
     v3d dm_field = v3d_sum(dm_field_x, dm_field_y);
 
-    ret = v3d_sub(ret, dm_field);
+    ret = v3d_sum(ret, dm_field);
 
     ret = v3d_sub(ret, v3d_scalar(generate_magnetic_field(param.gs, param.time), param.gs.mu));
 

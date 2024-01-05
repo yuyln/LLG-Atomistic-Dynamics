@@ -37,7 +37,7 @@ grid_renderer grid_renderer_init(grid *g, render_window *window, string_view cur
     ret.energy_id = gpu_append_kernel(&ret.gpu, "render_energy");
     ret.charge_id = gpu_append_kernel(&ret.gpu, "render_charge");
     ret.calc_charge_id = gpu_append_kernel(&ret.gpu, "calculate_charge_to_render");
-    ret.calc_energy_id = gpu_append_kernel(&ret.gpu, "calculate_energy_to_render");
+    ret.calc_energy_id = gpu_append_kernel(&ret.gpu, "calculate_energy");
 
 
     gpu_fill_kernel_args(&ret.gpu, ret.grid_hsl_id, 0, 5, &ret.g->m_buffer, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));

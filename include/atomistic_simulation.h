@@ -14,5 +14,6 @@
 #include "v3d.h"
 #include "complete_kernel.h"
 #include "kernel_funcs.h"
+#include "gsa.h"
 
 #endif

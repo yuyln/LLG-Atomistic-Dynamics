@@ -2,8 +2,8 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
-double nsrandom(tyche_i_state state, double start, double end) {
-    return tyche_i_double(state) * (end - start) + start;
+double nsrandom(tyche_i_state *state, double start, double end) {
+    return tyche_i_double((*state)) * (end - start) + start;
 }
 
 char4 linear_mapping(double t, double3 start, double3 middle, double3 end) {
@@ -203,7 +203,7 @@ kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int 
     rgba[id] = linear_mapping(clamp(charge, 0.0, 1.0), start, middle, end);
 }
 
-kernel void calculate_energy_to_render(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
+kernel void calculate_energy(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
     int row = (id - col) / gi.cols;
@@ -246,4 +246,33 @@ kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int co
     rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
 
+kernel void thermal_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, grid_info gi, double qV1, double exp1, double exp2, double T, int seed) {
+    size_t i = get_global_id(0);
+    v3d v0l = v0[i];
+    v3d v1l = v1[i];
+    pinning pin = gs[i].pin;
 
+    tyche_i_state state;
+    tyche_i_seed(&state, seed + i);
+
+    double R = nsrandom(&state, 0.0, 1.0);
+    double delta_x = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
+    if (nsrandom(&state, 0.0, 1.0) < 0.5)
+        delta_x = -delta_x;
+
+    R = nsrandom(&state, 0.0, 1.0);
+    double delta_y = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
+    if (nsrandom(&state, 0.0, 1.0) < 0.5)
+        delta_y = -delta_y;
+
+    R = nsrandom(&state, 0.0, 1.0);
+    double delta_z = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
+    if (nsrandom(&state, 0.0, 1.0) < 0.5)
+        delta_z = -delta_z;
+
+    v3d delta = v3d_c(delta_x, delta_y, delta_z);
+    
+    v1l = pin.pinned? pin.dir: v3d_normalize(v3d_sum(v0l, delta));
+
+    v1[i] = v1l;
+}
