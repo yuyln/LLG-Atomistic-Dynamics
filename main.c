@@ -28,7 +28,7 @@ void run_gsa(grid *g) {
 
 
     grid_renderer gr = grid_renderer_init(g, window, current_func, field_func, (string_view){0}, compile);
-    gsa_context ctx = gsa_context_init(g, &gr.gpu, .T0 = 100.0, .inner_steps=70000);
+    gsa_context ctx = gsa_context_init(g, &gr.gpu, .T0 = 100.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);

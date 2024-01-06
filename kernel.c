@@ -64,12 +64,33 @@ char4 m_to_hsl(v3d m) {
     return hsl_to_rgb(angle, s, l);
 }
 
+//@TODO Proper normal
+double normal_distribution(tyche_i_state *state) {
+    double u1 = nsrandom(state, 0, 1);
+    double u2 = nsrandom(state, 0, 1);
+    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+}
+
 //Assume D=1
-double get_random_gsa(tyche_i_state *state, double qV, double T, double gamma) {
+double get_random_gsa_(tyche_i_state *state, double qV, double T, double gamma) {
     double dx = nsrandom(state, -10, 10);
     double c = sqrt((qV - 1.0) / M_PI) * gamma * pow(T, -1.0 / (3.0 - qV));
     double l = pow(1.0 + (qV - 1) * dx * dx / pow(T, 2.0 / (3.0 - qV)), 1.0 / (qV - 1.0));
     return c * dx / l;
+}
+
+double get_random_gsa(tyche_i_state *state, double qV, double T, double gamma_) {
+    double f1 = exp(log(T) / (qV - 1.0));
+    double f2 = exp((4.0 - qV) * log(qV - 1.0));
+    double f3 = exp((2.0 - qV) * log(2.0) / (qV - 1.0));
+    double f4 = sqrt(M_PI) * f1 * f2 / (f3 * (3.0 - qV));
+    double f5 = 1.0 / (qV - 1.0) - 0.5;
+    double f6 = M_PI * (1.0 - f5) / sin(M_PI * (1.0 - f5)) / tgamma(2.0 - f5);
+    double sigmax = exp(-(qV - 1.0) * log(f6 / f4) / (3.0 - qV));
+    double x = sigmax * normal_distribution(state);
+    double y = normal_distribution(state);
+    double den = exp((qV - 1.0) * log(fabs(y)) / (3.0 - qV));
+    return x / den;
 }
 
 

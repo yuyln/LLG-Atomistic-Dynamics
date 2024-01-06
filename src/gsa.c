@@ -21,6 +21,7 @@ gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param) 
 }
 
 gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_factor, string_view field_function, string_view compile_augment, string_view kernel_augment) {
+    qT = qV;
     gsa_context ret = {0};
     ret.g = g;
     ret.gpu = gpu;
