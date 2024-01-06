@@ -49,6 +49,7 @@ typedef struct {
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt);
 void integrate_context_close(integrate_context *ctx);
+void integrate_context_read_grid(integrate_context *ctx);
 
 void integrate_vars(grid *g, integration_params param);
 void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment);

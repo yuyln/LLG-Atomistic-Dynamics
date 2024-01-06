@@ -7,7 +7,6 @@
 #include "constants.h"
 static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the same as the size of uint32_t, which should not happen");
 
-//@TODO: Create queue with properties
 gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {
     gpu_cl ret = {0};
     ret.platforms = clw_init_platforms(&ret.n_platforms);

@@ -147,3 +147,7 @@ void integrate_exchange_grids(integrate_context *ctx) {
     cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
     gpu_profiling(stdout, ev, "Exchanging Grids");
 }
+
+void integrate_context_read_grid(integrate_context *ctx) {
+    v3d_from_gpu(ctx->g->m, ctx->g->m_buffer, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+}

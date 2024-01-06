@@ -74,7 +74,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
 
     clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.g->m_buffer), "[ FATAL ] HAHAHAHHAHAHAHAHAHAHA WTF0");
     clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 0, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] HAHAHAHAHA WTF");
-    cl_event ev = clw_enqueue_nd(ret.gpu->queue, ret.gpu->kernels[ret.exchange_id], 1, NULL, &ret.global, &ret.local);
+    clw_enqueue_nd(ret.gpu->queue, ret.gpu->kernels[ret.exchange_id], 1, NULL, &ret.global, &ret.local);
 
     clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] Could not set argument 1 of kernel %s", gpu->kernels[ret.exchange_id].name);
 
@@ -93,13 +93,27 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
     grid_to_gpu(g, gpu);
 
     const char cmp[] = "-DOPENCL_COMPILATION";
-    string kernel = fill_functions_on_kernel(sv_from_cstr("return {0};"), field_function, kernel_augment);
+    string kernel = fill_functions_on_kernel(sv_from_cstr("return (current){0};"), field_function, kernel_augment);
     string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
     gpu_cl_compile_source(&gpu, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
     string_free(&kernel);
     string_free(&compile);
 
     gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_param, field_function, compile_augment, kernel_augment);
+    while (ctx.outer_step < outer_steps) {
+        while (ctx.inner_step < inner_steps) {
+            gsa_thermal_step(&ctx);
+            gsa_metropolis_step(&ctx);
+        }
+    }
+
+    clw_print_cl_error(stderr, clSetKernelArg(ctx.gpu->kernels[ctx.exchange_id].kernel, 0, sizeof(cl_mem), &ctx.g->m_buffer), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
+    clw_print_cl_error(stderr, clSetKernelArg(ctx.gpu->kernels[ctx.exchange_id].kernel, 1, sizeof(cl_mem), &ctx.min_gpu), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
+    clw_enqueue_nd(ctx.gpu->queue, ctx.gpu->kernels[ctx.exchange_id], 1, NULL, &ctx.global, &ctx.local);
+
+    gsa_context_read_minimun_grid(&ctx);
+
+    printf("GSA Done. Minimun energy obtained %.15e eV\n", ctx.min_energy / QE);
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
@@ -122,7 +136,6 @@ void gsa_thermal_step(gsa_context *ctx) {
 
 void gsa_metropolis_step(gsa_context *ctx) {
     double new_energy = energy_from_gsa_context(ctx);
-    double df = new_energy - ctx->last_energy;
 
     if (new_energy <= ctx->min_energy) {
         ctx->min_energy = new_energy;
@@ -137,10 +150,9 @@ void gsa_metropolis_step(gsa_context *ctx) {
         clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set old grid as argument of exchange grids GSA");
         cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
         gpu_profiling(stdout, ev, "Exchange old grid");
-    }
-#if 1
-    else {
-        double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (KB * ctx->T), ctx->oneqA1);
+    } else {
+        double df = (new_energy - ctx->last_energy) / fabs(ctx->g->gp->exchange);
+        double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;
             clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set old grid as argument of exchange grids GSA");
@@ -148,17 +160,14 @@ void gsa_metropolis_step(gsa_context *ctx) {
             gpu_profiling(stdout, ev, "Exchange old pqa grid");
         }
     }
-#endif
+
     if (ctx->inner_step % (ctx->parameters.inner_steps / ctx->parameters.print_factor) == 0)
-        printf("H_min = %e T = %e INNER = %zu OUTER = %zu\n", ctx->min_energy, ctx->T, ctx->inner_step, ctx->outer_step);
-
-#if 0
-    clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
-    clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 1, sizeof(cl_mem), &ctx->min_gpu), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
-
-    clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 1, sizeof(cl_mem), &ctx->swap_gpu), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
-#endif
+        printf("------------------------------------\n"\
+               "GSA Outer Step: %zu\n"\
+               "GSA Inner Step: %zu\n"\
+               "Minimun Energy = %.15e eV\n"\
+               "Temperature = %.15e\n"\
+               "------------------------------------\n", ctx->outer_step, ctx->inner_step, ctx->min_energy / QE, ctx->T);
 }
 
 void gsa_context_clear(gsa_context *ctx) {
@@ -168,4 +177,8 @@ void gsa_context_clear(gsa_context *ctx) {
     clw_print_cl_error(stderr, clReleaseMemObject(ctx->energy_gpu), "[ FATAL ] Could not release energy buffer from GPU gsa");
 
     memset(ctx, 0, sizeof(*ctx));
+}
+
+void gsa_context_read_minimun_grid(gsa_context *ctx) {
+    clw_print_cl_error(stderr, clEnqueueReadBuffer(ctx->gpu->queue, ctx->g->m_buffer, CL_TRUE, 0, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), ctx->g->m, 0, NULL, NULL), "[ FATAL ] Could not read minimum buffer from GPU gsa");
 }

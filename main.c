@@ -3,22 +3,10 @@
 #include <sys/time.h>
 #include <time.h>
 
-//@TODO: Change openclwrapper to print file and location correctly
-//@TODO: Check uint64_t->int changes
-//@TODO: Do 3D
-//@TODO: Clear everything on integrate context and gsa context
-//
-int main(void) {
-    srand(time(NULL));
-    int rows = 32;
-    int cols = 32;
-    double ratio = (double)cols / rows;
+void run_gsa(grid *g) {
+    double ratio = (double)g->gi.cols / g->gi.rows;
     render_window *window = window_init(800 * ratio, 800);
-    grid g = grid_init(rows, cols);
-    v3d_fill_with_random(g.m, rows, cols);
 
-    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
-    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
 
     string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
                                             "return ret;\n"\
@@ -39,8 +27,8 @@ int main(void) {
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
 
-    grid_renderer gr = grid_renderer_init(&g, window, current_func, field_func, (string_view){0}, compile);
-    gsa_context ctx = gsa_context_init(&g, &gr.gpu, .T0 = 20.0, .inner_steps=700000);
+    grid_renderer gr = grid_renderer_init(g, window, current_func, field_func, (string_view){0}, compile);
+    gsa_context ctx = gsa_context_init(g, &gr.gpu, .T0 = 5.0, .inner_steps=70000);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -49,7 +37,7 @@ int main(void) {
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
     int frames = 0;
-    const int steps = 500;
+    const int steps = 100;
 
     while(!window_should_close(window)) {
         switch (state) {
@@ -98,26 +86,15 @@ int main(void) {
         }
     }
 
+    gsa_context_read_minimun_grid(&ctx);
     gsa_context_clear(&ctx);
     grid_renderer_close(&gr);
-    grid_free(&g);
     window_close(window);
-    return 0;
 }
-//
-//
-int main2(void) {
-    double dt = HBAR / (1.0e-3 * QE) * 0.01;
-    int rows = 32;
-    int cols = 32;
-    double ratio = (double)cols / rows;
+
+void run_integration(grid *g, double dt) {
+    double ratio = (double)g->gi.cols / g->gi.rows;
     render_window *window = window_init(800 * ratio, 800);
-    grid g = grid_init(rows, cols);
-    v3d_fill_with_random(g.m, rows, cols);
-
-    grid_set_dm(&g, 1.0 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
-    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-
 
     string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
                                             "return ret;\n"\
@@ -136,14 +113,10 @@ int main2(void) {
                                           "//real = real * (1.0 + 1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
-    /*profiler_start_measure("Integration");
-    integrate(&g, .dt = dt, .duration = 10.0 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile, .interval_for_information=1519268);
-    profiler_end_measure("Integration");
-    profiler_print_measures(stdout);
-    return 0;*/
 
-    grid_renderer gr = grid_renderer_init(&g, window, current_func, field_func, (string_view){0}, compile);
-    integrate_context ctx = integrate_context_init(&g, &gr.gpu, dt);
+
+    grid_renderer gr = grid_renderer_init(g, window, current_func, field_func, (string_view){0}, compile);
+    integrate_context ctx = integrate_context_init(g, &gr.gpu, dt);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -152,7 +125,7 @@ int main2(void) {
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
     int frames = 0;
-    const int steps = 500;
+    const int steps = 100;
 
     while(!window_should_close(window)) {
         switch (state) {
@@ -201,10 +174,33 @@ int main2(void) {
             frames = 0;
         }
     }
+    integrate_context_read_grid(&ctx);
 
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
-    grid_free(&g);
     window_close(window);
+
+}
+
+//@TODO: Change openclwrapper to print file and location correctly
+//@TODO: Check uint64_t->int changes
+//@TODO: Do 3D
+//@TODO: Clear everything on integrate context and gsa context
+int main(void) {
+    int rows = 32;
+    int cols = 32;
+    double dt = HBAR / (1.0e-3 * QE) * 0.01;
+
+    grid g = grid_init(rows, cols);
+
+    grid_set_dm(&g, 0.5 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    v3d_fill_with_random(g.m, rows, cols);
+
+    srand(time(NULL));
+    run_gsa(&g);
+    run_integration(&g, dt);
+
+    grid_free(&g);
     return 0;
 }
