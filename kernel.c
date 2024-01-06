@@ -64,6 +64,14 @@ char4 m_to_hsl(v3d m) {
     return hsl_to_rgb(angle, s, l);
 }
 
+//Assume D=1
+double get_random_gsa(tyche_i_state *state, double qV, double T, double gamma) {
+    double dx = nsrandom(state, -10, 10);
+    double c = sqrt((qV - 1.0) / M_PI) * gamma * pow(T, -1.0 / (3.0 - qV));
+    double l = pow(1.0 + (qV - 1) * dx * dx / pow(T, 2.0 / (3.0 - qV)), 1.0 / (qV - 1.0));
+    return c * dx / l;
+}
+
 
 kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
     size_t id = get_global_id(0);
@@ -246,7 +254,7 @@ kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int co
     rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
 
-kernel void thermal_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, grid_info gi, double qV1, double exp1, double exp2, double T, int seed) {
+kernel void thermal_step_gsa(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, grid_info gi, double qV, double gamma, double T, int seed) {
     size_t i = get_global_id(0);
     v3d v0l = v0[i];
     v3d v1l = v1[i];
@@ -255,22 +263,9 @@ kernel void thermal_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d 
     tyche_i_state state;
     tyche_i_seed(&state, seed + i);
 
-    double R = nsrandom(&state, 0.0, 1.0);
-    double delta_x = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-    if (nsrandom(&state, 0.0, 1.0) < 0.5)
-        delta_x = -delta_x;
-
-    R = nsrandom(&state, 0.0, 1.0);
-    double delta_y = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-    if (nsrandom(&state, 0.0, 1.0) < 0.5)
-        delta_y = -delta_y;
-
-    R = nsrandom(&state, 0.0, 1.0);
-    double delta_z = 1.0 / pow(1.0 + qV1 * R * R / pow(T, exp1), exp2);
-    if (nsrandom(&state, 0.0, 1.0) < 0.5)
-        delta_z = -delta_z;
-
-    v3d delta = v3d_c(delta_x, delta_y, delta_z);
+    v3d delta = v3d_c(get_random_gsa(&state, qV, T, gamma),
+                      get_random_gsa(&state, qV, T, gamma),
+                      get_random_gsa(&state, qV, T, gamma));
     
     v1l = pin.pinned? pin.dir: v3d_normalize(v3d_sum(v0l, delta));
 

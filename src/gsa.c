@@ -52,7 +52,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.min_gpu = clCreateBuffer(gpu->ctx, CL_MEM_READ_WRITE, g->gi.rows * g->gi.cols * sizeof(*g->m), NULL, &err);
     clw_print_cl_error(stderr, err, "[ FATAL ] Could not create min buffer gsa");
 
-    ret.thermal_id = gpu_append_kernel(gpu, "thermal_step");
+    ret.thermal_id = gpu_append_kernel(gpu, "thermal_step_gsa");
     ret.exchange_id = gpu_append_kernel(gpu, "exchange_grid");
     ret.energy_id = gpu_append_kernel(gpu, "calculate_energy");
 
@@ -63,8 +63,9 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.exp1 = 2.0 / (3.0 - qV);
     ret.exp2 = 1.0 / ret.qV1 - 0.5;
     ret.Tqt = T0 * (pow(2.0, ret.qT1) - 1.0);
+    ret.gamma = gamma(1.0 / (qV - 1.0)) / gamma(1.0 / (qV - 1.0) - 1.0 / 2.0);
 
-    gpu_fill_kernel_args(gpu, ret.thermal_id, 0, 8, &g->gp_buffer, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.qV1, sizeof(double), &ret.exp1, sizeof(double), &ret.exp2, sizeof(double), &ret.T, sizeof(double));
+    gpu_fill_kernel_args(gpu, ret.thermal_id, 0, 7, &g->gp_buffer, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.parameters.qV, sizeof(double), &ret.gamma, sizeof(double), &ret.T, sizeof(double));
 
     double t = 0.0;
     gpu_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(double));
@@ -117,9 +118,9 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
-    clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 7, sizeof(double), &ctx->T);
+    clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 6, sizeof(double), &ctx->T);
     int seed = rand();
-    clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 8, sizeof(int), &seed);
+    clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 7, sizeof(int), &seed);
     cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->thermal_id], 1, NULL, &ctx->global, &ctx->local);
     ctx->step++;
     ctx->inner_step++;
@@ -151,7 +152,7 @@ void gsa_metropolis_step(gsa_context *ctx) {
         cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
         gpu_profiling(stdout, ev, "Exchange old grid");
     } else {
-        double df = (new_energy - ctx->last_energy) / fabs(ctx->g->gp->exchange);
+        double df = (new_energy - ctx->last_energy) / KB;// / fabs(ctx->g->gp->exchange);
         double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;

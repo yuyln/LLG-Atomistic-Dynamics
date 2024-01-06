@@ -75,6 +75,7 @@ typedef struct {
     double exp1;
     double exp2;
     double Tqt;
+    double gamma;
 } gsa_context;
 
 gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param);
