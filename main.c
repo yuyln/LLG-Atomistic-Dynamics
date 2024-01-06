@@ -28,7 +28,7 @@ void run_gsa(grid *g) {
 
 
     grid_renderer gr = grid_renderer_init(g, window, current_func, field_func, (string_view){0}, compile);
-    gsa_context ctx = gsa_context_init(g, &gr.gpu, .T0 = 100.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
+    gsa_context ctx = gsa_context_init(g, &gr.gpu, .T0 = 500.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -193,7 +193,7 @@ int main(void) {
 
     grid g = grid_init(rows, cols);
 
-    grid_set_dm(&g, 1.5 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+    grid_set_dm(&g, 1.0 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     v3d_fill_with_random(g.m, rows, cols);
 
