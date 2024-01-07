@@ -56,22 +56,9 @@ def FixPlot(lx: float, ly: float):
 M_PI = np.pi
 
 def normal_distribution(n: int) -> np.ndarray:
-    u1 = np.random.random(n);
-    u2 = np.random.random(n);
-    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-
-def get_random_gsa(qV: float, T: float, n: int) -> np.ndarray:
-    f1 = exp(log(T) / (qV - 1.0));
-    f2 = exp((4.0 - qV) * log(qV - 1.0));
-    f3 = exp((2.0 - qV) * log(2.0) / (qV - 1.0));
-    f4 = sqrt(M_PI) * f1 * f2 / (f3 * (3.0 - qV));
-    f5 = 1.0 / (qV - 1.0) - 0.5;
-    f6 = M_PI * (1.0 - f5) / sin(M_PI * (1.0 - f5)) / tgamma(2.0 - f5);
-    sigmax = exp(-(qV - 1.0) * log(f6 / f4) / (3.0 - qV));
-    x = sigmax * normal_distribution(n);
-    y = normal_distribution(n);
-    den = exp((qV - 1.0) * log(fabs(y)) / (3.0 - qV));
-    return x / den
+    u1 = np.random.random(n)
+    u2 = np.random.random(n)
+    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2)
 
 def true_random_gsa(x: np.ndarray, qV: float, T: float, D: int) -> np.ndarray:
     f1 = ((qV - 1.0) / M_PI) ** (D / 2.0)
@@ -81,31 +68,53 @@ def true_random_gsa(x: np.ndarray, qV: float, T: float, D: int) -> np.ndarray:
     f4 = f4 ** (1.0 / (qV - 1.0) + (D - 1.0) / 2.0)
     return f1 * f2 * f3 / f4
 
+def get_random_gsa(qV: float, T: float, n: int, D: int = 1) -> np.ndarray:
+    if D == 1:
+        f1 = exp(log(T) / (qV - 1.0));
+        f2 = exp((4.0 - qV) * log(qV - 1.0));
+        f3 = exp((2.0 - qV) * log(2.0) / (qV - 1.0));
+        f4 = sqrt(M_PI) * f1 * f2 / (f3 * (3.0 - qV));
+        f5 = 1.0 / (qV - 1.0) - 0.5;
+        f6 = M_PI * (1.0 - f5) / sin(M_PI * (1.0 - f5)) / tgamma(2.0 - f5);
+        sigmax = exp(-(qV - 1.0) * log(f6 / f4) / (3.0 - qV));
+        x = sigmax * normal_distribution(n)
+        y = normal_distribution(n);
+        den = exp((qV - 1.0) * log(fabs(y)) / (3.0 - qV));
+        return x / den
+    xs = np.random.random(n)
+    x = 1.0 / ((1.0 + (1.0 - qV) * xs * xs / (T ** (2.0 / (3.0 - qV)))) ** (1.0 / (1.0 - qV) - 0.5))
+    signal = np.random.random(n)
+    return x * ((-1) * (signal < 0.5) + (signal > 0.5))
+
+
+
 def plot_for_param(axl, axr, qV: float, T: float, D: int, n: int, minv: float = -5, maxv: float = 5):
-    my_gsa = get_random_gsa(qV, T, n)
+    my_gsa = get_random_gsa(qV, T, n, D)
     
-    my_gsa_start = my_gsa > minv
-    my_gsa = my_gsa[my_gsa_start]
+    #my_gsa_start = my_gsa > minv
+    #my_gsa = my_gsa[my_gsa_start]
+    #
+    #my_gsa_end = my_gsa < maxv
+    #my_gsa = my_gsa[my_gsa_end]
+    #
+    #end, start = max(my_gsa), min(my_gsa)
     
-    my_gsa_end = my_gsa < maxv
-    my_gsa = my_gsa[my_gsa_end]
-    
-    end, start = max(my_gsa), min(my_gsa)
-    
-    x = np.linspace(start, end, n)
+    x = np.linspace(minv, maxv, n)
     
     true_gsa = true_random_gsa(x, qV, T, D)
     true_gsa = true_gsa
-    axl.hist(my_gsa, bins=50, density=True)
+    bin_size = 0.1
+    bins = np.arange(minv, maxv + 1, bin_size)
+    axl.hist(my_gsa, bins=bins, density=True)
     
-    axl.set_xlim((start, end))
+    axl.set_xlim((minv, maxv))
     axl.set_xlabel("$\\Delta x$")
     axl.set_ylabel("Histogram")
     axl.set_yticks([])
     
     axr.plot(x, true_gsa)
     
-    axr.set_xlim((start, end))
+    axr.set_xlim((minv, maxv))
     axr.set_xlabel("$\\Delta x$")
     axr.set_ylabel("$g_{q_V}(\\Delta x)$")
     axr.set_yticks([])
@@ -120,9 +129,10 @@ qV = 2.5
 D = 1
 
 FixPlot(16, 16)
-fig, ax = plt.subplots(ncols=2, nrows=4)
+rows = 5
+fig, ax = plt.subplots(ncols=2, nrows=rows)
 
-for row in range(4):
+for row in range(rows):
     plot_for_param(ax[row][0], ax[row][1], qV, T0 + row * dT, D, n)
 
 
