@@ -6,26 +6,24 @@
 
 #define gsa(g, ...) gsa_param(g, (gsa_parameters){.qA = 2.8,\
                                                   .qV = 2.6,\
-                                                  .qT = 2.2,\
+                                                  .qT = 2.6,\
                                                   .T0 = 10.0,\
                                                   .inner_steps = 100000,\
                                                   .outer_steps = 15,\
                                                   .print_factor = 10,\
                                                   .field_function = (string_view){0},\
                                                   .compile_augment = (string_view){0},\
-                                                  .kernel_augment = (string_view){0},\
                                                   __VA_ARGS__})
 
 #define gsa_context_init(g, gpu, ...) gsa_context_init_params(g, gpu, (gsa_parameters){.qA = 2.8,\
                                                                                        .qV = 2.6,\
-                                                                                       .qT = 2.2,\
+                                                                                       .qT = 2.6,\
                                                                                        .T0 = 10.0,\
                                                                                        .inner_steps = 100000,\
                                                                                        .outer_steps = 15,\
                                                                                        .print_factor = 10,\
                                                                                        .field_function = (string_view){0},\
                                                                                        .compile_augment = (string_view){0},\
-                                                                                       .kernel_augment = (string_view){0},\
                                                                                        __VA_ARGS__})
 
 typedef struct {
@@ -39,7 +37,6 @@ typedef struct {
 
     string_view field_function;
     string_view compile_augment;
-    string_view kernel_augment;
 } gsa_parameters;
 
 typedef struct {
@@ -79,12 +76,12 @@ typedef struct {
 } gsa_context;
 
 gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param);
-gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment, string_view kernel_augment);
+gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param);
 void gsa_context_clear(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
 void gsa_params(grid *g, gsa_parameters param);
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment, string_view kernel_augment);
+void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment);
 
 void gsa_thermal_step(gsa_context *ctx);
 void gsa_metropolis_step(gsa_context *ctx);

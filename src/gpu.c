@@ -5,39 +5,14 @@
 #define OPENCLWRAPPER_IMPLEMENTATION
 #include "openclwrapper.h"
 #include "constants.h"
+#include "kernel_funcs.h"
 static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the same as the size of uint32_t, which should not happen");
 
-gpu_cl gpu_cl_init(int plat_idx, int dev_idx) {
-    gpu_cl ret = {0};
-    ret.platforms = clw_init_platforms(&ret.n_platforms);
-    ret.plat_idx = plat_idx % ret.n_platforms;
-
-    for (uint64_t i = 0; i < ret.n_platforms; ++i)
-        clw_get_platform_info(stdout, ret.platforms[i], i);
-
-    ret.devices = clw_init_devices(ret.platforms[ret.plat_idx], &ret.n_devices);
-    ret.dev_idx = dev_idx % ret.n_devices;
-    for (uint64_t i = 0; i < ret.n_devices; ++i)
-        clw_get_device_info(stdout, ret.devices[i], i);
-
-    ret.ctx = clw_init_context(ret.devices, ret.n_devices);
-#ifndef PROFILING
-    ret.queue = clw_init_queue(ret.ctx, ret.devices[ret.dev_idx]);
-#else
-    cl_int err;
-    cl_queue_properties properties[] = {
-        CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
-        0
-    };
-
-    ret.queue = clCreateCommandQueueWithProperties(ret.ctx, ret.devices[ret.dev_idx], properties, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Could not create command queue");
-#endif
-    return ret;
-}
+uint64_t p_id = 0;
+uint64_t d_id = 0;
 
 INCEPTION("Compile OPT is assumed to be storing a null terminated string")
-void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt) {
+static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt) {
     cl_int err;
     gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source.str, &source.len, &err);
     clw_print_cl_error(stderr, err, "[ FATAL ] Creating program");
@@ -46,11 +21,11 @@ void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_
     cl_int err_building = clw_build_program(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str);
 
     uint64_t size;
-    err = clGetProgramBuildInfo(gpu->program, gpu->devices[gpu->dev_idx], CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
+    err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
     clw_print_cl_error(stderr, err, "[ FATAL ] Could not get building log size");
 
     char *info = (char*)calloc(size, 1);
-    err = clGetProgramBuildInfo(gpu->program, gpu->devices[gpu->dev_idx], CL_PROGRAM_BUILD_LOG, size, info, NULL);
+    err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL);
     clw_print_cl_error(stderr, err, "[ FATAL ] Error getting building log");
 
     fprintf(stderr, "---------------------------------\n");
@@ -58,6 +33,43 @@ void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_
     fprintf(stderr, "---------------------------------\n");
     free(info);
     clw_print_cl_error(stderr, err_building, "[ FATAL ] Could not build the program");
+}
+
+gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view /*temperature_function*/ kernel_augment, string_view compile_augment) {
+    gpu_cl ret = {0};
+    ret.platforms = clw_init_platforms(&ret.n_platforms);
+    p_id = p_id % ret.n_platforms;
+
+    for (uint64_t i = 0; i < ret.n_platforms; ++i)
+        clw_get_platform_info(stdout, ret.platforms[i], i);
+
+    ret.devices = clw_init_devices(ret.platforms[p_id], &ret.n_devices);
+    d_id = d_id % ret.n_devices;
+    for (uint64_t i = 0; i < ret.n_devices; ++i)
+        clw_get_device_info(stdout, ret.devices[i], i);
+
+    ret.ctx = clw_init_context(ret.devices, ret.n_devices);
+#ifndef PROFILING
+    ret.queue = clw_init_queue(ret.ctx, ret.devices[d_id]);
+#else
+    cl_int err;
+    cl_queue_properties properties[] = {
+        CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
+        0
+    };
+
+    ret.queue = clCreateCommandQueueWithProperties(ret.ctx, ret.devices[d_id], properties, &err);
+    clw_print_cl_error(stderr, err, "[ FATAL ] Could not create command queue");
+#endif
+
+    const char cmp[] = "-DOPENCL_COMPILATION";
+    string kernel = fill_functions_on_kernel(current_function, field_function, kernel_augment);
+    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
+    gpu_cl_compile_source(&ret, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
+    string_free(&kernel);
+    string_free(&compile);
+
+    return ret;
 }
 
 void gpu_cl_close(gpu_cl *gpu) {

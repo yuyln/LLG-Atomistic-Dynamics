@@ -17,11 +17,10 @@ static double energy_from_gsa_context(gsa_context *ctx) {
 }
 
 gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param) {
-    return gsa_context_init_base(g, gpu, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment, param.kernel_augment);
+    return gsa_context_init_base(g, gpu, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor);
 }
 
-gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_factor, string_view field_function, string_view compile_augment, string_view kernel_augment) {
-    qT = qV;
+gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_factor) {
     gsa_context ret = {0};
     ret.g = g;
     ret.gpu = gpu;
@@ -37,11 +36,9 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.parameters.inner_steps = inner_steps;
     ret.parameters.outer_steps = outer_steps;
     ret.parameters.print_factor = print_factor;
-    ret.parameters.field_function = field_function;
-    ret.parameters.compile_augment = compile_augment;
-    ret.parameters.kernel_augment = kernel_augment;
     ret.global = g->gi.rows * g->gi.cols;
     ret.local = clw_gcd(ret.global, 32);
+    grid_to_gpu(g, *gpu);
 
     cl_int err;
     ret.energy_gpu = clCreateBuffer(gpu->ctx, CL_MEM_READ_WRITE, g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), NULL, &err);
@@ -71,15 +68,16 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     double t = 0.0;
     gpu_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(double));
 
-    clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] Could not set argument 1 of kernel %s", gpu->kernels[ret.exchange_id].name);
-
 
     clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.g->m_buffer), "[ FATAL ] HAHAHAHHAHAHAHAHAHAHA WTF0");
-    clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 0, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] HAHAHAHAHA WTF");
+    clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 0, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] HAHAHAHAHA WTF0");
+    clw_enqueue_nd(ret.gpu->queue, ret.gpu->kernels[ret.exchange_id], 1, NULL, &ret.global, &ret.local);
+
+    clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.g->m_buffer), "[ FATAL ] HAHAHAHHAHAHAHAHAHAHA WTF1");
+    clw_print_cl_error(stderr, clSetKernelArg(ret.gpu->kernels[ret.exchange_id].kernel, 0, sizeof(cl_mem), &ret.min_gpu), "[ FATAL ] HAHAHAHAHA WTF1");
     clw_enqueue_nd(ret.gpu->queue, ret.gpu->kernels[ret.exchange_id], 1, NULL, &ret.global, &ret.local);
 
     clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[ret.exchange_id].kernel, 1, sizeof(cl_mem), &ret.swap_gpu), "[ FATAL ] Could not set argument 1 of kernel %s", gpu->kernels[ret.exchange_id].name);
-
 
     ret.last_energy = energy_from_gsa_context(&ret);
     ret.min_energy = energy_from_gsa_context(&ret);
@@ -87,21 +85,14 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
 }
 
 void gsa_params(grid *g, gsa_parameters param) {
-    gsa_base(g, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment, param.kernel_augment);
+    gsa_base(g, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment);
 }
 
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment, string_view kernel_augment) {
-    gpu_cl gpu = gpu_cl_init(0, 0);
+void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment) {
+    gpu_cl gpu = gpu_cl_init(sv_from_cstr(""), field_function, sv_from_cstr(""), compile_augment);
     grid_to_gpu(g, gpu);
 
-    const char cmp[] = "-DOPENCL_COMPILATION";
-    string kernel = fill_functions_on_kernel(sv_from_cstr("return (current){0};"), field_function, kernel_augment);
-    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
-    gpu_cl_compile_source(&gpu, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
-    string_free(&kernel);
-    string_free(&compile);
-
-    gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_param, field_function, compile_augment, kernel_augment);
+    gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_param);
     while (ctx.outer_step < outer_steps) {
         while (ctx.inner_step < inner_steps) {
             gsa_thermal_step(&ctx);
@@ -182,5 +173,5 @@ void gsa_context_clear(gsa_context *ctx) {
 }
 
 void gsa_context_read_minimun_grid(gsa_context *ctx) {
-    clw_print_cl_error(stderr, clEnqueueReadBuffer(ctx->gpu->queue, ctx->g->m_buffer, CL_TRUE, 0, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), ctx->g->m, 0, NULL, NULL), "[ FATAL ] Could not read minimum buffer from GPU gsa");
+    clw_print_cl_error(stderr, clEnqueueReadBuffer(ctx->gpu->queue, ctx->min_gpu, CL_TRUE, 0, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), ctx->g->m, 0, NULL, NULL), "[ FATAL ] Could not read minimum buffer from GPU gsa");
 }

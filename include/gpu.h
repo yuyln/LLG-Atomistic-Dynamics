@@ -16,14 +16,15 @@
 #define gpu_profiling(f, ev, description) UNUSED((ev))
 #endif
 
+extern uint64_t p_id;
+extern uint64_t d_id;
+
 typedef struct {
     cl_platform_id *platforms;
     uint64_t n_platforms;
-    int plat_idx;
 
     cl_device_id *devices;
     uint64_t n_devices;
-    int dev_idx;
 
     cl_context ctx;
     cl_command_queue queue;
@@ -34,8 +35,7 @@ typedef struct {
     uint64_t n_kernels;
 } gpu_cl;
 
-gpu_cl gpu_cl_init(int plat_idx, int dev_idx);
-void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt);
+gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view /*temperature_function*/ kernel_augment, string_view compile_augment);
 void gpu_cl_close(gpu_cl *gpu);
 uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel);
 void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...);

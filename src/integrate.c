@@ -33,28 +33,12 @@ void integrate_context_close(integrate_context *ctx) {
 }
 
 void integrate_vars(grid *g, integration_params param) {
-    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path, param.kernel_augment, param.compile_augment);
+    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path,  param.compile_augment);
 }
 
-void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view kernel_augment, string_view compile_augment) {
-    UNUSED(interval_info);
-    UNUSED(func_field);
-    UNUSED(func_current);
-    UNUSED(interval_grid);
-    UNUSED(dir_out);
-    UNUSED(kernel_augment);
-    UNUSED(compile_augment);
+void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view compile_augment) {
 
-    gpu_cl gpu = gpu_cl_init(0, 0);
-    grid_to_gpu(g, gpu);
-
-    const char cmp[] = "-DOPENCL_COMPILATION";
-    string kernel = fill_functions_on_kernel(func_current, func_field, kernel_augment);
-    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
-    gpu_cl_compile_source(&gpu, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
-    string_free(&kernel);
-    string_free(&compile);
-
+    gpu_cl gpu = gpu_cl_init(func_current, func_field, sv_from_cstr(""), compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
     uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
@@ -72,17 +56,35 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
     uint64_t step = 0;
 
-    FILE *output_info = fopen(dir_out.str, "w");
+    string output_info_path = (string){0};
+    string_add_sv(&output_info_path, dir_out);
+    string_add_cstr(&output_info_path, "/integration_info.dat");
+
+    FILE *output_info = fopen(string_as_cstr(&output_info_path), "w");
     if (!output_info) {
-        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)dir_out.len, dir_out.str, strerror(errno));
+        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
         exit(1);
     }
+    string_free(&output_info_path);
+
     fprintf(output_info, "time(s),energy(eV),exchange_energy(eV),dm_energy(eV),field_energy(eV),anisotropy_energy(eV),cubic_anisotropy_energy(eV),");
     fprintf(output_info, "charge_finite,charge_lattice,");
     fprintf(output_info, "avg_mx,avg_my,avg_mz,");
     fprintf(output_info, "eletric_x,eletric_y,eletric_z,");
     fprintf(output_info, "magnetic_lattice_x,magnetic_lattice_y,magnetic_lattice_z,");
     fprintf(output_info, "magnetic_derivative_x,magnetic_derivative_y,magnetic_derivative_z\n");
+
+    string output_grid_path = (string){0};
+    string_add_sv(&output_grid_path, dir_out);
+    string_add_cstr(&output_grid_path, "/integration_evolution.dat");
+
+    FILE *grid_evolution = fopen(string_as_cstr(&output_grid_path), "w");
+    if (!output_info) {
+        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
+        exit(1);
+    }
+    string_free(&output_grid_path);
+    grid_full_dump(grid_evolution, g);
 
 
     while (ctx.time <= duration) {
@@ -114,6 +116,11 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
             fprintf(output_info, "%.15e,%.15e,%.15e\n", info_local.magnetic_field_derivative.x, info_local.magnetic_field_derivative.y, info_local.magnetic_field_derivative.z);
         }
 
+        if (step % interval_grid == 0) {
+            v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
+            v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
+        }
+
         integrate_exchange_grids(&ctx);
         ctx.time += dt;
         step++;
@@ -122,6 +129,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     fclose(output_info);
 
     v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
+    v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
 
     integrate_context_close(&ctx);
     clw_print_cl_error(stderr, clReleaseMemObject(info_buffer), "[ FATAL ] Could not release info buffer from GPU");
