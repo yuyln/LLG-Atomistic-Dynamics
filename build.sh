@@ -6,7 +6,7 @@ FILES="`find ./src -type f -name "*.c"`"
 
 
 gcc $CFLAGS create_kernel.c -o create_kernel
-./create_kernel ./src_kernel/tyche_i.c ./include/constants.h ./include/v3d.h ./include/grid_types.h ./include_kernel/simulation_funcs.h ./src/v3d.c ./src_kernel/simulation_funcs.c ./src_kernel/kernel.c
+./create_kernel ./kernel_files/tyche_i.c ./include/constants.h ./include/v3d.h ./include/grid_types.h ./kernel_files/simulation_funcs.h ./src/v3d.c ./kernel_files/simulation_funcs.c ./kernel_files/kernel.c
 rm ./create_kernel
 
 gcc $CFLAGS -c $FILES $LIBS
