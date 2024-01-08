@@ -148,7 +148,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
-//@TODO: Clear everything on integrate context and gsa context
+//@TODO: Clear everything on integrate context and gsa context(done?)
 int main(void) {
     int rows = 32;
     int cols = 32;
@@ -171,11 +171,11 @@ int main(void) {
                                              "ret.stt.polarization = -1.0;\n"\
                                              "ret.stt.beta = 0.0;\n"\
                                              "return ret;");
-    string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
+    string_view field_func = sv_from_cstr("double normalized = 0.8;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "//double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
-                                          "return v3d_c(0.0, 0.0, real);");
+                                          "return v3d_c(0.0, real, 0.0);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
     //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);

@@ -65,10 +65,25 @@ char4 m_to_hsl(v3d m) {
 }
 
 //@TODO Proper normal
-double normal_distribution(tyche_i_state *state) {
+double normal_distribution_box_muller(tyche_i_state *state) {
     double u1 = nsrandom(state, 0, 1);
     double u2 = nsrandom(state, 0, 1);
     return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+}
+
+double normal_distribution(tyche_i_state *state) {
+    for (;;) {
+        double U = nsrandom(state, 0, 1);
+        double V = nsrandom(state, 0, 1);
+        double X = sqrt(8.0 / M_E) * (V - 0.5) / U;
+        double X2 = X * X;
+        if (X2 <= (5.0 - 4.0 * exp(0.25) * U))
+            return X;
+        else if (X2 >= (4.0 * exp(-1.35) / U + 1.4))
+            continue;
+        else if (X2 <= (-4.0 * log(U)))
+            return X;
+    }
 }
 
 //Assume D=1

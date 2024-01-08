@@ -5,6 +5,10 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifndef M_E
+#define M_E 2.7182818284590452354
+#endif
+
 #define HBAR 1.054571817e-34 // J*s
 #define QE 1.602176634e-19 // C
 #define MU_B 9.2740100783e-24 // J/T

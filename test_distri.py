@@ -55,10 +55,29 @@ def FixPlot(lx: float, ly: float):
 
 M_PI = np.pi
 
-def normal_distribution(n: int) -> np.ndarray:
+def normal_distribution_box_muller(n: int) -> np.ndarray:
     u1 = np.random.random(n)
     u2 = np.random.random(n)
     return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2)
+
+def ratio_method():
+    U = np.random.random()
+    V = np.random.random()
+    X = sqrt(8.0 / np.e) * (V - 0.5) / U
+    X2 = X * X
+    if X2 <= (5.0 - 4.0 * np.exp(1.0 / 4.0) * U):
+        return X
+    elif X2 >= (4.0 * np.exp(-1.35) / U + 1.4):
+        return ratio_method()
+    elif X2 <= (-4.0 * np.log(U)):
+        return X
+    return ratio_method()
+
+def normal_distribution(n: int) -> np.ndarray:
+    x = np.zeros(n)
+    for i in range(n):
+        x[i] = ratio_method()
+    return x
 
 def true_random_gsa(x: np.ndarray, qV: float, T: float, D: int) -> np.ndarray:
     f1 = ((qV - 1.0) / M_PI) ** (D / 2.0)
@@ -86,18 +105,8 @@ def get_random_gsa(qV: float, T: float, n: int, D: int = 1) -> np.ndarray:
     signal = np.random.random(n)
     return x * ((-1) * (signal < 0.5) + (signal > 0.5))
 
-
-
 def plot_for_param(axl, axr, qV: float, T: float, D: int, n: int, minv: float = -5, maxv: float = 5):
     my_gsa = get_random_gsa(qV, T, n, D)
-    
-    #my_gsa_start = my_gsa > minv
-    #my_gsa = my_gsa[my_gsa_start]
-    #
-    #my_gsa_end = my_gsa < maxv
-    #my_gsa = my_gsa[my_gsa_end]
-    #
-    #end, start = max(my_gsa), min(my_gsa)
     
     x = np.linspace(minv, maxv, n)
     
@@ -120,23 +129,41 @@ def plot_for_param(axl, axr, qV: float, T: float, D: int, n: int, minv: float = 
     axr.set_yticks([])
 
 
-n = 1000000
+def main():
+    n = 100000
+    
+    T0 = 0.1
+    dT = 0.5
+    
+    qV = 2.5
+    D = 1
+    
+    FixPlot(16, 16)
+    rows = 5
+    fig, ax = plt.subplots(ncols=2, nrows=rows)
+    
+    for row in range(rows):
+        plot_for_param(ax[row][0], ax[row][1], qV, T0 + row * dT, D, n)
+    
+    
+    fig.savefig("fig_test.png", facecolor="white", bbox_inches="tight", dpi=275)
 
-T0 = 0.1
-dT = 0.5
-
-qV = 2.5
-D = 1
-
-FixPlot(16, 16)
-rows = 5
-fig, ax = plt.subplots(ncols=2, nrows=rows)
-
-for row in range(rows):
-    plot_for_param(ax[row][0], ax[row][1], qV, T0 + row * dT, D, n)
+def main2():
+    n = 100000
+    x = np.zeros(n)
+    for i in range(n):
+        x[i] = ratio_method()
+        
+    print(x)
+    fig, ax = plt.subplots()
+    ax.hist(x)
+    plt.show()
 
 
-fig.savefig("fig_test.png", facecolor="white", bbox_inches="tight", dpi=275)
+
+if __name__ == "__main__":
+    main()
+
 
 #x = np.linspace(1, 2, n)
 #plt.plot(x, log(tgamma(x)))
