@@ -178,7 +178,7 @@ int main(void) {
                                           "return v3d_c(0.0, 0.0, real);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
-    integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
+    //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
 
     srand(time(NULL));
 
