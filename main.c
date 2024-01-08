@@ -67,9 +67,9 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     }
 
     gsa_context_read_minimun_grid(&ctx);
+    grid_release_from_gpu(g);
     gsa_context_clear(&ctx);
     grid_renderer_close(&gr);
-    grid_release_from_gpu(g);
     window_close(window);
 }
 
@@ -137,12 +137,10 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
         }
     }
     integrate_context_read_grid(&ctx);
-
+    grid_release_from_gpu(g);
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
-    grid_release_from_gpu(g);
     window_close(window);
-
 }
 
 //@TODO: Change openclwrapper to print file and location correctly
