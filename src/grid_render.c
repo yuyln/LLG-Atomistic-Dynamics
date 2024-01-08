@@ -96,7 +96,6 @@ void grid_renderer_energy(grid_renderer *gr, double time) {
 
     global = gr->width * gr->height;
     local = clw_gcd(global, 32);
-
     clw_set_kernel_arg(gr->gpu->kernels[gr->energy_id], 3, sizeof(double), &min_energy);
     clw_set_kernel_arg(gr->gpu->kernels[gr->energy_id], 4, sizeof(double), &max_energy);
 

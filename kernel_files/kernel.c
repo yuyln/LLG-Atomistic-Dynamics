@@ -2,113 +2,6 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
-double nsrandom(tyche_i_state *state, double start, double end) {
-    return tyche_i_double((*state)) * (end - start) + start;
-}
-
-char4 linear_mapping(double t, double3 start, double3 middle, double3 end) {
-    double3 color;
-    if (t < 0.5) {
-        color = (middle - start) * 2.0 * t + start;
-    } else {
-        color = (end - middle) * (2.0 * t - 1.0) + middle;
-    }
-    //RGBA -> BGRA
-    return (char4){color.z * 255, color.y * 255, color.x * 255, 255};
-}
-
-char4 m_bwr_mapping(v3d m) {
-    double3 start = {0x03 / 255.0, 0x7f / 255.0, 0xff / 255.0};
-    double3 middle = {1, 1, 1};
-    double3 end = {0xf4 / 255.0, 0x05 / 255.0, 0x01 / 255.0};
-
-    //m = v3d_normalize(m);
-    double mz = m.z;
-
-    return linear_mapping(0.5 * mz + 0.5, start, middle, end);
-}
-
-double _v(double m1, double m2, double hue) {
-    //hue = hue % 1.0;
-    int hue_i = floor(hue);
-    hue = hue - hue_i;
-    if (hue < (1.0 / 6.0))
-        return m1 + (m2 - m1) * hue * 6.0;
-    if (hue < 0.5)
-        return m2;
-    if (hue < (2.0 / 3.0))
-        return m1 + (m2 - m1) * (2.0 / 3.0 - hue) * 6.0;
-    return m1;
-}
-
-char4 hsl_to_rgb(double h, double s, double l) {
-    if (CLOSE_ENOUGH(s, 0.0, EPS))
-        return (char4){255 * l, 255 * l, 255 * l, 255};
-    double m2;
-    if (l <= 0.5)
-        m2 = l * (1.0 + s);
-    else
-        m2 = l + s - l * s;
-    double m1 = 2.0 * l - m2;
-    char4 ret = (char4){_v(m1, m2, h + 1.0 / 3.0) * 255, _v(m1, m2, h) * 255, _v(m1, m2, h - 1.0 / 3.0) * 255, 255};
-    //RGBA -> BGRA
-    return (char4){ret.z, ret.y, ret.x, ret.w};
-}
-
-char4 m_to_hsl(v3d m) {
-    //m = v3d_normalize(m);
-    double angle = atan2(m.y, m.x) / M_PI;
-    angle = (angle + 1.0) / 2.0;
-    double l = (m.z + 1.0) / 2.0;
-    double s = 1.0;
-    return hsl_to_rgb(angle, s, l);
-}
-
-//@TODO Proper normal
-double normal_distribution_box_muller(tyche_i_state *state) {
-    double u1 = nsrandom(state, 0, 1);
-    double u2 = nsrandom(state, 0, 1);
-    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-}
-
-double normal_distribution(tyche_i_state *state) {
-    for (;;) {
-        double U = nsrandom(state, 0, 1);
-        double V = nsrandom(state, 0, 1);
-        double X = sqrt(8.0 / M_E) * (V - 0.5) / U;
-        double X2 = X * X;
-        if (X2 <= (5.0 - 4.0 * exp(0.25) * U))
-            return X;
-        else if (X2 >= (4.0 * exp(-1.35) / U + 1.4))
-            continue;
-        else if (X2 <= (-4.0 * log(U)))
-            return X;
-    }
-}
-
-//Assume D=1
-double get_random_gsa_(tyche_i_state *state, double qV, double T, double gamma) {
-    double dx = nsrandom(state, -10, 10);
-    double c = sqrt((qV - 1.0) / M_PI) * gamma * pow(T, -1.0 / (3.0 - qV));
-    double l = pow(1.0 + (qV - 1) * dx * dx / pow(T, 2.0 / (3.0 - qV)), 1.0 / (qV - 1.0));
-    return c * dx / l;
-}
-
-double get_random_gsa(tyche_i_state *state, double qV, double T, double gamma_) {
-    double f1 = exp(log(T) / (qV - 1.0));
-    double f2 = exp((4.0 - qV) * log(qV - 1.0));
-    double f3 = exp((2.0 - qV) * log(2.0) / (qV - 1.0));
-    double f4 = sqrt(M_PI) * f1 * f2 / (f3 * (3.0 - qV));
-    double f5 = 1.0 / (qV - 1.0) - 0.5;
-    double f6 = M_PI * (1.0 - f5) / sin(M_PI * (1.0 - f5)) / tgamma(2.0 - f5);
-    double sigmax = exp(-(qV - 1.0) * log(f6 / f4) / (3.0 - qV));
-    double x = sigmax * normal_distribution(state);
-    double y = normal_distribution(state);
-    double den = exp((qV - 1.0) * log(fabs(y)) / (3.0 - qV));
-    return x / den;
-}
-
-
 kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
@@ -170,7 +63,7 @@ kernel void exchange_grid(GLOBAL v3d *to, GLOBAL v3d *from) {
 }
 
 kernel void render_grid_bwr(GLOBAL v3d *v, grid_info gi,
-                        GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+                            GLOBAL RGBA32* rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -189,7 +82,7 @@ kernel void render_grid_bwr(GLOBAL v3d *v, grid_info gi,
 }
 
 kernel void render_grid_hsl(GLOBAL v3d *v, grid_info gi,
-                        GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+                            GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -225,7 +118,7 @@ kernel void calculate_charge_to_render(GLOBAL v3d *v, grid_info gi, GLOBAL doubl
 }
 
 kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int cols, double charge_min, double charge_max,
-                                      GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+                          GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -238,9 +131,9 @@ kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int 
     if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
         return;
 
-    double3 start = {0, 0, 0};
-    double3 middle = {0.5, 0.5, 0.5};
-    double3 end = {1, 1, 1};
+    v3d start = v3d_c(0, 0, 0);
+    v3d middle = v3d_c(0.5, 0.5, 0.5);
+    v3d end = v3d_c(1, 1, 1);
 
     double charge = input[vrow * cols + vcol];
     charge = (charge - charge_min) / (charge_max - charge_min);
@@ -268,7 +161,7 @@ kernel void calculate_energy(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_inf
 }
 
 kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int cols, double energy_min, double energy_max,
-                                 GLOBAL char4 *rgba, unsigned int width, unsigned int height) {
+                                 GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
     int icol = id % width;
     int irow = (id - icol) / width;
@@ -281,9 +174,9 @@ kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int co
     if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
         return;
 
-    double3 start = {0, 0, 0};
-    double3 middle = {0.5, 0.5, 0.5};
-    double3 end = {1, 1, 1};
+    v3d start = v3d_c(0, 0, 0);
+    v3d middle = v3d_c(0.5, 0.5, 0.5);
+    v3d end = v3d_c(1, 1, 1);
 
     double energy = ene[vrow * cols + vcol];
     energy = (energy - energy_min) / (energy_max - energy_min);

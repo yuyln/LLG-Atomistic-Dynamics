@@ -2,12 +2,8 @@
 #define __RENDER_H
 #include <stdint.h>
 #include <stdbool.h>
+#include "colors.h"
 
-typedef union {
-    struct { uint8_t b, g, r, a; };
-    //cl_char4 cl_rgba;
-    uint32_t bgra;
-} RGBA32;
 
 typedef struct render_window render_window;
 

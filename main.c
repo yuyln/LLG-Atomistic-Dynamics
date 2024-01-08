@@ -87,7 +87,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
     int frames = 0;
-    const int steps = 1;
+    const int steps = 100;
 
     while(!window_should_close(window)) {
         switch (state) {
@@ -171,11 +171,11 @@ int main(void) {
                                              "ret.stt.polarization = -1.0;\n"\
                                              "ret.stt.beta = 0.0;\n"\
                                              "return ret;");
-    string_view field_func = sv_from_cstr("double normalized = 0.8;\n"\
+    string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "//double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
-                                          "return v3d_c(0.0, real, 0.0);");
+                                          "return v3d_c(0.0, 0.0, real);");
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
     //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
@@ -183,7 +183,7 @@ int main(void) {
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, sv_from_cstr(""), compile);
-    run_gsa(&g, &gpu);
+    //run_gsa(&g, &gpu);
     run_integration(&g, &gpu, dt);
 
     grid_free(&g);
