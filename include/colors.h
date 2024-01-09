@@ -17,9 +17,6 @@ typedef union {
 } RGBA32;
 
 RGBA32 linear_mapping(double t, v3d start, v3d middle, v3d end);
-RGBA32 m_bwr_mapping(v3d m);
-double _v(double m1, double m2, double hue);
 RGBA32 hsl_to_rgb(double h, double s, double l);
-RGBA32 m_to_hsl(v3d m);
 
 #endif

@@ -4,10 +4,8 @@ RGBA32 linear_mapping(double t, v3d start, v3d middle, v3d end) {
     v3d color;
     if (t < 0.5) {
         color = v3d_sum(v3d_scalar(v3d_sub(middle, start), 2.0 * t), start);
-        //color = (middle - start) * 2.0 * t + start;
     } else {
         color = v3d_sum(v3d_scalar(v3d_sub(end, middle), 2.0 * t - 1.0), middle);
-        //color = (end - middle) * (2.0 * t - 1.0) + middle;
     }
     //RGBA -> BGRA
     return (RGBA32){.x = color.z * 255, .y = color.y * 255, .z = color.x * 255, .w = 255};

@@ -200,3 +200,42 @@ kernel void thermal_step_gsa(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL 
 
     v1[i] = v1l;
 }
+
+//0 -> before
+//1 -> current
+//2 -> new
+kernel void gradient_descent_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, GLOBAL v3d *v2, grid_info gi,
+                                  double mass, double T, double damping, double restoring, double dt, int seed) {
+    size_t id = get_global_id(0);
+    int col = id % gi.cols;
+    int row = (id - col) / gi.cols;
+    if (col >= gi.cols || row >= gi.rows)
+        return;
+
+    parameters param1 = (parameters){0};
+    param1.time = 0.0;
+    param1.m = v1[id];
+    param1.gs = gs[id];
+    param1.neigh.up = apply_pbc(v1, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    param1.neigh.down = apply_pbc(v1, gi.pbc, row - 1, col, gi.rows, gi.cols);
+    param1.neigh.right = apply_pbc(v1, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    param1.neigh.left = apply_pbc(v1, gi.pbc, row, col - 1, gi.rows, gi.cols);
+
+    v3d v0l = v0[id];
+
+    v3d dh_dm = effective_field(param1);
+    v3d velocity = v3d_scalar(v3d_sub(param1.m, v0l), 1.0 / dt);
+    v3d accel = v3d_scalar(param1.m, -restoring);
+    accel = v3d_sum(accel, v3d_scalar(velocity, -damping));
+    accel = v3d_sum(accel, dh_dm);
+    if (!CLOSE_ENOUGH(T, 0.0, EPS)) {
+        tyche_i_state state;
+        tyche_i_seed(&state, seed + id);
+        v3d temp = v3d_c(sqrt(T) * normal_distribution(&state),
+                         sqrt(T) * normal_distribution(&state),
+                         sqrt(T) * normal_distribution(&state));
+        accel = v3d_sum(accel, temp);
+    }
+    accel = v3d_scalar(accel, 1.0 / mass);
+    v2[id] = v3d_normalize(v3d_sum(v3d_scalar(param1.m, 2.0), v3d_sub(v3d_scalar(accel, dt * dt), v0l)));
+}

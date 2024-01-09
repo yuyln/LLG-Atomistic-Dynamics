@@ -8,6 +8,7 @@
 #include "integrate.h"
 #include "openclwrapper.h"
 #include "profiler.h"
+#include "gradient_descent.h"
 #include "render.h"
 #include "string_view.h"
 #include "v3d.h"
