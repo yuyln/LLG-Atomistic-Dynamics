@@ -149,7 +149,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     render_window *window = window_init(800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu, window);
-    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.99999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -205,7 +205,6 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
             stopwatch_print = -1.0;
             frames = 0;
         }
-        //usleep(1.0e6 / 144.0);
     }
     gradient_descente_read_mininum_grid(&ctx);
     grid_release_from_gpu(g);
@@ -225,34 +224,36 @@ int main(void) {
 
     grid g = grid_init(rows, cols);
 
-    grid_set_dm(&g, 1.0 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
-    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    grid_set_dm(&g, 1.00 * QE * 1.0e-3, 0.0, R_ij);
+    grid_set_anisotropy(&g, (anisotropy){.ani = 0.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     v3d_fill_with_random(g.m, rows, cols);
 
     string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
-                                             "ret.type = CUR_STT;\n"\
+                                             "return ret;\n"\
+                                             "ret.type = CUR_SHE;\n"\
                                              "time -= 0.1 * NS;\n"\
-                                             "double j_ac = 5.0e10 * (time > 0);\n"\
-                                             "double j_dc = 1.0e10 * (time > 0);\n"\
-                                             "double omega = 319145920.365;\n"\
-                                             "ret.stt.j = v3d_c(j_dc, j_ac * sin(omega * time), 0.0);\n"\
-                                             "ret.stt.polarization = -1.0;\n"\
-                                             "ret.stt.beta = 0.0;\n"\
+                                             "ret.she.p = v3d_c(0.0, 1.0e10, 0.0);\n"\
+                                             "ret.she.thickness = gs.lattice;\n"\
+                                             "ret.she.beta = 0.0;\n"\
+                                             "ret.she.theta_sh = 1.0;\n"\
                                              "return ret;");
     string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "//double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
+
+    string_view temperature_func = sv_from_cstr("return 0.0 / (time / NS + EPS);");
+
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
     //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
 
     srand(time(NULL));
 
-    gpu_cl gpu = gpu_cl_init(current_func, field_func, sv_from_cstr(""), compile);
+    gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
     //run_gsa(&g, &gpu);
-    run_gradient_descent(&g, &gpu, 1.0e-1);
+    //run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 
     grid_free(&g);

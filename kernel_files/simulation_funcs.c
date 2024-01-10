@@ -136,8 +136,14 @@ v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
     return ret;
 }
 
-v3d dm_dt(parameters param) {
+v3d dm_dt(parameters param, double dt) {
     v3d H_eff = effective_field(param);
+    double T = generate_temperature(param.gs, param.time);
+    if (!CLOSE_ENOUGH(T, 0, EPS)) {
+        H_eff = v3d_sum(H_eff, v3d_scalar(v3d_c(normal_distribution(param.state), normal_distribution(param.state), normal_distribution(param.state)),
+                    sqrt(2.0 * param.gs.alpha * KB * T / (param.gs.gamma * param.gs.mu * dt))));
+    }
+
     v3d v = v3d_scalar(v3d_cross(param.m, H_eff), -param.gs.gamma);
     current cur = generate_current(param.gs, param.time);
     switch (cur.type) {
@@ -170,7 +176,7 @@ v3d dm_dt(parameters param) {
         break;
     }
 
-    return v3d_scalar(v3d_sum(v, v3d_scalar(v3d_cross(param.m, v), param.gs.alpha)), 1.0 / (1.0 + param.gs.alpha * param.gs.alpha));
+    return v3d_scalar(v3d_sum(v, v3d_scalar(v3d_cross(param.m, v), param.gs.alpha)), 1.0 / (1.0 + param.gs.alpha * param.gs.alpha) * dt);
 }
 
 //@TODO: implement RK2 and euler
@@ -178,21 +184,21 @@ v3d step(parameters param, double dt) {
     v3d rk1, rk2, rk3, rk4;
     v3d c_ori = param.m;
     double time_ori = param.time;
-    rk1 = dm_dt(param);
+    rk1 = dm_dt(param, dt);
 
-    param.m = v3d_sum(c_ori, v3d_scalar(rk1, dt / 2.0));
+    param.m = v3d_sum(c_ori, v3d_scalar(rk1, 1.0 / 2.0));
     param.time = time_ori + dt / 2.0;
-    rk2 = dm_dt(param);
+    rk2 = dm_dt(param, dt / 2.0);
 
-    param.m = v3d_sum(c_ori, v3d_scalar(rk2, dt / 2.0));
+    param.m = v3d_sum(c_ori, v3d_scalar(rk2, 1.0 / 2.0));
     param.time = time_ori + dt / 2.0;
-    rk3 = dm_dt(param);
+    rk3 = dm_dt(param, dt / 2.0);
 
-    param.m = v3d_sum(c_ori, v3d_scalar(rk3, dt));
+    param.m = v3d_sum(c_ori, v3d_scalar(rk3, 1.0));
     param.time = time_ori + dt;
-    rk4 = dm_dt(param);
+    rk4 = dm_dt(param, dt);
 
-    return v3d_scalar(v3d_sum(v3d_sum(rk1, v3d_scalar(rk2, 2.0)), v3d_sum(v3d_scalar(rk3, 2.0), rk4)), dt / 6.0);
+    return v3d_scalar(v3d_sum(v3d_sum(rk1, v3d_scalar(rk2, 2.0)), v3d_sum(v3d_scalar(rk3, 2.0), rk4)), 1.0 / 6.0);
 }
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {

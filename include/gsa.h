@@ -11,7 +11,7 @@
                                                   .inner_steps = 100000,\
                                                   .outer_steps = 15,\
                                                   .print_factor = 10,\
-                                                  .field_function = (string_view){0},\
+                                                  .field_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
                                                   .compile_augment = (string_view){0},\
                                                   __VA_ARGS__})
 
@@ -22,7 +22,7 @@
                                                                                        .inner_steps = 100000,\
                                                                                        .outer_steps = 15,\
                                                                                        .print_factor = 10,\
-                                                                                       .field_function = (string_view){0},\
+                                                                                       .field_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
                                                                                        .compile_augment = (string_view){0},\
                                                                                        __VA_ARGS__})
 

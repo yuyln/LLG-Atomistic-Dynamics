@@ -33,12 +33,12 @@ void integrate_context_close(integrate_context *ctx) {
 }
 
 void integrate_vars(grid *g, integration_params param) {
-    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.output_path,  param.compile_augment);
+    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.temperature_generation_function, param.output_path,  param.compile_augment);
 }
 
-void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view dir_out, string_view compile_augment) {
+void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view func_temperature, string_view dir_out, string_view compile_augment) {
 
-    gpu_cl gpu = gpu_cl_init(func_current, func_field, sv_from_cstr(""), compile_augment);
+    gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, sv_from_cstr(""), compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
     uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");

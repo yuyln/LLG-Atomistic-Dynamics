@@ -4,6 +4,8 @@
 #include "constants.h"
 #include "v3d.h"
 #include "grid_types.h"
+#include "random.h"
+#include "tyche_i.c"
 
 //@TODO: Test optimization without parameters struct
 typedef struct {
@@ -11,12 +13,14 @@ typedef struct {
     v3d m;
     neighbors_set neigh;
     double time;
+    PRIVATE tyche_i_state *state;
 } parameters;
 
 v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols);
 v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym);
 v3d generate_magnetic_field(grid_site_param gs, double time);
 current generate_current(grid_site_param gs, double time);
+double generate_temperature(grid_site_param gs, double time);
 
 double exchange_energy(parameters param);
 double dm_energy(parameters param);
@@ -26,7 +30,7 @@ double field_energy(parameters param);
 double energy(parameters param);
 
 v3d effective_field(parameters param);
-v3d dm_dt(parameters param);
+v3d dm_dt(parameters param, double dt);
 v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
 v3d step(parameters param, double dt);
 

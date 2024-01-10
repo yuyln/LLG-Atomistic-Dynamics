@@ -35,7 +35,7 @@ static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view c
     clw_print_cl_error(stderr, err_building, "[ FATAL ] Could not build the program");
 }
 
-gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view /*temperature_function*/ kernel_augment, string_view compile_augment) {
+gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
     gpu_cl ret = {0};
     ret.platforms = clw_init_platforms(&ret.n_platforms);
     p_id = p_id % ret.n_platforms;
@@ -63,7 +63,7 @@ gpu_cl gpu_cl_init(string_view current_function, string_view field_function, str
 #endif
 
     const char cmp[] = "-DOPENCL_COMPILATION";
-    string kernel = fill_functions_on_kernel(current_function, field_function, kernel_augment);
+    string kernel = fill_functions_on_kernel(current_function, field_function, temperature_function, kernel_augment);
     string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
     gpu_cl_compile_source(&ret, sv_from_cstr(string_as_cstr(&kernel)), sv_from_cstr(string_as_cstr(&compile)));
     string_free(&kernel);

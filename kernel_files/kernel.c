@@ -19,6 +19,11 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     param.neigh.up = apply_pbc(input, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
+    tyche_i_state state;
+    int seed = *((int*)(&time));
+    seed = seed << 16;
+    tyche_i_seed(&state, seed + id);
+    param.state = &state;
 
     out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
 }
