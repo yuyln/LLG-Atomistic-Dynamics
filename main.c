@@ -149,7 +149,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     render_window *window = window_init(800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu, window);
-    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.99999);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -243,7 +243,7 @@ int main(void) {
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
 
-    string_view temperature_func = sv_from_cstr("return 0.0 / (time / NS + EPS);");
+    string_view temperature_func = sv_from_cstr("return 1.0 / (time / NS + EPS);");
 
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 

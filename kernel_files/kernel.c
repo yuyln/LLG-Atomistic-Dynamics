@@ -11,7 +11,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
         return;
     }
 
-    parameters param;
+    parameters param = (parameters){0};
     param.gs = gs[id];
     param.m = apply_pbc(input, gi.pbc, row, col, gi.rows, gi.cols);
     param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, gi.rows, gi.cols);
@@ -19,13 +19,11 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     param.neigh.up = apply_pbc(input, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
-    if (!CLOSE_ENOUGH(generate_temperature(param.gs, time), 0, EPS)) {
-        tyche_i_state state;
-        int seed = *((int*)(&time));
-        seed = seed << 16;
-        tyche_i_seed(&state, seed + id);
-        param.state = &state;
-    }
+    tyche_i_state state;
+    int seed = *((int*)(&time));
+    seed = seed << 16;
+    tyche_i_seed(&state, seed + id);
+    param.state = &state;
 
     out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
 }

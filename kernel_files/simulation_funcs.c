@@ -138,10 +138,10 @@ v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
 
 v3d dm_dt(parameters param, double dt) {
     v3d H_eff = effective_field(param);
-    double T = generate_temperature(param.gs, param.time);
-    if (!CLOSE_ENOUGH(T, 0, EPS)) {
+    double temperature = generate_temperature(param.gs, param.time);
+    if (!CLOSE_ENOUGH(temperature, 0.0, EPS)) {
         H_eff = v3d_sum(H_eff, v3d_scalar(v3d_c(normal_distribution(param.state), normal_distribution(param.state), normal_distribution(param.state)),
-                    sqrt(2.0 * param.gs.alpha * KB * T / (param.gs.gamma * param.gs.mu * dt))));
+                    sqrt(2.0 * param.gs.alpha * KB * temperature / (param.gs.gamma * param.gs.mu * dt))));
     }
 
     v3d v = v3d_scalar(v3d_cross(param.m, H_eff), -param.gs.gamma);
