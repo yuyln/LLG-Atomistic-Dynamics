@@ -11,7 +11,7 @@ typedef struct {
     bool key_pressed[256];
 } window_input;
 
-render_window *window_init(unsigned int width, unsigned int height);
+render_window *window_init(const char *name, unsigned int width, unsigned int height);
 bool window_should_close(render_window *window);
 void window_poll(render_window *window);
 void window_close(render_window *window);

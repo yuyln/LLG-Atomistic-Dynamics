@@ -6,7 +6,7 @@
 
 void run_gsa(grid *g, gpu_cl *gpu) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init(800 * ratio, 800);
+    render_window *window = window_init("GSA", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu, window);
     gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 500.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
@@ -66,9 +66,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
             frames = 0;
         }
     }
-
     gsa_context_read_minimun_grid(&ctx);
-    grid_release_from_gpu(g);
     gsa_context_clear(&ctx);
     grid_renderer_close(&gr);
     window_close(window);
@@ -76,7 +74,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
 
 void run_integration(grid *g, gpu_cl *gpu, double dt) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init(800 * ratio, 800);
+    render_window *window = window_init("Integration", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu, window);
     integrate_context ctx = integrate_context_init(g, gpu, dt);
@@ -137,8 +135,6 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
             frames = 0;
         }
     }
-    integrate_context_read_grid(&ctx);
-    grid_release_from_gpu(g);
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
     window_close(window);
@@ -146,7 +142,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
 
 void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init(800 * ratio, 800);
+    render_window *window = window_init("Gradient Descent", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu, window);
     gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
@@ -207,7 +203,6 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
         }
     }
     gradient_descente_read_mininum_grid(&ctx);
-    grid_release_from_gpu(g);
     gradient_descent_clear(&ctx);
     grid_renderer_close(&gr);
     window_close(window);
@@ -243,7 +238,7 @@ int main(void) {
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
 
-    string_view temperature_func = sv_from_cstr("return 1.0 / (time / NS + EPS);");
+    string_view temperature_func = sv_from_cstr("return 0.0 / (time / NS + EPS);");
 
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
@@ -252,8 +247,8 @@ int main(void) {
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
-    //run_gsa(&g, &gpu);
-    //run_gradient_descent(&g, &gpu, 1.0e-1);
+    run_gsa(&g, &gpu);
+    run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 
     grid_free(&g);

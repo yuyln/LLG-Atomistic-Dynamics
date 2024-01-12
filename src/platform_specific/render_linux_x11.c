@@ -26,7 +26,7 @@ struct render_window {
     window_input input;
 };
 
-render_window *window_init(unsigned int width, unsigned int height) {
+render_window *window_init(const char *name, unsigned int width, unsigned int height) {
     render_window ret = {.width = width, .height = height};
     ret.buffer = calloc(width * height, sizeof(*ret.buffer));
 
@@ -44,14 +44,17 @@ render_window *window_init(unsigned int width, unsigned int height) {
         exit(1);
     }
 
-    ret.window = XCreateSimpleWindow(
-            ret.display,
-            XDefaultRootWindow(ret.display),
-            0, 0,
-            width, height,
-            0,
-            0,
-            0);
+    ret.window = XCreateWindow(ret.display, XDefaultRootWindow(ret.display), 0, 0, width, height, 0, CopyFromParent, 
+                       CopyFromParent, CopyFromParent, 0, NULL);
+    XStoreName(ret.display, ret.window, name);
+    XSizeHints max_size_hint = {0};
+    max_size_hint.flags = PMinSize | PMaxSize;
+    max_size_hint.min_width = width;
+    max_size_hint.min_height = height;
+    max_size_hint.max_width = width;
+    max_size_hint.max_height = height;
+    XSetWMNormalHints(ret.display, ret.window, &max_size_hint);
+
 
     ret.back_buffer = XdbeAllocateBackBufferName(ret.display, ret.window, 0);
     printf("[ INFO ] Back_buffer ID: %lu\n", ret.back_buffer);
@@ -81,6 +84,9 @@ render_window *window_init(unsigned int width, unsigned int height) {
 
     render_window *ret_ = calloc(1, sizeof(*ret_));
     memcpy(ret_, &ret, sizeof(*ret_));
+
+    long t = 0;
+    XGetWMNormalHints(ret.display, ret.window, &max_size_hint, &t);
 
     return ret_;
 }
