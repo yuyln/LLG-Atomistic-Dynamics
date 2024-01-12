@@ -34,6 +34,7 @@ LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
         } break;
 
         case WM_DESTROY: {
+            w->should_close = true;
             window_close();
             PostQuitMessage(0);
             //ret = DefWindowProc(window, msg, wparam, lparam);
@@ -45,6 +46,7 @@ LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
 
         case WM_PAINT: {
             PAINTSTRUCT paint;
+            //printf("called\n");
             HDC ctx = BeginPaint(w->window_handle, &paint);
             int x = paint.rcPaint.left;
             int y = paint.rcPaint.top;
@@ -94,20 +96,24 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
 
     w->bitmap_info.bmiHeader.biSize = sizeof(w->bitmap_info.bmiHeader);
     w->bitmap_info.bmiHeader.biWidth = width;
-    w->bitmap_info.bmiHeader.biHeight = height;
+    w->bitmap_info.bmiHeader.biHeight = -height;
     w->bitmap_info.bmiHeader.biPlanes = 1;
     w->bitmap_info.bmiHeader.biBitCount = sizeof(*w->buffer) * 8;
     w->bitmap_info.bmiHeader.biCompression = BI_RGB;
+    w->should_close = false;
 }
 
 bool window_should_close(void) {
-    return GetMessage(&w->msg, 0, 0, 0) <= 0;
+    return w->should_close;
 }
 
 void window_poll(void) {
     memset(w->input.key_pressed, 0, sizeof(w->input.key_pressed));
-    TranslateMessage(&w->msg);
-    DispatchMessage(&w->msg);
+
+    if (PeekMessageA(&w->msg, 0, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&w->msg);
+        DispatchMessage(&w->msg);
+    }
 }
 
 bool window_key_pressed(char c) {

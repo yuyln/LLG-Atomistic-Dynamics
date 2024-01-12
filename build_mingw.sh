@@ -1,6 +1,6 @@
 #!/bin/sh
 set -xe
-CFLAGS="-L./OpenCL/lib -I./OpenCL/include -DnPROFILING -Wall -Wextra -pedantic -O3 -ggdb -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS -Wno-overlength-strings -Wno-override-init"
+CFLAGS="-L./OpenCL/lib -I./OpenCL/include -DnPROFILING -Wall -Wextra -pedantic -O0 -ggdb -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS -Wno-overlength-strings -Wno-override-init"
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_windows.c"
 CC="x86_64-w64-mingw32-gcc"
 LIBS="-lm -lOpenCL -lkernel32 -luser32 -lgdi32"
@@ -18,4 +18,4 @@ ar cr libatomistic.a $FILES_OBJ
 
 rm *.o
 
-$CC -L./ $CFLAGS main.c -o main -latomistic $LIBS
+$CC -L./ $CFLAGS main_windows.c -o main -latomistic $LIBS

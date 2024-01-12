@@ -55,15 +55,15 @@ int main(int argc, const char **argv) {
     }
 
     FILE *f = fopen("./src/complete_kernel.c", "wb");
-    fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = \"");
+    fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = ");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));
         char *ptr = data;
         while (*ptr)
-            fprintf(f, "\\x%x", *ptr++);
+            fprintf(f, " \"\\x%02x\" ", *ptr++);
         free(data);
     }
-    fprintf(f, "\";");
+    fprintf(f, ";");
     fclose(f);
 
     return 0;
