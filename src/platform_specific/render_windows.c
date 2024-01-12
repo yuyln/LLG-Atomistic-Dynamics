@@ -5,112 +5,137 @@
 #include "render.h"
 
 struct render_window {
-    HWND handle;
     unsigned int width;
     unsigned int height;
     RGBA32 *buffer;
     bool should_close;
-
     window_input input;
+
+    HMODULE instance;
+    ATOM registered_class;
+    HWND window_handle;
+    MSG msg;
+
+    BITMAPINFO bitmap_info;
 };
 
+static render_window w[1] = {0};
 
-
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-    LPSTR lpCmdLine, int nCmdShow)
-{
+static void window_close(void) {
+    free(w->buffer);
 }
 
-render_window *window_init(unsigned int width, unsigned int height) {
-    const char g_szClassName[] = "myWindowClass";
-    render_window *ret = calloc(sizeof(render_window), 1);
+LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+    LRESULT ret = 0;
+    switch(msg) {
+        case WM_CLOSE: {
+            DestroyWindow(w->window_handle);
+            //ret = DefWindowProc(window, msg, wparam, lparam);
+        } break;
 
-    WNDCLASSEX wc;
-    HWND hwnd;
+        case WM_DESTROY: {
+            window_close();
+            PostQuitMessage(0);
+            //ret = DefWindowProc(window, msg, wparam, lparam);
+        } break;
 
-    //Step 1: Registering the Window Class
-    wc.cbSize        = sizeof(WNDCLASSEX);
-    wc.style         = 0;
-    wc.lpfnWndProc   = 0;
-    wc.cbClsExtra    = 0;
-    wc.cbWndExtra    = 0;
-    wc.hInstance     = 0;
-    wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-    wc.lpszMenuName  = NULL;
-    wc.lpszClassName = g_szClassName;
-    wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+        case WM_ACTIVATEAPP: {
+            //printf("Hehe\n");
+        } break;
 
-    if(!RegisterClassEx(&wc))
-    {
-        MessageBox(NULL, "Window Registration Failed!", "Error!",
-            MB_ICONEXCLAMATION | MB_OK);
-        return 0;
+        case WM_PAINT: {
+            PAINTSTRUCT paint;
+            HDC ctx = BeginPaint(w->window_handle, &paint);
+            int x = paint.rcPaint.left;
+            int y = paint.rcPaint.top;
+            int width = paint.rcPaint.right - paint.rcPaint.left;
+            int height = paint.rcPaint.bottom - paint.rcPaint.top;
+
+            StretchDIBits(ctx, x, y, width, height, 0, 0, w->width, w->height, w->buffer, &w->bitmap_info, DIB_RGB_COLORS, SRCCOPY);
+
+            EndPaint(w->window_handle, &paint);
+        } break;
+
+        case WM_SIZE: {
+            ret = DefWindowProc(window, msg, wparam, lparam);
+        } break;
+
+        case WM_CHAR: {
+            w->input.key_pressed[wparam] = true;
+        } break;
+
+        default: {
+            ret = DefWindowProc(window, msg, wparam, lparam);
+        } break;
     }
-
-    // Step 2: Creating the Window
-    ret->handle = CreateWindowEx(
-        WS_EX_CLIENTEDGE,
-        g_szClassName,
-        "The title of my window",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, width, height,
-        NULL, NULL, 0, NULL);
-
-    if (!ret->handle) {
-        char buffer[1025] = {0};
-        DWORD error = GetLastError();
-        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-                      NULL,
-                      error, 
-                      0,
-                      buffer,
-                      sizeof(buffer),
-                      NULL);
-        fprintf(stderr, "Could not create window %s\n", buffer);
-        exit(1);
-    }
-
-    ret->width = width;
-    ret->height = height;
-    ret->buffer = calloc(width * height, sizeof(RGBA32));
-    ret->should_close = false;
     return ret;
 }
 
-bool window_should_close(render_window *window) {
 
+void window_init(const char *name, unsigned int width, unsigned int height) {
+    w->width = width;
+    w->height = height;
+    w->buffer = calloc(width * height, sizeof(*w->buffer));
+
+    w->instance = GetModuleHandle(NULL);
+
+    WNDCLASS class = {0};
+    class.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+    class.lpfnWndProc = windows_call_back;
+    class.hInstance = w->instance;
+    class.hCursor = LoadCursor(0, MAKEINTRESOURCE(32512));
+
+    //HICON     hIcon;
+    //LPCSTR    lpszMenuName;
+    //
+    class.lpszClassName = name;
+    w->registered_class = RegisterClassA(&class);
+    w->window_handle = CreateWindowA(class.lpszClassName, name, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, w->instance, 0);
+
+    w->bitmap_info.bmiHeader.biSize = sizeof(w->bitmap_info.bmiHeader);
+    w->bitmap_info.bmiHeader.biWidth = width;
+    w->bitmap_info.bmiHeader.biHeight = height;
+    w->bitmap_info.bmiHeader.biPlanes = 1;
+    w->bitmap_info.bmiHeader.biBitCount = sizeof(*w->buffer) * 8;
+    w->bitmap_info.bmiHeader.biCompression = BI_RGB;
 }
 
-void window_poll(render_window *window) {
-
+bool window_should_close(void) {
+    return GetMessage(&w->msg, 0, 0, 0) <= 0;
 }
 
-void window_close(render_window *window) {
-
+void window_poll(void) {
+    memset(w->input.key_pressed, 0, sizeof(w->input.key_pressed));
+    TranslateMessage(&w->msg);
+    DispatchMessage(&w->msg);
 }
 
-bool window_key_pressed(render_window *window, char c) {
-
+bool window_key_pressed(char c) {
+    return w->input.key_pressed[(int)c];
 }
 
-void window_render(render_window *window) {
-
+void window_render(void) {
+    InvalidateRect(w->window_handle, NULL, FALSE);
+    UpdateWindow(w->window_handle);
 }
 
-void window_draw_from_bytes(render_window *window, RGBA32 *bytes, int x, int y, int width, int height) {
+void window_draw_from_bytes(RGBA32 *bytes, int x0, int y0, int width, int height) {
+    int b_w = width;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 >= (int)w->width) x0 = w->width - 1;
+    if (y0 >= (int)w->height) y0 = w->height - 1;
+    if (x0 + width >= (int)w->width) width = w->width - x0;
+    if (y0 + height >= (int)w->height) height = w->height - y0;
 
+    for (int y = y0; y < y0 + height; ++y)
+        memmove(&w->buffer[y * w->width + x0], &bytes[(y - y0) * b_w], width * sizeof(*bytes));
 }
 
-int window_width(render_window *window) {
-
+int window_width(void) {
+    return w->width;
 }
 
-int window_height(render_window *window) {
-
-}
-
-void window_resize(render_window *window) {
-
+int window_height(void) {
+    return w->height;
 }

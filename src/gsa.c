@@ -61,7 +61,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.exp1 = 2.0 / (3.0 - qV);
     ret.exp2 = 1.0 / ret.qV1 - 0.5;
     ret.Tqt = T0 * (pow(2.0, ret.qT1) - 1.0);
-    ret.gamma = gamma(1.0 / (qV - 1.0)) / gamma(1.0 / (qV - 1.0) - 1.0 / 2.0);
+    ret.gamma = tgamma(1.0 / (qV - 1.0)) / tgamma(1.0 / (qV - 1.0) - 1.0 / 2.0);
 
     gpu_fill_kernel_args(gpu, ret.thermal_id, 0, 7, &g->gp_buffer, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.parameters.qV, sizeof(double), &ret.gamma, sizeof(double), &ret.T, sizeof(double));
 

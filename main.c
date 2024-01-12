@@ -6,9 +6,9 @@
 
 void run_gsa(grid *g, gpu_cl *gpu) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init("GSA", 800 * ratio, 800);
+    window_init("GSA", 800 * ratio, 800);
 
-    grid_renderer gr = grid_renderer_init(g, gpu, window);
+    grid_renderer gr = grid_renderer_init(g, gpu);
     gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 500.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
 
     struct timespec current_time;
@@ -20,7 +20,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     int frames = 0;
     const int steps = 100;
 
-    while(!window_should_close(window)) {
+    while(!window_should_close()) {
         switch (state) {
             case 'q':
                 grid_renderer_charge(&gr);
@@ -37,13 +37,13 @@ void run_gsa(grid *g, gpu_cl *gpu) {
             default:
                 grid_renderer_hsl(&gr);
         }
-        if (window_key_pressed(window, 'q'))
+        if (window_key_pressed('q'))
             state = 'q';
-        else if (window_key_pressed(window, 'e'))
+        else if (window_key_pressed('e'))
             state = 'e';
-        else if (window_key_pressed(window, 'h'))
+        else if (window_key_pressed('h'))
             state = 'h';
-        else if (window_key_pressed(window, 'b'))
+        else if (window_key_pressed('b'))
             state = 'b';
 
         for (int i = 0; i < steps; ++i) {
@@ -51,8 +51,8 @@ void run_gsa(grid *g, gpu_cl *gpu) {
             gsa_thermal_step(&ctx);
         }
 
-        window_render(window);
-        window_poll(window);
+        window_render();
+        window_poll();
 
         struct timespec new_time;
         clock_gettime(CLOCK_REALTIME, &new_time);
@@ -69,14 +69,14 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     gsa_context_read_minimun_grid(&ctx);
     gsa_context_clear(&ctx);
     grid_renderer_close(&gr);
-    window_close(window);
+    //window_close(window);
 }
 
 void run_integration(grid *g, gpu_cl *gpu, double dt) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init("Integration", 800 * ratio, 800);
+    window_init("Integration", 800 * ratio, 800);
 
-    grid_renderer gr = grid_renderer_init(g, gpu, window);
+    grid_renderer gr = grid_renderer_init(g, gpu);
     integrate_context ctx = integrate_context_init(g, gpu, dt);
 
     struct timespec current_time;
@@ -88,7 +88,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
     int frames = 0;
     const int steps = 100;
 
-    while(!window_should_close(window)) {
+    while(!window_should_close()) {
         switch (state) {
             case 'q':
                 grid_renderer_charge(&gr);
@@ -105,13 +105,13 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
             default:
                 grid_renderer_hsl(&gr);
         }
-        if (window_key_pressed(window, 'q'))
+        if (window_key_pressed('q'))
             state = 'q';
-        else if (window_key_pressed(window, 'e'))
+        else if (window_key_pressed('e'))
             state = 'e';
-        else if (window_key_pressed(window, 'h'))
+        else if (window_key_pressed('h'))
             state = 'h';
-        else if (window_key_pressed(window, 'b'))
+        else if (window_key_pressed('b'))
             state = 'b';
 
         for (int i = 0; i < steps; ++i) {
@@ -120,8 +120,8 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
             ctx.time += dt;
         }
 
-        window_render(window);
-        window_poll(window);
+        window_render();
+        window_poll();
 
         struct timespec new_time;
         clock_gettime(CLOCK_REALTIME, &new_time);
@@ -137,14 +137,14 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
     }
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
-    window_close(window);
+    //window_close(window);
 }
 
 void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     double ratio = (double)g->gi.cols / g->gi.rows;
-    render_window *window = window_init("Gradient Descent", 800 * ratio, 800);
+    window_init("Gradient Descent", 800 * ratio, 800);
 
-    grid_renderer gr = grid_renderer_init(g, gpu, window);
+    grid_renderer gr = grid_renderer_init(g, gpu);
     gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
 
     struct timespec current_time;
@@ -156,7 +156,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     int frames = 0;
     const int steps = 100;
 
-    while(!window_should_close(window)) {
+    while(!window_should_close()) {
         switch (state) {
             case 'q':
                 grid_renderer_charge(&gr);
@@ -173,13 +173,13 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
             default:
                 grid_renderer_hsl(&gr);
         }
-        if (window_key_pressed(window, 'q'))
+        if (window_key_pressed('q'))
             state = 'q';
-        else if (window_key_pressed(window, 'e'))
+        else if (window_key_pressed('e'))
             state = 'e';
-        else if (window_key_pressed(window, 'h'))
+        else if (window_key_pressed('h'))
             state = 'h';
-        else if (window_key_pressed(window, 'b'))
+        else if (window_key_pressed('b'))
             state = 'b';
 
         for (int i = 0; i < steps; ++i) {
@@ -187,8 +187,8 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
             gradient_descent_exchange(&ctx);
         }
 
-        window_render(window);
-        window_poll(window);
+        window_render();
+        window_poll();
 
         struct timespec new_time;
         clock_gettime(CLOCK_REALTIME, &new_time);
@@ -205,7 +205,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     gradient_descente_read_mininum_grid(&ctx);
     gradient_descent_clear(&ctx);
     grid_renderer_close(&gr);
-    window_close(window);
+    //window_close(window);
 }
 
 //@TODO: Change openclwrapper to print file and location correctly
@@ -253,4 +253,23 @@ int main(void) {
 
     grid_free(&g);
     return 0;
+}
+
+#include "render.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main3(void) {
+    window_init("teste", 800, 800);
+    RGBA32 *t = calloc(800 * 800, sizeof(RGBA32));
+    for (int i = 0; i < 800 * 800; ++i)
+        t[i] = (RGBA32){.x=0, .y=0, .z=255, .w=255};
+    while(!window_should_close()) {
+        //printf("sus");
+        window_draw_from_bytes(t, 0, 0, 800, 800);
+
+        window_render();
+        window_poll();
+    }
+    ////window_close();
 }
