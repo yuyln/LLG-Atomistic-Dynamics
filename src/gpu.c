@@ -118,5 +118,6 @@ uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
     clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size), "[ FATAL ] Could not retrieve complete information from profiling \"%s\"", description);
     duration = end - start;
     fprintf(f, "%s Spent %e us\n", description, (double)duration / 1000.0);
+    //clReleaseEvent(ev);
     return duration;
 }

@@ -13,7 +13,7 @@
 #ifdef PROFILING
 #define gpu_profiling(f, ev, description) gpu_profiling_base((f), (ev), (description))
 #else
-#define gpu_profiling(f, ev, description) UNUSED((ev))
+#define gpu_profiling(f, ev, description) UNUSED(ev)
 #endif
 
 extern uint64_t p_id;

@@ -210,6 +210,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper cleaning
+//@TODO: OpenCL events creates memory leaks. Need to work on this
 int main(void) {
     int rows = 32;
     int cols = 32;

@@ -267,5 +267,5 @@ kernel void gradient_descent_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GL
         accel = v3d_sum(accel, temp);
     }
     accel = v3d_scalar(accel, 1.0 / mass);
-    v2[id] = v3d_normalize(v3d_sum(v3d_scalar(param1.m, 2.0), v3d_sub(v3d_scalar(accel, dt * dt), v0l)));
+    v2[id] = param1.gs.pin.pinned? param1.gs.pin.dir: v3d_normalize(v3d_sum(v3d_scalar(param1.m, 2.0), v3d_sub(v3d_scalar(accel, dt * dt), v0l)));
 }
