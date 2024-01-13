@@ -85,7 +85,11 @@ double dipolar_energy(parameters param) {
 }
 
 double energy(parameters param) {
-    return 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param) + 0.5 * dipolar_energy(param);
+    double e = 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param);
+#ifdef INCLUDE_DIPOLAR
+    e += 0.5 * dipolar_energy(param);
+#endif
+    return e;
 }
 
 v3d dipolar_field(parameters param) {

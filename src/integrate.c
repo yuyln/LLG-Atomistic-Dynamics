@@ -96,6 +96,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
             information_packed info_local = {0};
             for (uint64_t i = 0; i < g->gi.rows * g->gi.cols; ++i) {
                 info_local.energy += info[i].energy;
+                info_local.dipolar_energy += info[i].dipolar_energy;
                 info_local.cubic_energy += info[i].cubic_energy;
                 info_local.anisotropy_energy += info[i].anisotropy_energy;
                 info_local.field_energy += info[i].field_energy;

@@ -82,6 +82,7 @@ typedef struct {
     double field_energy;
     double anisotropy_energy;
     double cubic_energy;
+    double dipolar_energy;
     double energy;
 } information_packed;
 
