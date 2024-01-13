@@ -69,7 +69,6 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     gsa_context_read_minimun_grid(&ctx);
     gsa_context_clear(&ctx);
     grid_renderer_close(&gr);
-    //window_close(window);
 }
 
 void run_integration(grid *g, gpu_cl *gpu, double dt) {
@@ -137,7 +136,6 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
     }
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
-    //window_close(window);
 }
 
 void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
@@ -145,7 +143,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     window_init("Gradient Descent", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
-    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.99999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -205,16 +203,16 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     gradient_descente_read_mininum_grid(&ctx);
     gradient_descent_clear(&ctx);
     grid_renderer_close(&gr);
-    //window_close(window);
 }
 
 //@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)
+//@TODO: Proper cleaning
 int main(void) {
-    int rows = 128;
-    int cols = 128;
+    int rows = 32;
+    int cols = 32;
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
 
     grid g = grid_init(rows, cols);
@@ -247,29 +245,10 @@ int main(void) {
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
-    run_gsa(&g, &gpu);
+    //run_gsa(&g, &gpu);
     run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 
     grid_free(&g);
     return 0;
-}
-
-#include "render.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-int main3(void) {
-    window_init("teste", 800, 800);
-    RGBA32 *t = calloc(800 * 800, sizeof(RGBA32));
-    for (int i = 0; i < 800 * 800; ++i)
-        t[i] = (RGBA32){.x=0, .y=0, .z=255, .w=255};
-    while(!window_should_close()) {
-        //printf("sus");
-        window_draw_from_bytes(t, 0, 0, 800, 800);
-
-        window_render();
-        window_poll();
-    }
-    ////window_close();
 }

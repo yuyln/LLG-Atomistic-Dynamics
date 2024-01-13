@@ -12,6 +12,12 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     }
 
     parameters param = (parameters){0};
+    param.rows = gi.rows;
+    param.cols = gi.cols;
+#ifdef INCLUDE_DIPOLAR
+    param.pbc = gi.pbc;
+    param.v = input;
+#endif
     param.gs = gs[id];
     param.m = apply_pbc(input, gi.pbc, row, col, gi.rows, gi.cols);
     param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, gi.rows, gi.cols);
@@ -37,6 +43,12 @@ kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d 
         return;
 
     parameters param;
+#ifdef INCLUDE_DIPOLAR
+    param.pbc = gi.pbc;
+    param.v = m0;
+#endif
+    param.rows = gi.rows;
+    param.cols = gi.cols;
     param.gs = gs[id];
     param.m = m0[id];
     v3d dm = v3d_sub(m1[id], param.m);
@@ -154,6 +166,12 @@ kernel void calculate_energy(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_inf
         return;
 
     parameters param;
+#ifdef INCLUDE_DIPOLAR
+    param.pbc = gi.pbc;
+    param.v = v;
+#endif
+    param.rows = gi.rows;
+    param.cols = gi.cols;
     param.gs = gs[id];
     param.m = v[id];
     param.neigh.left = apply_pbc(v, gi.pbc, row, col - 1, gi.rows, gi.cols);
@@ -218,6 +236,12 @@ kernel void gradient_descent_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GL
         return;
 
     parameters param1 = (parameters){0};
+#ifdef INCLUDE_DIPOLAR
+    param1.pbc = gi.pbc;
+    param1.v = v1;
+#endif
+    param1.rows = gi.rows;
+    param1.cols = gi.cols;
     param1.time = 0.0;
     param1.m = v1[id];
     param1.gs = gs[id];

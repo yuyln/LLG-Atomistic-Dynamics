@@ -31,34 +31,6 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
     return v3d_s(0);
 }
 
-//MOVED TO THE END OF FILE DUE TO WHATEVER
-/*current generate_current(grid_site_param gs, double time) {
-    UNUSED(gs);
-    UNUSED(time);
-    {
-    //%s
-    }
-    current ret = {0};
-    ret.type = CUR_STT;
-    ret.stt.polarization = -1.0;
-    ret.stt.beta = 0.0;
-    ret.stt.j = v3d_scalar(v3d_c(1, 0, 0), 1.0e11);
-    return ret;
-}
-
-v3d generate_magnetic_field(grid_site_param gs, double time) {
-    UNUSED(gs);
-    UNUSED(time);
-    {
-    //%s
-    }
-    double normalized = 0.5;
-    //normalized += sin(time / 0.1e-11) * 0.2;
-    normalized *= gs.dm * gs.dm / gs.exchange;
-    double real = normalized / gs.mu;
-    return v3d_c(0, 0, real);
-}*/
-
 double exchange_energy(parameters param) {
     return -(v3d_dot(param.m, param.neigh.left) + v3d_dot(param.m, param.neigh.right) +
              v3d_dot(param.m, param.neigh.up) + v3d_dot(param.m, param.neigh.down)) * param.gs.exchange;
@@ -88,8 +60,57 @@ double field_energy(parameters param) {
     return -param.gs.mu * v3d_dot(generate_magnetic_field(param.gs, param.time), param.m);
 }
 
+//@TODO Proper user os mu_s
+double dipolar_energy(parameters param) {
+#ifdef INCLUDE_DIPOLAR
+    double ret = 0.0;
+    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
+        double dy = dr * param.gs.lattice;
+        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+            v3d mj = apply_pbc(param.v, param.pbc, param.gs.row + dr, param.gs.col + dc, param.rows, param.cols);
+            double interaction = -MU_0 * param.gs.mu * param.gs.mu / (4.0 * M_PI);
+            interaction *= (3.0 * v3d_dot(param.m, r_ij) - v3d_dot(param.m, mj)) / (r_ij_ * r_ij_ * r_ij_);
+            ret += interaction;
+        }
+    }
+    return ret;
+#else
+    return 0.0;
+#endif
+}
+
 double energy(parameters param) {
-    return 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param);
+    return 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param) + 0.5 * dipolar_energy(param);
+}
+
+v3d dipolar_field(parameters param) {
+#ifdef INCLUDE_DIPOLAR
+    v3d ret = v3d_s(0.0);
+    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
+        double dy = dr * param.gs.lattice;
+        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+            v3d mj = apply_pbc(param.v, param.pbc, param.gs.row + dr, param.gs.col + dc, param.rows, param.cols);
+            double factor = -MU_0 * param.gs.mu * param.gs.mu / (4.0 * M_PI);
+            v3d interaction = v3d_scalar(r_ij, 3.0 * v3d_dot(mj, r_ij));
+            interaction = v3d_sub(interaction, mj);
+            interaction = v3d_scalar(interaction, factor / (r_ij_ * r_ij_ * r_ij_));
+            ret = v3d_sum(ret, interaction);
+        }
+    }
+    return ret;
+#else
+    return v3d_s(0.0);
+#endif
 }
 
 //@TODO: Check DM interaction vectors
@@ -117,6 +138,10 @@ v3d effective_field(parameters param) {
     ret = v3d_sub(ret, v3d_scalar(v3d_c(param.m.x * param.m.x * param.m.x,
                                         param.m.y * param.m.y * param.m.y,
                                         param.m.z * param.m.z * param.m.z), 4.0 * param.gs.cubic_ani));
+
+#ifdef INCLUDE_DIPOLAR
+    ret = v3d_sum(ret, dipolar_field(param));
+#endif
 
     return v3d_scalar(ret, -1.0 / param.gs.mu);
 }

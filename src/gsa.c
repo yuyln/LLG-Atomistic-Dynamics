@@ -144,8 +144,8 @@ void gsa_metropolis_step(gsa_context *ctx) {
         cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
         gpu_profiling(stdout, ev, "Exchange old grid");
     } else {
-        double df = (new_energy - ctx->last_energy) / KB;// / fabs(ctx->g->gp->exchange);
-        double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (ctx->T), ctx->oneqA1);
+        double df = (new_energy - ctx->last_energy) / (ctx->g->gi.rows * ctx->g->gi.cols);// / fabs(ctx->g->gp->exchange);
+        double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (KB * ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;
             clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set old grid as argument of exchange grids GSA");

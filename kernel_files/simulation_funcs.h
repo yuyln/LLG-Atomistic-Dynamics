@@ -9,11 +9,17 @@
 
 //@TODO: Test optimization without parameters struct
 typedef struct {
+    int rows;
+    int cols;
     grid_site_param gs;
     v3d m;
     neighbors_set neigh;
     double time;
     PRIVATE tyche_i_state *state;
+#ifdef INCLUDE_DIPOLAR
+    pbc_rules pbc;
+    GLOBAL v3d *v;
+#endif
 } parameters;
 
 v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols);
@@ -27,8 +33,10 @@ double dm_energy(parameters param);
 double anisotropy_energy(parameters param);
 double cubic_anisotropy_energy(parameters param);
 double field_energy(parameters param);
+double dipolar_energy(parameters param);
 double energy(parameters param);
 
+v3d dipolar_field(parameters param);
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param, double dt);
 v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
