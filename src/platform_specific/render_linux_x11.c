@@ -12,7 +12,6 @@
 struct render_window {
     Display *display;
     Window window;
-    XdbeBackBuffer back_buffer;
     XWindowAttributes wa;
     XImage *image;
     GC gc;
@@ -24,6 +23,8 @@ struct render_window {
     bool should_close;
 
     window_input input;
+    Drawable draw;
+    bool xdbe;
 };
 
 //render_window window = {0};
@@ -43,11 +44,12 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
     }
 
     int major_version_windowurn, minor_version_windowurn;
+    w->xdbe = true;
     if(XdbeQueryExtension(w->display, &major_version_windowurn, &minor_version_windowurn)) {
         printf("[ INFO ] XDBE version %d.%d\n", major_version_windowurn, minor_version_windowurn);
     } else {
-        fprintf(stderr, "[ FATAL ] XDBE is not supported\n");
-        exit(1);
+        fprintf(stderr, "[ FATAL ] XDBE is not supported, using window\n");
+        w->xdbe = false;
     }
 
     w->window = XCreateWindow(w->display, XDefaultRootWindow(w->display), 0, 0, width, height, 0, CopyFromParent, 
@@ -63,8 +65,13 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
     XSetWMNormalHints(w->display, w->window, &max_size_hint);
 
 
-    w->back_buffer = XdbeAllocateBackBufferName(w->display, w->window, 0);
-    printf("[ INFO ] Back_buffer ID: %lu\n", w->back_buffer);
+
+    if (w->xdbe) {
+        w->draw = XdbeAllocateBackBufferName(w->display, w->window, 0);
+        printf("[ INFO ] draw ID: %lu\n", w->draw);
+    } else {
+        w->draw = w->window;
+    }
 
     w->wa = (XWindowAttributes){0};
     XGetWindowAttributes(w->display, w->window, &w->wa);
@@ -80,7 +87,7 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
             sizeof(RGBA32) * 8,
             width * sizeof(RGBA32));
 
-    w->gc = XCreateGC(w->display, w->window, 0, NULL);
+    w->gc = XCreateGC(w->display, w->draw, 0, NULL);
 
     w->wm_delete_window = XInternAtom(w->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(w->display, w->window, &w->wm_delete_window, 1);
@@ -100,7 +107,8 @@ static void window_close(void) {
     XDestroyImage(w->image);
     //free(w->buffer); //X frees this pointer
 
-    XdbeDeallocateBackBufferName(w->display, w->back_buffer);
+    if (w->xdbe)
+        XdbeDeallocateBackBufferName(w->display, w->draw);
 
     XDestroyWindow(w->display, w->window);
 
@@ -141,10 +149,12 @@ bool window_key_pressed(char k) {
 }
 
 void window_render(void) {
-    XPutImage(w->display, w->back_buffer, w->gc, w->image, 0, 0, 0, 0, w->width, w->height);
+    XPutImage(w->display, w->draw, w->gc, w->image, 0, 0, 0, 0, w->width, w->height);
 
-    XdbeSwapInfo swap_info = (XdbeSwapInfo){.swap_window = w->window, .swap_action = 0};
-    XdbeSwapBuffers(w->display, &swap_info, 1);
+    if (w->xdbe) {
+        XdbeSwapInfo swap_info = (XdbeSwapInfo){.swap_window = w->window, .swap_action = 0};
+        XdbeSwapBuffers(w->display, &swap_info, 1);
+    }
     //memset(w->buffer, 0, sizeof(*w->buffer) * w->width * w->height);
 }
 
