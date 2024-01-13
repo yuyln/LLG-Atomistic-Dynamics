@@ -40,7 +40,7 @@ v3d dipolar_field(parameters param);
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param, double dt);
 v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
-v3d step(parameters param, double dt);
+v3d step_llg(parameters param, double dt);
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
 double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down);

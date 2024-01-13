@@ -4,7 +4,6 @@ double nsrandom(tyche_i_state *state, double start, double end) {
     return tyche_i_double((*state)) * (end - start) + start;
 }
 
-//@TODO Proper normal
 double normal_distribution_box_muller(tyche_i_state *state) {
     double u1 = nsrandom(state, 0, 1);
     double u2 = nsrandom(state, 0, 1);

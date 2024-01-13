@@ -7,12 +7,11 @@
 #include <time.h>
 
 static double energy_from_gsa_context(gsa_context *ctx) {
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->energy_id], 1, NULL, &ctx->global, &ctx->local);
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->energy_id], 1, NULL, &ctx->global, &ctx->local);
     clw_print_cl_error(stderr, clEnqueueReadBuffer(ctx->gpu->queue, ctx->energy_gpu, CL_TRUE, 0, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), ctx->energy_cpu, 0, NULL, NULL), "[ FATAL ] Could not read energy buffer GSA");
     double ret = 0.0;
     for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
         ret += ctx->energy_cpu[i];
-    gpu_profiling(stdout, ev, "Calculate Energy");
     return ret;
 }
 
@@ -113,7 +112,7 @@ void gsa_thermal_step(gsa_context *ctx) {
     clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 6, sizeof(double), &ctx->T);
     int seed = rand();
     clw_set_kernel_arg(ctx->gpu->kernels[ctx->thermal_id], 7, sizeof(int), &seed);
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->thermal_id], 1, NULL, &ctx->global, &ctx->local);
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->thermal_id], 1, NULL, &ctx->global, &ctx->local);
     ctx->step++;
     ctx->inner_step++;
     ctx->T = ctx->Tqt / (pow(ctx->inner_step + 1.0, ctx->qT1) - 1.0);
@@ -123,8 +122,6 @@ void gsa_thermal_step(gsa_context *ctx) {
         ctx->outer_step++;
         ctx->inner_step = 0;
     }
-
-    gpu_profiling(stdout, ev, "Thermal Step");
 }
 
 void gsa_metropolis_step(gsa_context *ctx) {
@@ -133,24 +130,21 @@ void gsa_metropolis_step(gsa_context *ctx) {
     if (new_energy <= ctx->min_energy) {
         ctx->min_energy = new_energy;
         clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->min_gpu), "[ FATAL ] Could not set min grid as argument of exchange grids GSA");
-        cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
-        gpu_profiling(stdout, ev, "Exchange min grid");
+        clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
 
     }
 
     if (new_energy <= ctx->last_energy) {
         ctx->last_energy = new_energy;
         clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set old grid as argument of exchange grids GSA");
-        cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
-        gpu_profiling(stdout, ev, "Exchange old grid");
+        clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
     } else {
         double df = (new_energy - ctx->last_energy) / (ctx->g->gi.rows * ctx->g->gi.cols);// / fabs(ctx->g->gp->exchange);
         double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (KB * ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;
             clw_print_cl_error(stderr, clSetKernelArg(ctx->gpu->kernels[ctx->exchange_id].kernel, 0, sizeof(cl_mem), &ctx->g->m_buffer), "[ FATAL ] Could not set old grid as argument of exchange grids GSA");
-            cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
-            gpu_profiling(stdout, ev, "Exchange old pqa grid");
+            clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
         }
     }
 

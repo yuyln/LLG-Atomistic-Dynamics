@@ -143,7 +143,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     window_init("Gradient Descent", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
-    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.99999);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.999999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -206,30 +206,28 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 }
 
 //@TODO: Change openclwrapper to print file and location correctly
-//@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper cleaning
 //@TODO: OpenCL events creates memory leaks. Need to work on this
 int main(void) {
-    int rows = 32;
-    int cols = 32;
+    int rows = 512;
+    int cols = 512;
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
 
     grid g = grid_init(rows, cols);
 
-    grid_set_dm(&g, 1.00 * QE * 1.0e-3, 0.0, R_ij);
-    grid_set_anisotropy(&g, (anisotropy){.ani = 0.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
+    grid_set_dm(&g, 0.50 * QE * 1.0e-3, 0.0, R_ij);
+    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     v3d_fill_with_random(g.m, rows, cols);
+    for (int c = 0; c < cols; ++c)
+        grid_set_pinning_loc(&g, 0, c, (pinning){.pinned = 1, .dir = v3d_c(0.0, 0.0, 1.0)});
 
-    string_view current_func = sv_from_cstr("current ret = (current){0};\n"\
-                                             "return ret;\n"\
-                                             "ret.type = CUR_SHE;\n"\
-                                             "time -= 0.1 * NS;\n"\
-                                             "ret.she.p = v3d_c(0.0, 1.0e10, 0.0);\n"\
-                                             "ret.she.thickness = gs.lattice;\n"\
-                                             "ret.she.beta = 0.0;\n"\
-                                             "ret.she.theta_sh = 1.0;\n"\
+    string_view current_func = sv_from_cstr("current ret = (current){};\n"\
+                                             "ret.type = CUR_STT;\n"\
+                                             "ret.stt.j = v3d_c(0.0, -1.0e10, 0.0);\n"\
+                                             "ret.stt.beta = 0.0;\n"\
+                                             "ret.stt.polarization = -1.0;\n"\
                                              "return ret;");
     string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\

@@ -132,7 +132,7 @@ static const char *clw_errors[60] = {
     void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from clw_build_program returned call
 
     //queue related
-    cl_event clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
+    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
     void clw_finish(cl_command_queue queue);
 
     //work related
@@ -278,12 +278,24 @@ kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n) {
 }
 
 //@TODO: OpenCL events creates memory leaks. Need to work on this
-cl_event clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local) {
+void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local) {
+#ifdef PROFILING
     cl_event ev;
     cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, &ev);
     clw_print_cl_error(stderr, err, "ERROR ENQUEUING KERNEL %s", k.name);
+
+    uint64_t start, end, duration;
+    uint64_t size;
+    clw_print_cl_error(stderr, clWaitForEvents(1, &ev), "[ FATAL ] Could not wait for event \"%s\"", k.name);
+    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(start), &start, &size), "[ FATAL ] Could not retrieve submit information from profiling \"%s\"", k.name);
+    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size), "[ FATAL ] Could not retrieve complete information from profiling \"%s\"", k.name);
+    duration = end - start;
+    fprintf(stdout, "%s Spent %e us\n", k.name, (double)duration / 1000.0);
     clReleaseEvent(ev);
-    return ev;
+#else
+    cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, NULL);
+    clw_print_cl_error(stderr, err, "ERROR ENQUEUING KERNEL %s", k.name);
+#endif
 }
 
 void clw_finish(cl_command_queue queue) {

@@ -110,7 +110,7 @@ void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_
     va_end(arg_list);
 }
 
-uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
+/*uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
     uint64_t start, end, duration;
     uint64_t size;
     clw_print_cl_error(stderr, clWaitForEvents(1, &ev), "[ FATAL ] Could not wait for event \"%s\"", description);
@@ -120,4 +120,4 @@ uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
     fprintf(f, "%s Spent %e us\n", description, (double)duration / 1000.0);
     //clReleaseEvent(ev);
     return duration;
-}
+}*/

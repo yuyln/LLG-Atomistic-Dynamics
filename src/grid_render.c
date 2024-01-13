@@ -59,21 +59,17 @@ void grid_renderer_close(grid_renderer *gr) {
 void grid_renderer_hsl(grid_renderer *gr) {
     size_t global = gr->width * gr->height;
     size_t local = clw_gcd(global, 32);
-    cl_event render_grid = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->grid_hsl_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->grid_hsl_id], 1, NULL, &global, &local);
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->rgba_gpu, CL_TRUE, 0, gr->width * gr->height * sizeof(*gr->rgba_cpu), gr->rgba_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
-
-    gpu_profiling(stdout, render_grid, "Grid HSL Render");
 }
 
 void grid_renderer_bwr(grid_renderer *gr) {
     size_t global = gr->width * gr->height;
     size_t local = clw_gcd(global, 32);
-    cl_event render_grid = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->grid_bwr_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->grid_bwr_id], 1, NULL, &global, &local);
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->rgba_gpu, CL_TRUE, 0, gr->width * gr->height * sizeof(*gr->rgba_cpu), gr->rgba_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
-
-    gpu_profiling(stdout, render_grid, "Grid BWR Render");
 }
 
 void grid_renderer_energy(grid_renderer *gr, double time) {
@@ -81,7 +77,7 @@ void grid_renderer_energy(grid_renderer *gr, double time) {
     size_t local = clw_gcd(global, 32);
 
     clw_set_kernel_arg(gr->gpu->kernels[gr->calc_energy_id], 4, sizeof(double), &time);
-    cl_event calc_energy = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->calc_energy_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->calc_energy_id], 1, NULL, &global, &local);
 
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->buffer_gpu, CL_TRUE, 0, global * sizeof(*gr->buffer_cpu), gr->buffer_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
 
@@ -98,20 +94,17 @@ void grid_renderer_energy(grid_renderer *gr, double time) {
     clw_set_kernel_arg(gr->gpu->kernels[gr->energy_id], 3, sizeof(double), &min_energy);
     clw_set_kernel_arg(gr->gpu->kernels[gr->energy_id], 4, sizeof(double), &max_energy);
 
-    cl_event render_energy = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->energy_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->energy_id], 1, NULL, &global, &local);
 
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->rgba_gpu, CL_TRUE, 0, gr->width * gr->height * sizeof(*gr->rgba_cpu), gr->rgba_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
-
-    gpu_profiling(stdout, calc_energy, "Energy Calculation");
-    gpu_profiling(stdout, render_energy, "Energy Rendering");
 }
 
 void grid_renderer_charge(grid_renderer *gr) {
     size_t global = gr->g->gi.rows * gr->g->gi.cols;
     size_t local = clw_gcd(global, 32);
 
-    cl_event calc_charge = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->calc_charge_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->calc_charge_id], 1, NULL, &global, &local);
 
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->buffer_gpu, CL_TRUE, 0, global * sizeof(*gr->buffer_cpu), gr->buffer_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
 
@@ -129,11 +122,8 @@ void grid_renderer_charge(grid_renderer *gr) {
     clw_set_kernel_arg(gr->gpu->kernels[gr->charge_id], 3, sizeof(double), &min_charge);
     clw_set_kernel_arg(gr->gpu->kernels[gr->charge_id], 4, sizeof(double), &max_charge);
 
-    cl_event render_charge = clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->charge_id], 1, NULL, &global, &local);
+    clw_enqueue_nd(gr->gpu->queue, gr->gpu->kernels[gr->charge_id], 1, NULL, &global, &local);
 
     clw_print_cl_error(stderr, clEnqueueReadBuffer(gr->gpu->queue, gr->rgba_gpu, CL_TRUE, 0, gr->width * gr->height * sizeof(*gr->rgba_cpu), gr->rgba_cpu, 0, NULL, NULL), "[ FATAL ] Could not read RGBA buffer from GPU");
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
-
-    gpu_profiling(stdout, calc_charge, "Charge Calculation");
-    gpu_profiling(stdout, render_charge, "Charge Rendering  ");
 }

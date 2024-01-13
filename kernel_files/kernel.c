@@ -11,7 +11,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
         return;
     }
 
-    parameters param = (parameters){0};
+    parameters param = (parameters){};
     param.rows = gi.rows;
     param.cols = gi.cols;
 #ifdef INCLUDE_DIPOLAR
@@ -31,7 +31,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     tyche_i_seed(&state, seed + id);
     param.state = &state;
 
-    out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step(param, dt)));
+    out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step_llg(param, dt)));
 }
 
 kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
@@ -57,7 +57,7 @@ kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d 
     param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
-    information_packed local_info = {0};
+    information_packed local_info = (information_packed){};
 
     local_info.exchange_energy = exchange_energy(param);
     local_info.dm_energy = dm_energy(param);

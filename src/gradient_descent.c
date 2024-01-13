@@ -1,11 +1,10 @@
 #include "gradient_descent.h"
 static double energy_from_gradient_descent_context(gradient_descent_context *ctx) {
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->energy_id], 1, NULL, &ctx->global, &ctx->local);
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->energy_id], 1, NULL, &ctx->global, &ctx->local);
     clw_print_cl_error(stderr, clEnqueueReadBuffer(ctx->gpu->queue, ctx->energy_gpu, CL_TRUE, 0, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), ctx->energy_cpu, 0, NULL, NULL), "[ FATAL ] Could not read energy buffer gradient descent");
     double ret = 0.0;
     for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
         ret += ctx->energy_cpu[i];
-    gpu_profiling(stdout, ev, "Calculate Energy");
     return ret;
 }
 
@@ -72,8 +71,7 @@ void gradient_descent_step(gradient_descent_context *ctx) {
     clw_set_kernel_arg(ctx->gpu->kernels[ctx->step_id], 6, sizeof(ctx->T), &ctx->T);
     int seed = rand();
     clw_set_kernel_arg(ctx->gpu->kernels[ctx->step_id], 10, sizeof(seed), &seed);
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
-    gpu_profiling(stdout, ev, "Gradient Descent Step");
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
     ctx->T *= ctx->T_factor;
 }
 

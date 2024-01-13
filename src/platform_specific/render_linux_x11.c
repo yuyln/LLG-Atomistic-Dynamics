@@ -109,7 +109,6 @@ static void window_close(void) {
     w->should_close = true;
 }
 
-//@TODO: Make resize possible
 void window_poll(void) {
     memset(w->input.key_pressed, 0, sizeof(w->input.key_pressed));
     while (XPending(w->display) > 0) {

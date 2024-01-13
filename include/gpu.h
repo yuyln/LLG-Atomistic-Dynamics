@@ -10,11 +10,12 @@
 
 /*#define NUMARGS(...) (sizeof((int[]){__VA_ARGS__})/sizeof(int))
 #define gpu_fill_kernel_args(gpu, kernel, offset, ...) (gpu_fill_kernel_args_base(gpu, kernel, offset, NUMARGS(__VA_ARGS__), __VA_ARGS__))*/
-#ifdef PROFILING
+
+/*#ifdef PROFILING
 #define gpu_profiling(f, ev, description) gpu_profiling_base((f), (ev), (description))
 #else
 #define gpu_profiling(f, ev, description) UNUSED(ev)
-#endif
+#endif*/
 
 extern uint64_t p_id;
 extern uint64_t d_id;
@@ -39,7 +40,7 @@ gpu_cl gpu_cl_init(string_view current_function, string_view field_function, str
 void gpu_cl_close(gpu_cl *gpu);
 uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel);
 void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...);
-uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description);
+//uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description);
 
 
 #endif

@@ -142,19 +142,16 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
 void integrate_step(integrate_context *ctx) {
     clw_set_kernel_arg(ctx->gpu->kernels[ctx->step_id], 4, sizeof(double), &ctx->time);
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
-    gpu_profiling(stdout, ev, "Integration Step");
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
 }
 
 void integrate_get_info(integrate_context *ctx, uint64_t info_id) {
     clw_set_kernel_arg(ctx->gpu->kernels[info_id], 5, sizeof(double), &ctx->time);
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[info_id], 1, NULL, &ctx->global, &ctx->local);
-    gpu_profiling(stdout, ev, "Gathering Info  ");
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[info_id], 1, NULL, &ctx->global, &ctx->local);
 }
 
 void integrate_exchange_grids(integrate_context *ctx) {
-    cl_event ev = clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
-    gpu_profiling(stdout, ev, "Exchanging Grids");
+    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
 }
 
 void integrate_context_read_grid(integrate_context *ctx) {

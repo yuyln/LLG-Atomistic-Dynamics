@@ -209,7 +209,7 @@ v3d dm_dt(parameters param, double dt) {
 }
 
 //@TODO: implement RK2 and euler
-v3d step(parameters param, double dt) {
+v3d step_llg(parameters param, double dt) {
     v3d rk1, rk2, rk3, rk4;
     v3d c_ori = param.m;
     double time_ori = param.time;
