@@ -40,14 +40,14 @@ void grid_set_anisotropy(grid *g, anisotropy ani);
 void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
 void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
 
-void grid_free(grid *g);
-void grid_release_from_gpu(grid *g);
+bool grid_free(grid *g);
+bool grid_release_from_gpu(grid *g);
 
 void grid_to_gpu(grid *g, gpu_cl gpu);
 void grid_from_gpu(grid *g, gpu_cl gpu);
 void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, gpu_cl gpu);
 
-void v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols);
-void grid_dump(FILE *f, grid *g);
-grid grid_from_file(string_view path);
+bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols);
+bool grid_dump(FILE *f, grid *g);
+bool grid_from_file(string_view path, grid *g);
 #endif

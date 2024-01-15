@@ -4,13 +4,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "grid_funcs.h"
 #include "constants.h"
 #include "string_view.h"
+#include "logging.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
-    fprintf(stderr, "[ WARNING ] Location (%d %d) out of bounds (%u %u)\n", row, col, rows, cols);\
+    logging_log(stderr, LOG_WARNING, "Location (%d %d) out of bounds (%u %u)\n", row, col, rows, cols);\
     return; \
 }} while(0)
 
@@ -28,10 +30,8 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     ret.m = calloc(sizeof(*ret.m) * rows * cols, 1);
     ret.on_gpu = false;
 
-    if (!ret.gp || !ret.m) {
-        fprintf(stderr, "[ FATAL ] Could not allocate grid. Buy more ram lol");
-        exit(1);
-    }
+    if (!ret.gp || !ret.m)
+        logging_log(stderr, LOG_FATAL, "Could not allocate grid. Buy more ram lol");
 
     grid_site_param default_grid = (grid_site_param){
         .exchange = 1.0e-3 * QE,
@@ -197,127 +197,161 @@ void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radiu
     }
 }
 
-void grid_free(grid *g) {
+bool grid_free(grid *g) {
+    bool ret = true;
     free(g->gp);
     free(g->m);
-    g->gp = NULL;
-    g->m = NULL;
     if (g->on_gpu)
-        grid_release_from_gpu(g);
+        ret = grid_release_from_gpu(g);
     memset(g, 0, sizeof(*g));
+    return ret;
 }
 
-void grid_release_from_gpu(grid *g) {
-    clw_print_cl_error(stderr, clReleaseMemObject(g->gp_buffer), "[ FATAL ] Could not release gp buffer from GPU");
-    clw_print_cl_error(stderr, clReleaseMemObject(g->m_buffer), "[ FATAL ] Could not release m buffer from GPU");
+bool grid_release_from_gpu(grid *g) {
+    cl_int err;
+    bool ret = true;
+
+    if ((err = clReleaseMemObject(g->gp_buffer)) != CL_SUCCESS) {
+        logging_log(stderr, LOG_ERROR, "Could not release Grid Parameters Buffer from GPU %d: %s", err, clw_get_error_string(err));
+        ret = false;
+    }
+
+    if ((err = clReleaseMemObject(g->m_buffer)) != CL_SUCCESS) {
+        logging_log(stderr, LOG_ERROR, "Could not release Grid Magnetic Moments from GPU %d: %s", err, clw_get_error_string(err));
+        ret = false;
+    }
+
     g->on_gpu = false;
+    return ret;
 }
 
 void grid_to_gpu(grid *g, gpu_cl gpu) {
-    if (g->on_gpu) {
-        fprintf(stderr, "[ WARNING ] Trying to send grid to gpu with the grid already being on the gpu, only write will be performed\n");
-        cl_int err;
-
-        uint64_t gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
-        uint64_t m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
-        err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
-        clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gp_size_bytes);
-
-        err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
-        clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", m_size_bytes);
-        return;
-    }
-
     uint64_t gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     uint64_t m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
 
+    if (g->on_gpu) {
+        logging_log(stderr, LOG_WARNING, "Trying to send Grid to GPU with the grid already being on the gpu, only write will be performed");
+        goto writing;
+    }
+
     cl_int err;
     g->gp_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, gp_size_bytes, NULL, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Creating grid site param buffer with size %zu B to GPU", gp_size_bytes);
+    if (err != CL_SUCCESS)
+        logging_log(stderr, LOG_FATAL, "Could not create Grid Parameters on GPU %d: %s", err, clw_get_error_string(err));
 
     g->m_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, m_size_bytes, NULL, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Creating vectors grid buffer with size %zu B to GPU", m_size_bytes);
+    if (err != CL_SUCCESS)
+        logging_log(stderr, LOG_FATAL, "Could not create Grid Vectors on GPU %d: %s", err, clw_get_error_string(err));
 
     g->on_gpu = true;
+    
+writing:
+    if ((err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL)) != CL_SUCCESS)
+        logging_log(stderr, LOG_FATAL, "Could not write to Grid Parameters on GPU %d: %s", err, clw_get_error_string(err));
 
-    err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid site params with size %zu B to GPU", gp_size_bytes);
-
-    err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Writing grid vectors with size %zu B to GPU", m_size_bytes);
+    if ((err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL) != CL_SUCCESS))
+        logging_log(stderr, LOG_FATAL, "Could not write to Grid Vectors on GPU %d: %s", err, clw_get_error_string(err));
 }
 
 void grid_from_gpu(grid *g, gpu_cl gpu) {
     if (!g->on_gpu) {
-        fprintf(stderr, "[ WARNING ] Trying to read grid from gpu without the grid being on the gpu");
+        logging_log(stderr, LOG_WARNING, "Trying to read Grid from GPU without the Grid being on the GPU");
         return;
     }
 
     int gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     int m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
+    cl_int err;
 
-    cl_int err = clEnqueueReadBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid site params with size %d B from GPU", gp_size_bytes);
+    if ((err = clEnqueueReadBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL)) != CL_SUCCESS)
+        logging_log(stderr, LOG_FATAL, "Could not read from Grid Parameters on GPU %d: %s", err, clw_get_error_string(err));
 
-    err = clEnqueueReadBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid vectors with size %d B from GPU", m_size_bytes);
+    if ((err = clEnqueueReadBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL) != CL_SUCCESS))
+        logging_log(stderr, LOG_FATAL, "Could not read from Grid Vectors on GPU %d: %s", err, clw_get_error_string(err));
 }
 
 void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, gpu_cl gpu) {
     int m_size_bytes = rows * cols * sizeof(*g);
+    cl_int err;
 
-    cl_int err = clEnqueueReadBuffer(gpu.queue, buffer, CL_TRUE, 0, m_size_bytes, g, 0, NULL, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Reading grid vectors with size %d B from GPU", m_size_bytes);
+    if ((err = clEnqueueReadBuffer(gpu.queue, buffer, CL_TRUE, 0, m_size_bytes, g, 0, NULL, NULL) != CL_SUCCESS))
+        logging_log(stderr, LOG_FATAL, "Could not read from Vectors on GPU %d: %s", err, clw_get_error_string(err));
 }
 
-void v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols) {
-    fwrite(v, rows * cols * sizeof(*v), 1, f);
+bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols) {
+    return rows * cols * sizeof(*v) == fwrite(v, rows * cols * sizeof(*v), 1, f);
 }
 
-void grid_dump(FILE *f, grid *g) {
-    fwrite(&g->gi, sizeof(g->gi), 1, f);
-    fwrite(g->gp, sizeof(*g->gp) * g->gi.rows * g->gi.cols, 1, f);
-    fwrite(g->m, sizeof(*g->m) * g->gi.rows * g->gi.cols, 1, f);
+bool grid_dump(FILE *f, grid *g) {
+    bool ret = sizeof(g->gi) == fwrite(&g->gi, sizeof(g->gi), 1, f);
+    ret = ret && (sizeof(*g->gp) * g->gi.rows * g->gi.cols) == fwrite(g->gp, sizeof(*g->gp) * g->gi.rows * g->gi.cols, 1, f);
+    ret = ret && (sizeof(*g->m) * g->gi.rows * g->gi.cols) == fwrite(g->m, sizeof(*g->m) * g->gi.rows * g->gi.cols, 1, f);
+    return ret;
 }
 
-grid grid_from_file(string_view path) {
-    grid ret = {0};
-
+bool grid_from_file(string_view path, grid *g) {
     string p_ = {0};
     string_add_sv(&p_, path);
     FILE *f = fopen(string_as_cstr(&p_), "rb");
+    char *data = NULL;
+    bool ret = true;
+
     if (!f) {
-        fprintf(stderr, "[ WARNING ] Could not open file %.*s: %s. Using defaults\n", (int)path.len, path.str, strerror(errno));
-        return grid_init(272, 272);
+        logging_log(stderr, LOG_WARNING, "Could not open file %.*s: %s. Using defaults", (int)path.len, path.str, strerror(errno));
+        *g = grid_init(272, 272);
+        return true;
     }
     string_free(&p_);
 
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    char *data = calloc(sz + 1, 1);
-    char *ptr = data;
-    fread(data, sz, 1, f);
-
-    grid_info gi = *((grid_info*)data);
-    ret.gi = gi;
-    ptr += sizeof(grid_info);
-
-    ret.gp = calloc(sizeof(*ret.gp) * gi.rows * gi.cols , 1);
-    ret.m = calloc(sizeof(*ret.m) * gi.rows * gi.cols, 1);
-    ret.on_gpu = false;
-
-    memcpy(ret.gp, ptr, sizeof(*ret.gp) * gi.rows * gi.cols);
-    ptr += sizeof(*ret.gp) * gi.rows * gi.cols;
-
-    memcpy(ret.m, ptr, sizeof(*ret.m) * gi.rows * gi.cols);
-
-    if (!ret.gp || !ret.m) {
-        fprintf(stderr, "[ FATAL ] Could not allocate grid. Buy more ram lol");
-        exit(1);
+    if (fseek(f, 0, SEEK_END) < 0) {
+        logging_log(stderr, LOG_ERROR, "Moving cursor to the end of %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
     }
 
+    long sz;
+    if ((sz = ftell(f)) < 0) {
+        logging_log(stderr, LOG_ERROR, "Getting cursor position of %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (fseek(f, 0, SEEK_SET) < 0) {
+        logging_log(stderr, LOG_ERROR, "Moving cursor to start of %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (!(data = calloc(sz + 1, 1))) {
+        logging_log(stderr, LOG_ERROR, "Callocing data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    char *ptr = data;
+    if (fread(data, 1, sz, f) != (uint64_t)sz) {
+        logging_log(stderr, LOG_ERROR, "Reading data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    grid_info gi = *((grid_info*)data);
+    g->gi = gi;
+    ptr += sizeof(grid_info);
+
+    if (!(g->gp = calloc(sizeof(*g->gp) * gi.rows * gi.cols , 1)))
+        logging_log(stderr, LOG_FATAL, "Callocing Grid Parameters data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+
+    if (!(g->m = calloc(sizeof(*g->m) * gi.rows * gi.cols, 1)))
+        logging_log(stderr, LOG_FATAL, "Callocing Grid Vectors data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+
+    g->on_gpu = false;
+
+    memcpy(g->gp, ptr, sizeof(*g->gp) * gi.rows * gi.cols);
+    ptr += sizeof(*g->gp) * gi.rows * gi.cols;
+
+    memcpy(g->m, ptr, sizeof(*g->m) * gi.rows * gi.cols);
+defer:
     fclose(f);
     free(data);
     return ret;

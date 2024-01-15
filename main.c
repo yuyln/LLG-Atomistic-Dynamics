@@ -213,8 +213,10 @@ int main(void) {
     int rows = 32;
     int cols = 32;
     double dt = HBAR / (1.0e-3 * QE) * 0.01;
+    grid g = {0};
 
-    grid g = grid_from_file(sv_from_cstr("./grid.grid"));
+    if (!grid_from_file(sv_from_cstr("./grid.grid"), &g))
+        return 1;
 
     string_view current_func = sv_from_cstr("current ret = (current){};\n"\
                                              "ret.type = CUR_STT;\n"\
@@ -237,7 +239,7 @@ int main(void) {
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
-    //run_gradient_descent(&g, &gpu, 1.0e-1);
+    run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 
     FILE *f = fopen("./grid.grid", "wb");
