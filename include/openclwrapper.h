@@ -26,7 +26,71 @@
     #endif
 */
 
-static const char *clw_errors[60] = {
+extern const char *clw_errors[60];
+
+#define clw_print_cl_error(file, err, message, ...) {                                                                         \
+                                            if (err != 0) {                                                                   \
+                                                fprintf((file), "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);  \
+                                                int err_ = abs((err));                                                        \
+                                                if (err_ >= 30)                                                               \
+                                                    err_ = err_ - 10;                                                         \
+                                                fprintf((file), "%s | ", clw_errors[err_]);                                       \
+                                                fprintf((file), (message), ##__VA_ARGS__);                                    \
+                                                fprintf((file), "\n");                                                        \
+                                                exit((err));                                                                  \
+                                            }                                                                                 \
+                                        }
+
+    typedef struct {
+        cl_kernel kernel;
+        const char *name;
+    } kernel_t;
+
+    //utils
+    int clw_read_file(const char *path, char **out);
+    uint64_t clw_gcd(uint64_t a, uint64_t b);
+    const char *clw_get_error_string(int err);
+    // long unsigned int gcd(long unsigned int a, long unsigned int b);
+
+    //buffer related
+    cl_mem clw_create_buffer(uint64_t size, cl_context context, cl_mem_flags flags);
+    void clw_read_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
+    void clw_write_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
+
+    //init related
+    cl_platform_id* clw_init_platforms(uint64_t *n);
+    cl_device_id* clw_init_devices(cl_platform_id plat, uint64_t *n);
+    cl_context clw_init_context(cl_device_id *devices, uint64_t ndev);
+    cl_command_queue clw_init_queue(cl_context ctx, cl_device_id device);
+    cl_program clw_init_program_source(cl_context ctx, const char *source);
+    cl_int clw_build_program(cl_program program, uint64_t ndev, cl_device_id *devs, const char *compile_opt);
+    kernel_t clw_init_kernel(cl_program program, const char *name);
+    kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n);
+
+    //info related
+    void clw_get_platform_info(FILE *file, cl_platform_id plat, uint64_t iplat);
+    void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev);
+    void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from clw_build_program returned call
+
+    //queue related
+    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
+    void clw_finish(cl_command_queue queue);
+
+    //work related
+    uint64_t clw_get_local_work_device_gcd_1d(uint64_t global, cl_device_id dev);
+    uint64_t clw_get_local_work_gdc_1d(uint64_t global, uint64_t fac);
+    uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_device_id dev);
+    uint64_t *clw_get_local_work_gdc_nd(uint64_t ndim, uint64_t *global, uint64_t fac);
+
+    //kernel arg related
+    void clw_set_kernel_arg(kernel_t k, uint64_t argIndex, uint64_t argSize, void *arg);
+
+    //cleaning related
+#endif //__OPENCLW
+
+#ifdef OPENCLWRAPPER_IMPLEMENTATION
+
+const char *clw_errors[60] = {
                                      "CL_SUCCESS",
                                      "CL_DEVICE_NOT_FOUND",
                                      "CL_DEVICE_NOT_AVAILABLE",
@@ -88,66 +152,12 @@ static const char *clw_errors[60] = {
                                      "CL_INVALID_DEVICE_PARTITION_COUNT",
                             };
 
-#define clw_print_cl_error(file, err, message, ...) {                                                                         \
-                                            if (err != 0) {                                                                   \
-                                                fprintf((file), "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);  \
-                                                int err_ = abs((err));                                                        \
-                                                if (err_ >= 30)                                                               \
-                                                    err_ = err_ - 10;                                                         \
-                                                fprintf((file), "%s | ", clw_errors[err_]);                                       \
-                                                fprintf((file), (message), ##__VA_ARGS__);                                    \
-                                                fprintf((file), "\n");                                                        \
-                                                exit((err));                                                                  \
-                                            }                                                                                 \
-                                        }
-
-    typedef struct {
-        cl_kernel kernel;
-        const char *name;
-    } kernel_t;
-
-    //utils
-    int clw_read_file(const char *path, char **out);
-    uint64_t clw_gcd(uint64_t a, uint64_t b);
-    // long unsigned int gcd(long unsigned int a, long unsigned int b);
-
-    //buffer related
-    cl_mem clw_create_buffer(uint64_t size, cl_context context, cl_mem_flags flags);
-    void clw_read_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
-    void clw_write_buffer(cl_mem buffer, void *host_ptr, uint64_t size, uint64_t offset, cl_command_queue q);
-
-    //init related
-    cl_platform_id* clw_init_platforms(uint64_t *n);
-    cl_device_id* clw_init_devices(cl_platform_id plat, uint64_t *n);
-    cl_context clw_init_context(cl_device_id *devices, uint64_t ndev);
-    cl_command_queue clw_init_queue(cl_context ctx, cl_device_id device);
-    cl_program clw_init_program_source(cl_context ctx, const char *source);
-    cl_int clw_build_program(cl_program program, uint64_t ndev, cl_device_id *devs, const char *compile_opt);
-    kernel_t clw_init_kernel(cl_program program, const char *name);
-    kernel_t *clw_init_kernels(cl_program program, const char **names, uint64_t n);
-
-    //info related
-    void clw_get_platform_info(FILE *file, cl_platform_id plat, uint64_t iplat);
-    void clw_get_device_info(FILE *file, cl_device_id dev, uint64_t idev);
-    void clw_get_program_build_info(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from clw_build_program returned call
-
-    //queue related
-    void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *global_offset, uint64_t *global, uint64_t *local);
-    void clw_finish(cl_command_queue queue);
-
-    //work related
-    uint64_t clw_get_local_work_device_gcd_1d(uint64_t global, cl_device_id dev);
-    uint64_t clw_get_local_work_gdc_1d(uint64_t global, uint64_t fac);
-    uint64_t *clw_get_local_work_device_gdc_nd(uint64_t ndim, uint64_t *global, cl_device_id dev);
-    uint64_t *clw_get_local_work_gdc_nd(uint64_t ndim, uint64_t *global, uint64_t fac);
-
-    //kernel arg related
-    void clw_set_kernel_arg(kernel_t k, uint64_t argIndex, uint64_t argSize, void *arg);
-
-    //cleaning related
-#endif //__OPENCLW
-
-#ifdef OPENCLWRAPPER_IMPLEMENTATION
+const char *clw_get_error_string(int err) {
+    int err_ = abs(err);                                                        
+    if (err_ >= 30)                                                               
+        err_ = err_ - 10;                                                         
+    return clw_errors[err_];
+}
 
 void clw_print_cl_error_(FILE *f, int err, const char *m, int line, const char *file) {
     if (err != 0) {
