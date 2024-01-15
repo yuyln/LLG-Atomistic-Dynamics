@@ -48,5 +48,6 @@ void grid_from_gpu(grid *g, gpu_cl gpu);
 void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, gpu_cl gpu);
 
 void v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols);
-void grid_full_dump(FILE *f, grid *g);
+void grid_dump(FILE *f, grid *g);
+grid grid_from_file(string_view path);
 #endif

@@ -1,9 +1,12 @@
+#include <errno.h>
 #include <stdint.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "grid_funcs.h"
 #include "constants.h"
+#include "string_view.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
@@ -52,6 +55,7 @@ grid grid_init(unsigned int rows, unsigned int cols) {
             ret.m[row * cols + col] = v3d_s(0);
         }
     }
+    v3d_fill_with_random(ret.m, rows, cols);
 
     return ret;
 }
@@ -164,6 +168,35 @@ void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols) {
             v3d_set_at_loc(v, rows, cols, r, c, v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0))));
 }
 
+void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta) {
+    double R2 = radius * radius;
+    for (int i = row - 2 * radius; i < row + 2 * radius; ++i) {
+        double dy = (double)i - row;
+        int il = ((i % rows) + rows) % rows;
+        for (int j = col - 2 * radius; j < col + 2 * radius; ++j) {
+            int jl = ((j % cols) + cols) % cols;
+
+            double dx = (double)j - col;
+            double r2 = dx * dx + dy * dy;
+
+            double r = sqrt(r2);
+
+            if (r > (2.0 * radius))
+                continue;
+
+            v[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
+
+            if (r != 0) {
+                v[il * cols + jl].x = (-dy * cos(theta) + dx * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
+                v[il * cols + jl].y = (dx * cos(theta) + dy * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
+            } else {
+                v[il * cols + jl].x = 0.0;
+                v[il * cols + jl].y = 0.0;
+            }
+        }
+    }
+}
+
 void grid_free(grid *g) {
     free(g->gp);
     free(g->m);
@@ -241,37 +274,51 @@ void v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols) {
     fwrite(v, rows * cols * sizeof(*v), 1, f);
 }
 
-void grid_full_dump(FILE *f, grid *g) {
+void grid_dump(FILE *f, grid *g) {
     fwrite(&g->gi, sizeof(g->gi), 1, f);
     fwrite(g->gp, sizeof(*g->gp) * g->gi.rows * g->gi.cols, 1, f);
     fwrite(g->m, sizeof(*g->m) * g->gi.rows * g->gi.cols, 1, f);
 }
 
-void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta) {
-    double R2 = radius * radius;
-    for (int i = row - 2 * radius; i < row + 2 * radius; ++i) {
-        double dy = (double)i - row;
-        int il = ((i % rows) + rows) % rows;
-        for (int j = col - 2 * radius; j < col + 2 * radius; ++j) {
-            int jl = ((j % cols) + cols) % cols;
+grid grid_from_file(string_view path) {
+    grid ret = {0};
 
-            double dx = (double)j - col;
-            double r2 = dx * dx + dy * dy;
-
-            double r = sqrt(r2);
-
-            if (r > (2.0 * radius))
-                continue;
-
-            v[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
-
-            if (r != 0) {
-                v[il * cols + jl].x = (-dy * cos(theta) + dx * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
-                v[il * cols + jl].y = (dx * cos(theta) + dy * sin(theta)) * P / r * (1.0 - fabs(v[il * cols + jl].z));
-            } else {
-                v[il * cols + jl].x = 0.0;
-                v[il * cols + jl].y = 0.0;
-            }
-        }
+    string p_ = {0};
+    string_add_sv(&p_, path);
+    FILE *f = fopen(string_as_cstr(&p_), "rb");
+    if (!f) {
+        fprintf(stderr, "[ WARNING ] Could not open file %.*s: %s. Using defaults\n", (int)path.len, path.str, strerror(errno));
+        return grid_init(272, 272);
     }
+    string_free(&p_);
+
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *data = calloc(sz + 1, 1);
+    char *ptr = data;
+    fread(data, sz, 1, f);
+
+    grid_info gi = *((grid_info*)data);
+    ret.gi = gi;
+    ptr += sizeof(grid_info);
+
+    ret.gp = calloc(sizeof(*ret.gp) * gi.rows * gi.cols , 1);
+    ret.m = calloc(sizeof(*ret.m) * gi.rows * gi.cols, 1);
+    ret.on_gpu = false;
+
+    memcpy(ret.gp, ptr, sizeof(*ret.gp) * gi.rows * gi.cols);
+    ptr += sizeof(*ret.gp) * gi.rows * gi.cols;
+
+    memcpy(ret.m, ptr, sizeof(*ret.m) * gi.rows * gi.cols);
+
+    if (!ret.gp || !ret.m) {
+        fprintf(stderr, "[ FATAL ] Could not allocate grid. Buy more ram lol");
+        exit(1);
+    }
+
+    fclose(f);
+    free(data);
+    return ret;
 }

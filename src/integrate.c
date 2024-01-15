@@ -84,7 +84,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
         exit(1);
     }
     string_free(&output_grid_path);
-    grid_full_dump(grid_evolution, g);
+    grid_dump(grid_evolution, g);
 
 
     while (ctx.time <= duration) {
