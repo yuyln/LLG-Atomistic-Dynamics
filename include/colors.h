@@ -1,9 +1,10 @@
 #ifndef __COLORS_H
 #define __COLORS_H
-#include "v3d.h"
-#include "constants.h"
 #include <stdint.h>
 #include <math.h>
+
+#include "v3d.h"
+#include "constants.h"
 
 #ifdef OPENCL_COMPILATION
 #define uint32_t uchar4

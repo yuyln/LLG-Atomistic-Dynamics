@@ -72,6 +72,8 @@ kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d 
     local_info.eletric_field = v3d_scalar(emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * dt);
     local_info.magnetic_field_derivative = emergent_magnetic_field_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.magnetic_field_lattice = emergent_magnetic_field_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.charge_center_x = col * param.gs.lattice * local_info.charge_finite;
+    local_info.charge_center_y = row * param.gs.lattice * local_info.charge_finite;
     info[id] = local_info;
 }
 

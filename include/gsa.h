@@ -1,8 +1,9 @@
 #ifndef __GSA_H
 #define __GSA_H
+#include <stdint.h>
+
 #include "grid_funcs.h"
 #include "string_view.h"
-#include <stdint.h>
 
 #define gsa(g, ...) gsa_param(g, (gsa_parameters){.qA = 2.8,\
                                                   .qV = 2.6,\

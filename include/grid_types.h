@@ -1,8 +1,9 @@
 #ifndef __GRID_H
 #define __GRID_H
 
-#include "v3d.h"
 #include <stdbool.h>
+
+#include "v3d.h"
 
 typedef enum {
     R_ij_CROSS_Z = 0,
@@ -73,6 +74,9 @@ typedef struct {
     v3d magnetic_field_lattice;
     v3d eletric_field;
     v3d avg_m;
+
+    double charge_center_x;
+    double charge_center_y;
 
     double charge_lattice;
     double charge_finite;

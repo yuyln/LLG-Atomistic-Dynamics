@@ -9,6 +9,6 @@ typedef enum {
     LOG_INFO,
 } logging_level;
 
-void logging_log(FILE *f, logging_level level, const char *fmt, ...);
+void logging_log(logging_level level, const char *fmt, ...);
 
 #endif

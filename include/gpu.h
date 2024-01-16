@@ -2,11 +2,13 @@
 #define __GPU_H
 
 #include <stdint.h>
-#include "constants.h"
-#include "openclwrapper.h"
-#include "string_view.h"
 #include <stdarg.h>
 #include <stdio.h>
+
+#include "openclwrapper.h"
+#include "string_view.h"
+#include "constants.h"
+#include "logging.h"
 
 /*#define NUMARGS(...) (sizeof((int[]){__VA_ARGS__})/sizeof(int))
 #define gpu_fill_kernel_args(gpu, kernel, offset, ...) (gpu_fill_kernel_args_base(gpu, kernel, offset, NUMARGS(__VA_ARGS__), __VA_ARGS__))*/

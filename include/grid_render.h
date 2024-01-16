@@ -1,11 +1,12 @@
 #ifndef __GRID_RENDER_H
 #define __GRID_RENDER_H
+#include <stdint.h>
+
 #include "grid_types.h"
 #include "render.h"
 #include "grid_funcs.h"
 #include "gpu.h"
 #include "openclwrapper.h"
-#include <stdint.h>
 
 typedef struct {
     grid *g;

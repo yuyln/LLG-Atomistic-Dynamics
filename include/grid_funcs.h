@@ -1,6 +1,6 @@
 #ifndef __GRID_FUNCS_H
 #define __GRID_FUNCS_H
-#include <stdbool.h>
+
 #include "grid_types.h"
 #include "gpu.h"
 

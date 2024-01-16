@@ -15,38 +15,217 @@ INCEPTION("Compile OPT is assumed to be storing a null terminated string")
 static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt) {
     cl_int err;
     gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source.str, &source.len, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Creating program");
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not create program on GPU %d: %s", err, clw_get_error_string(err));
 
-    printf("[ INFO ] Compile OpenCL Options: %s\n", compile_opt.str);
-    cl_int err_building = clw_build_program(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str);
+    logging_log(LOG_INFO, "Compile OpenCL program with: %.*s\n", (int)compile_opt.len, compile_opt.str);
+
+    cl_int err_building = clBuildProgram(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str, NULL, NULL);
 
     uint64_t size;
-    err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Could not get building log size");
+    if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not get program building log size %d: %s", err, clw_get_error_string(err));
 
     char *info = (char*)calloc(size, 1);
-    err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Error getting building log");
+    if (!info)
+        logging_log(LOG_FATAL, "Could not calloc buffer for program bulding info");
 
-    fprintf(stderr, "---------------------------------\n");
-    fprintf(stderr, "[ INFO ] BUILD LOG: \n%s\n", info);
-    fprintf(stderr, "---------------------------------\n");
+    if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not get program building info %d: %s", err, clw_get_error_string(err));
+
+    logging_log(LOG_INFO, "Build Log: \n%s\n", info);
     free(info);
-    clw_print_cl_error(stderr, err_building, "[ FATAL ] Could not build the program");
+
+    if (err_building != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not build the program on GPU %d: %s", err_building, clw_get_error_string(err_building));
+}
+
+static cl_platform_id *gpu_cl_get_platforms(uint64_t *n) {
+    //disable cache
+    #if defined(unix) || defined(__unix) || defined(__unix)
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
+    _putenv_s("CUDA_CACHE_DISABLE", "1");
+    #elif defined(__APPLE__) || defined(__MACH__)
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #endif
+
+    cl_uint nn;
+    cl_int err = clGetPlatformIDs(0, NULL, &nn);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not find number of platforms %d: %s", err, clw_get_error_string(err));
+    *n = nn;
+
+    cl_platform_id *local = calloc(sizeof(cl_platform_id) * nn, 1);
+    if (!local)
+        logging_log(LOG_FATAL, "Could not allocate for platform ids");
+
+    err = clGetPlatformIDs(nn, local, NULL);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not init %u platforms %d: %s", (unsigned int)nn, err, clw_get_error_string(err));
+    return local;
+}
+
+static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
+    uint64_t n;
+    char *info = NULL;
+    cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
+
+    if (err != CL_SUCCESS) {
+        logging_log(LOG_ERROR, "Could not get platform [%u] name size %d: %s", iplat, err, clw_get_error_string(err));
+        goto defer;
+    }
+
+    info = calloc(n, 1);
+    if (!info) {
+        logging_log(LOG_ERROR, "Could not calloc buffer for platform [%u] name", iplat);
+        goto defer;
+    }
+
+    if ((err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS) {
+        logging_log(LOG_ERROR, "Could not get platform [%u] name %d: %s", iplat, err, clw_get_error_string(err));
+        goto defer;
+    }
+
+    logging_log(LOG_INFO, "Platform[%zu] name: %s", iplat, info);
+
+defer:
+    free(info);
+}
+
+static cl_device_id *gpu_cl_get_devices(cl_platform_id plat, uint64_t *n) {
+    cl_uint nn;
+    cl_int err;
+    if ((err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &nn)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not find number of devices %d: %s", err, clw_get_error_string(err));
+    *n = nn;
+
+    cl_device_id *local = calloc(sizeof(cl_device_id) * nn, 1);
+    if (!local)
+        logging_log(LOG_FATAL, "Could not calloc for store devices");
+    if ((err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, nn, local, NULL)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not initialize devices");
+    return local;
+}
+
+static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
+    uint64_t n;
+    cl_platform_id plt;
+    cl_int err;
+    char *info = NULL;
+
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plt, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Platform from Device[%u]", idev);
+    else {
+        if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, 0, NULL, &n)) != CL_SUCCESS)
+            logging_log(LOG_ERROR, "Could not get Platform name from Device[%u]", idev);
+        else {
+            char *info = calloc(n, 1);
+            if (!info)
+                logging_log(LOG_FATAL, "Could not calloc for platform name");
+
+            if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get platform name for device[%u]", idev);
+            else
+                logging_log(LOG_INFO, "Device[%u] on Platform %s", idev, info);
+
+            free(info);
+            info = NULL;
+        }
+    }
+
+
+
+    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n);
+    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VENDOR INFO", idev);
+    info = (char*)CLW_ALLOC(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VENDOR INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] VENDOR: %s", idev, info);
+    free(info);
+
+    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n);
+    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VERSION INFO", idev);
+    info = (char*)CLW_ALLOC(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VERSION INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] VERSION: %s", idev, info);
+    free(info);
+
+    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n);
+    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] DRIVER VERSION INFO", idev);
+    info = (char*)CLW_ALLOC(n);
+    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] DRIVER VERSION INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] DRIVER VERSION: %s", idev, info);
+    free(info);
+
+    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n);
+    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] NAME INFO", idev);
+    info = (char*)CLW_ALLOC(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] NAME INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] NAME: %s", idev, info);
+
+    cl_bool device_avaiable;
+    err = clGetDeviceInfo(dev, CL_DEVICE_AVAILABLE, sizeof(cl_bool), &device_avaiable, NULL);
+    logging_log(LOG_INFO, "DEVICE[%zu] AVAILABLE: %d", idev, device_avaiable);
+
+    cl_ulong memsize;
+    err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] GLOBAL MEM: %.4f MB", idev, memsize / (1e6));
+
+
+    cl_ulong meCLW_ALLOC;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &meCLW_ALLOC, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] ALLOCATABLE MEM: %.4f MB", idev, meCLW_ALLOC / (1e6));
+
+    cl_uint maxcomp;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] COMPUTE UNITS INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] COMPUTE UNITS: %u", idev, maxcomp);
+
+    uint64_t maxworgroup;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &maxworgroup, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] MAX WORK GROUP SIZE: %zu", idev, maxworgroup);
+
+    cl_uint dimension;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &dimension, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
+    logging_log(LOG_INFO, "DEVICE[%zu] MAX DIMENSIONS: %u", idev, dimension);
+
+    uint64_t *dim_size = (uint64_t*)CLW_ALLOC(sizeof(uint64_t) * dimension);
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL);
+    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP PER DIMENSION", idev);
+
+    logging_log(LOG_INFO, "DEVICE[%zu] MAX WORK GROUP SIZE PER DIMENSION: {", idev);
+
+    for (uint64_t i = 0; i < dimension - 1; ++i) {
+        logging_log(LOG_INFO, "%zu, ", dim_size[i]);
+    }
+    uint64_t i = dimension - 1;
+    logging_log(LOG_INFO, "%zu}", dim_size[i]);
+    free(dim_size);
+
+defer:
+    free(info);
 }
 
 gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
     gpu_cl ret = {0};
-    ret.platforms = clw_init_platforms(&ret.n_platforms);
+    ret.platforms = gpu_cl_get_platforms(&ret.n_platforms);
     p_id = p_id % ret.n_platforms;
 
     for (uint64_t i = 0; i < ret.n_platforms; ++i)
-        clw_get_platform_info(stdout, ret.platforms[i], i);
+        gpu_cl_get_platform_info(ret.platforms[i], i);
 
-    ret.devices = clw_init_devices(ret.platforms[p_id], &ret.n_devices);
+    ret.devices = gpu_cl_get_devices(ret.platforms[p_id], &ret.n_devices);
     d_id = d_id % ret.n_devices;
     for (uint64_t i = 0; i < ret.n_devices; ++i)
-        clw_get_device_info(stdout, ret.devices[i], i);
+        gpu_cl_get_device_info(ret.devices[i], i);
 
     ret.ctx = clw_init_context(ret.devices, ret.n_devices);
 #ifndef PROFILING

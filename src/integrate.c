@@ -2,6 +2,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #include "kernel_funcs.h"
+#include "logging.h"
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     integrate_context ctx = {0};
@@ -67,12 +68,13 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     }
     string_free(&output_info_path);
 
-    fprintf(output_info, "time(s),energy(eV),exchange_energy(eV),dm_energy(eV),field_energy(eV),anisotropy_energy(eV),cubic_anisotropy_energy(eV),");
+    fprintf(output_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
     fprintf(output_info, "charge_finite,charge_lattice,");
     fprintf(output_info, "avg_mx,avg_my,avg_mz,");
-    fprintf(output_info, "eletric_x,eletric_y,eletric_z,");
-    fprintf(output_info, "magnetic_lattice_x,magnetic_lattice_y,magnetic_lattice_z,");
-    fprintf(output_info, "magnetic_derivative_x,magnetic_derivative_y,magnetic_derivative_z\n");
+    fprintf(output_info, "eletric_x(V/m),eletric_y(V/m),eletric_z(V/m),");
+    fprintf(output_info, "magnetic_lattice_x(T),magnetic_lattice_y(T),magnetic_lattice_z(T),");
+    fprintf(output_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
+    fprintf(output_info, "charge_center_x(m),charge_center_y(m)\n");
 
     string output_grid_path = (string){0};
     string_add_sv(&output_grid_path, dir_out);
@@ -85,6 +87,8 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     }
     string_free(&output_grid_path);
     grid_dump(grid_evolution, g);
+
+    uint64_t expected_steps = duration / dt;
 
 
     while (ctx.time <= duration) {
@@ -108,13 +112,16 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
                 info_local.eletric_field = v3d_sum(info_local.eletric_field , info[i].eletric_field);
                 info_local.magnetic_field_lattice = v3d_sum(info_local.magnetic_field_lattice, info[i].magnetic_field_lattice);
                 info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, info[i].magnetic_field_derivative);
+                info_local.charge_center_x += info[i].charge_center_x;
+                info_local.charge_center_y += info[i].charge_center_y;
             }
             fprintf(output_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", ctx.time, info_local.energy, info_local.exchange_energy, info_local.dm_energy, info_local.field_energy, info_local.anisotropy_energy, info_local.cubic_energy);
             fprintf(output_info, "%.15e,%.15e,", info_local.charge_finite, info_local.charge_lattice);
             fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.avg_m.x, info_local.avg_m.y, info_local.avg_m.z);
             fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.eletric_field.x, info_local.eletric_field.y, info_local.eletric_field.z);
             fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.magnetic_field_lattice.x, info_local.magnetic_field_lattice.y, info_local.magnetic_field_lattice.z);
-            fprintf(output_info, "%.15e,%.15e,%.15e\n", info_local.magnetic_field_derivative.x, info_local.magnetic_field_derivative.y, info_local.magnetic_field_derivative.z);
+            fprintf(output_info, "%.15e,%.15e,%.15e,", info_local.magnetic_field_derivative.x, info_local.magnetic_field_derivative.y, info_local.magnetic_field_derivative.z);
+            fprintf(output_info, "%.15e,%.15e\n", info_local.charge_center_x / info_local.charge_finite, info_local.charge_center_y / info_local.charge_finite);
         }
 
         if (step % interval_grid == 0) {
@@ -122,11 +129,14 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
             v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
         }
 
+        if (step % (expected_steps / 100) == 0)
+            logging_log(LOG_INFO, "%.3es - %.2f%%", ctx.time, ctx.time / duration * 100.0);
+
         integrate_exchange_grids(&ctx);
         ctx.time += dt;
         step++;
     }
-    printf("Steps: %d\n", (int)step);
+    logging_log(LOG_INFO, "Steps: %d", step);
     fclose(output_info);
 
     v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
