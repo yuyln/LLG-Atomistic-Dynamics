@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #include "gpu.h"
@@ -26,9 +27,9 @@ static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view c
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not get program building log size %d: %s", err, clw_get_error_string(err));
 
-    char *info = (char*)calloc(size, 1);
+    char *info = calloc(size, 1);
     if (!info)
-        logging_log(LOG_FATAL, "Could not calloc buffer for program bulding info");
+        logging_log(LOG_FATAL, "Could not calloc[%u bytes] buffer for program bulding info: %s", size, strerror(errno));
 
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not get program building info %d: %s", err, clw_get_error_string(err));
@@ -58,11 +59,11 @@ static cl_platform_id *gpu_cl_get_platforms(uint64_t *n) {
 
     cl_platform_id *local = calloc(sizeof(cl_platform_id) * nn, 1);
     if (!local)
-        logging_log(LOG_FATAL, "Could not allocate for platform ids");
+        logging_log(LOG_FATAL, "Could not allocate[%"PRIu64" bytes] for platform ids: %s", sizeof(cl_platform_id) * nn, strerror(errno));
 
     err = clGetPlatformIDs(nn, local, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not init %u platforms %d: %s", (unsigned int)nn, err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", (unsigned int)nn, err, clw_get_error_string(err));
     return local;
 }
 
@@ -72,18 +73,18 @@ static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
     cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
 
     if (err != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not get platform [%u] name size %d: %s", iplat, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name size %d: %s", iplat, err, clw_get_error_string(err));
         goto defer;
     }
 
     info = calloc(n, 1);
     if (!info) {
-        logging_log(LOG_ERROR, "Could not calloc buffer for platform [%u] name", iplat);
+        logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] buffer for platform ["PRIu64"] name: %s", n, iplat, strerror(errno));
         goto defer;
     }
 
     if ((err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not get platform [%u] name %d: %s", iplat, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name %d: %s", iplat, err, clw_get_error_string(err));
         goto defer;
     }
 
@@ -102,9 +103,9 @@ static cl_device_id *gpu_cl_get_devices(cl_platform_id plat, uint64_t *n) {
 
     cl_device_id *local = calloc(sizeof(cl_device_id) * nn, 1);
     if (!local)
-        logging_log(LOG_FATAL, "Could not calloc for store devices");
+        logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for store devices: %s", sizeof(cl_device_id) * nn, strerror(errno));
     if ((err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, nn, local, NULL)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not initialize devices");
+        logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, clw_get_error_string(err));
     return local;
 }
 
@@ -115,103 +116,139 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     char *info = NULL;
 
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plt, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Platform from Device[%u]", idev);
+        logging_log(LOG_ERROR, "Could not get Platform from Device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
     else {
         if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, 0, NULL, &n)) != CL_SUCCESS)
-            logging_log(LOG_ERROR, "Could not get Platform name from Device[%u]", idev);
+            logging_log(LOG_ERROR, "Could not get Platform name from Device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
         else {
             char *info = calloc(n, 1);
             if (!info)
-                logging_log(LOG_FATAL, "Could not calloc for platform name");
+                logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for platform name: %s", n, strerror(errno));
 
             if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get platform name for device[%u]", idev);
+                logging_log(LOG_ERROR, "Could not get platform name for device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
             else
-                logging_log(LOG_INFO, "Device[%u] on Platform %s", idev, info);
+                logging_log(LOG_INFO, "Device[%"PRIu64"] on Platform %s", idev, info);
 
             free(info);
             info = NULL;
         }
     }
 
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor Size %d: %s", idev, err, clw_get_error_string(err));
+    else {
+        info = calloc(n, 1);
+        if (!info)
+            logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Vendor: %s", n, idev, strerror(errno));
+        else {
+            if ((err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor info %d: %s", idev, err, clw_get_error_string(err));
+            else
+                logging_log(LOG_INFO, "Device[%"PRIu64"] Vendor: %s", idev, info);
+        }
+        free(info);
+    }
 
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, clw_get_error_string(err));
+    else {
+        info = calloc(n, 1);
+        if (!info)
+            logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Version: %s", n, idev, strerror(errno));
+        else {
+            if ((err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, clw_get_error_string(err));
+            else
+                logging_log(LOG_INFO, "Device[%"PRIu64"] Version: %s", idev, info);
+        }
+        free(info);
+    }
 
-    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n);
-    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VENDOR INFO", idev);
-    info = (char*)CLW_ALLOC(n);
-    err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VENDOR INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] VENDOR: %s", idev, info);
-    free(info);
+    if ((err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, clw_get_error_string(err));
+    else {
+        info = calloc(n, 1);
+        if (!info)
+            logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Driver Version: %s", n, idev, strerror(errno));
+        else {
+            if ((err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, clw_get_error_string(err));
+            else
+                logging_log(LOG_INFO, "Device[%"PRIu64"] Driver Version: %s", idev, info);
+        }
+        free(info);
+    }
 
-    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n);
-    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] VERSION INFO", idev);
-    info = (char*)CLW_ALLOC(n);
-    err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] VERSION INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] VERSION: %s", idev, info);
-    free(info);
-
-    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n);
-    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] DRIVER VERSION INFO", idev);
-    info = (char*)CLW_ALLOC(n);
-    err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] DRIVER VERSION INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] DRIVER VERSION: %s", idev, info);
-    free(info);
-
-    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n);
-    clw_print_cl_error(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] NAME INFO", idev);
-    info = (char*)CLW_ALLOC(n);
-    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] NAME INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] NAME: %s", idev, info);
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, clw_get_error_string(err));
+    else {
+        info = calloc(n, 1);
+        if (!info)
+            logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Name: %s", n, idev, strerror(errno));
+        else {
+            if ((err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, clw_get_error_string(err));
+            else
+                logging_log(LOG_INFO, "Device[%"PRIu64"] Name: %s", idev, info);
+        }
+        free(info);
+    }
 
     cl_bool device_avaiable;
-    err = clGetDeviceInfo(dev, CL_DEVICE_AVAILABLE, sizeof(cl_bool), &device_avaiable, NULL);
-    logging_log(LOG_INFO, "DEVICE[%zu] AVAILABLE: %d", idev, device_avaiable);
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_AVAILABLE, sizeof(cl_bool), &device_avaiable, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get if Device[%"PRIu64"] is available %d: %s", idev, err, clw_get_error_string(err));
+    else
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Available: %d", idev, device_avaiable);
 
     cl_ulong memsize;
-    err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] GLOBAL MEM: %.4f MB", idev, memsize / (1e6));
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] memory size %d: %s", idev, err, clw_get_error_string(err));
+    else
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Global Memory: %.4f MB", idev, memsize / (1.0e6));
 
 
-    cl_ulong meCLW_ALLOC;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &meCLW_ALLOC, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] ALLOCATABLE MEM: %.4f MB", idev, meCLW_ALLOC / (1e6));
+    cl_ulong mem_allocable;
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &mem_allocable, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] allocable memory %d: %s", idev, err, clw_get_error_string(err));
+    else
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Allocatable Memory: %.4f MB", idev, mem_allocable / (1.0e6));
 
     cl_uint maxcomp;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] COMPUTE UNITS INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] COMPUTE UNITS: %u", idev, maxcomp);
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max compute units %d: %s", idev, err, clw_get_error_string(err));
+    else
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Compute Units: %"PRIu64"", idev, maxcomp);
 
     uint64_t maxworgroup;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &maxworgroup, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] MAX WORK GROUP SIZE: %zu", idev, maxworgroup);
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &maxworgroup, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] work group size %d: %s", idev, err, clw_get_error_string(err));
+    else
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Max Work Group Size: %"PRIu64"", idev, maxworgroup);
 
     cl_uint dimension;
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &dimension, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
-    logging_log(LOG_INFO, "DEVICE[%zu] MAX DIMENSIONS: %u", idev, dimension);
+    if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &dimension, NULL)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work item dimensions %d: %s", idev, err, clw_get_error_string(err));
+    else {
+        logging_log(LOG_INFO, "Device[%"PRIu64"] Max Dimension: %"PRIu64"", idev, dimension);
 
-    uint64_t *dim_size = (uint64_t*)CLW_ALLOC(sizeof(uint64_t) * dimension);
-    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL);
-    clw_print_cl_error(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP PER DIMENSION", idev);
+        uint64_t dim_size[dimension];
+        if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL)) != CL_SUCCESS)
+            logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work items per dimension %d: %s", idev, err, clw_get_error_string(err));
+        else {
+            char buffer[1024] = {0};
+            char *ptr = buffer;
+            int adv = 0;
 
-    logging_log(LOG_INFO, "DEVICE[%zu] MAX WORK GROUP SIZE PER DIMENSION: {", idev);
+            for (uint64_t i = 0; i < dimension - 1; ++i)
+                adv += snprintf(ptr + adv, 1023 - adv, "%"PRIu64", ", dim_size[i]);
 
-    for (uint64_t i = 0; i < dimension - 1; ++i) {
-        logging_log(LOG_INFO, "%zu, ", dim_size[i]);
+            uint64_t i = dimension - 1;
+            adv += snprintf(ptr + adv, 1023 - adv, "%"PRIu64"", dim_size[i]);
+
+            logging_log(LOG_INFO, "Device[%"PRIu64"] Max Work Items Per Dimension: {%s]", idev, buffer);
+        }
     }
-    uint64_t i = dimension - 1;
-    logging_log(LOG_INFO, "%zu}", dim_size[i]);
-    free(dim_size);
-
-defer:
-    free(info);
 }
 
 gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {

@@ -222,14 +222,14 @@ int main(void) {
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
 
-    int n_stripes = 8;
+    int n_stripes = 4;
     v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / n_stripes / 2.0, -1.0, 1.0, M_PI / 2.0);
 
     for (int i = 1; i <= n_stripes; ++i) {
         double a;
         if (i % 2 == 1) a = 0.02 * QE * 1.0e-3;
         if (i % 2 == 0) a = 0.05 * QE * 1.0e-3;
-        int stripe_size = 28;
+        int stripe_size = cols / n_stripes;
 
         int start = (i - 1) * stripe_size;
         int end = i * stripe_size;
@@ -260,7 +260,7 @@ int main(void) {
                                           "double osc1c = cos(k1 * gs.row - w * time);\n"\
                                           "double osc2s = sin(k2 * gs.row - w * time);\n"\
                                           "double osc2c = cos(k2 * gs.row - w * time);\n"\
-                                          "return v3d_c(0.0, 0.0, real * (1.0 + 0.5 * osc1c + 0.2 * osc2c));");
+                                          "return v3d_c(0.0, real * (0.0 * osc1s + 0.5 * osc2s), real);");
 
     string_view temperature_func = sv_from_cstr("return 0.0 / (time / NS + EPS);");
 
