@@ -300,7 +300,7 @@ void clw_enqueue_nd(cl_command_queue queue, kernel_t k, uint64_t dim, uint64_t *
     clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(start), &start, &size), "[ FATAL ] Could not retrieve submit information from profiling \"%s\"", k.name);
     clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size), "[ FATAL ] Could not retrieve complete information from profiling \"%s\"", k.name);
     duration = end - start;
-    fprintf(stdout, "%s Spent %e us\n", k.name, (double)duration / 1000.0);
+    fprintf(stdout, "%s: %e us\n", k.name, (double)duration / 1000.0);
     clReleaseEvent(ev);
 #else
     cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, NULL);

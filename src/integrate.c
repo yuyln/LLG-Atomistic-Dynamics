@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include "integrate.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -30,6 +31,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
 }
 
 void integrate_context_close(integrate_context *ctx) {
+    grid_from_gpu(ctx->g, *ctx->gpu);
     clw_print_cl_error(stderr, clReleaseMemObject(ctx->swap_buffer), "[ FATAL ] Could not release ctx swap buffer from GPU");
 }
 
@@ -88,8 +90,8 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     string_free(&output_grid_path);
     grid_dump(grid_evolution, g);
 
-    uint64_t expected_steps = duration / dt;
-
+    uint64_t expected_steps = duration / dt + 1;
+    logging_log(LOG_INFO, "Expected integration steps: %"PRIu64, expected_steps);
 
     while (ctx.time <= duration) {
         integrate_step(&ctx);

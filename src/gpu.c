@@ -19,7 +19,7 @@ static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view c
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not create program on GPU %d: %s", err, clw_get_error_string(err));
 
-    logging_log(LOG_INFO, "Compile OpenCL program with: %.*s\n", (int)compile_opt.len, compile_opt.str);
+    logging_log(LOG_INFO, "Compile OpenCL program with: %.*s", (int)compile_opt.len, compile_opt.str);
 
     cl_int err_building = clBuildProgram(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str, NULL, NULL);
 
@@ -34,14 +34,14 @@ static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view c
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not get program building info %d: %s", err, clw_get_error_string(err));
 
-    logging_log(LOG_INFO, "Build Log: \n%s\n", info);
+    logging_log(LOG_INFO, "Build Log: \n%s", info);
     free(info);
 
     if (err_building != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not build the program on GPU %d: %s", err_building, clw_get_error_string(err_building));
 }
 
-static cl_platform_id *gpu_cl_get_platforms(uint64_t *n) {
+void gpu_cl_get_platforms(gpu_cl *gpu) {
     //disable cache
     #if defined(unix) || defined(__unix) || defined(__unix)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
@@ -55,16 +55,15 @@ static cl_platform_id *gpu_cl_get_platforms(uint64_t *n) {
     cl_int err = clGetPlatformIDs(0, NULL, &nn);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not find number of platforms %d: %s", err, clw_get_error_string(err));
-    *n = nn;
+    gpu->n_platforms = nn;
 
-    cl_platform_id *local = calloc(sizeof(cl_platform_id) * nn, 1);
-    if (!local)
+    gpu->platforms = calloc(sizeof(cl_platform_id) * nn, 1);
+    if (!gpu->platforms)
         logging_log(LOG_FATAL, "Could not allocate[%"PRIu64" bytes] for platform ids: %s", sizeof(cl_platform_id) * nn, strerror(errno));
 
-    err = clGetPlatformIDs(nn, local, NULL);
+    err = clGetPlatformIDs(nn, gpu->platforms, NULL);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", (unsigned int)nn, err, clw_get_error_string(err));
-    return local;
 }
 
 static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
@@ -94,19 +93,18 @@ defer:
     free(info);
 }
 
-static cl_device_id *gpu_cl_get_devices(cl_platform_id plat, uint64_t *n) {
+static void gpu_cl_get_devices(gpu_cl *gpu) {
     cl_uint nn;
     cl_int err;
-    if ((err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &nn)) != CL_SUCCESS)
+    if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, 0, NULL, &nn)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not find number of devices %d: %s", err, clw_get_error_string(err));
-    *n = nn;
+    gpu->n_devices = nn;
 
-    cl_device_id *local = calloc(sizeof(cl_device_id) * nn, 1);
-    if (!local)
+    gpu->devices = calloc(sizeof(cl_device_id) * nn, 1);
+    if (!gpu->devices)
         logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for store devices: %s", sizeof(cl_device_id) * nn, strerror(errno));
-    if ((err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, nn, local, NULL)) != CL_SUCCESS)
+    if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, nn, gpu->devices, NULL)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, clw_get_error_string(err));
-    return local;
 }
 
 static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
@@ -251,32 +249,40 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     }
 }
 
-gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
-    gpu_cl ret = {0};
-    ret.platforms = gpu_cl_get_platforms(&ret.n_platforms);
-    p_id = p_id % ret.n_platforms;
+static void gpu_cl_init_context(gpu_cl *gpu) {
+    cl_int err;
+    gpu->ctx = clCreateContext(NULL, gpu->n_devices, gpu->devices, NULL, NULL, &err);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not create context on GPU %d: %s", err, clw_get_error_string(err));
+}
 
-    for (uint64_t i = 0; i < ret.n_platforms; ++i)
-        gpu_cl_get_platform_info(ret.platforms[i], i);
-
-    ret.devices = gpu_cl_get_devices(ret.platforms[p_id], &ret.n_devices);
-    d_id = d_id % ret.n_devices;
-    for (uint64_t i = 0; i < ret.n_devices; ++i)
-        gpu_cl_get_device_info(ret.devices[i], i);
-
-    ret.ctx = clw_init_context(ret.devices, ret.n_devices);
-#ifndef PROFILING
-    ret.queue = clw_init_queue(ret.ctx, ret.devices[d_id]);
-#else
+static void gpu_cl_init_queue(gpu_cl *gpu) {
     cl_int err;
     cl_queue_properties properties[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
         0
     };
 
-    ret.queue = clCreateCommandQueueWithProperties(ret.ctx, ret.devices[d_id], properties, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Could not create command queue");
-#endif
+    gpu->queue = clCreateCommandQueueWithProperties(gpu->ctx, gpu->devices[d_id], properties, &err);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not create command queue with profiling properties");
+}
+
+gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
+    gpu_cl ret = {0};
+    gpu_cl_get_platforms(&ret);
+    p_id = p_id % ret.n_platforms;
+
+    for (uint64_t i = 0; i < ret.n_platforms; ++i)
+        gpu_cl_get_platform_info(ret.platforms[i], i);
+
+    gpu_cl_get_devices(&ret);
+    d_id = d_id % ret.n_devices;
+    for (uint64_t i = 0; i < ret.n_devices; ++i)
+        gpu_cl_get_device_info(ret.devices[i], i);
+
+    gpu_cl_init_context(&ret);
+    gpu_cl_init_queue(&ret);
 
     const char cmp[] = "-DOPENCL_COMPILATION";
     string kernel = fill_functions_on_kernel(current_function, field_function, temperature_function, kernel_augment);

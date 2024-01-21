@@ -81,7 +81,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
-    int state = 'h';
+    int state = 'b';
 
     double time_for_print = 1.0;
     double stopwatch_print = -1.0;
@@ -209,22 +209,35 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper error handling
 int main(void) {
-    int rows = 128;
-    int cols = 128;
-    double dt = HBAR / (1.0e-3 * QE) * 0.01;
     grid g = {0};
-    g = grid_init(rows, cols);
+    //g = grid_init(rows, cols);
 
-    for (int r = 0; r < rows; ++r)
-        for (int c = 0; c < cols; ++c)
-            g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
+    if (!grid_from_file(sv_from_cstr("./grid.grid"), &g)) {
+        logging_log(LOG_WARNING, "Could not read ./grid.grid, falling back do defaults");
+        int rows = 512;
+        int cols = 512;
+        g = grid_init(rows, cols);
+        for (int r = 0; r < rows; ++r)
+            for (int c = 0; c < cols; ++c)
+                g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
 
-    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
-    grid_set_dm(&g, 0.18 * QE * 1.0e-3, 0.0, R_ij_CROSS_Z);
+        double J = 1.0e-3 * QE;
+        grid_set_exchange(&g, J);
+        grid_set_dm(&g, 0.18 * J, 0.0, R_ij);
+        grid_set_alpha(&g, 0.3);
+        grid_set_anisotropy(&g, (anisotropy){.ani = 0.00 * J, .dir = v3d_c(0.0, 0.0, 1.0)});
+        grid_set_mu(&g, HBAR * g.gp->gamma);
+        logging_log(LOG_INFO, "Gamma: %e", g.gp->gamma);
+        grid_set_lattice(&g, 0.5e-9);
+        g.gi.pbc.pbc_x = true;
+        g.gi.pbc.pbc_y = true;
 
+        v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 15, rows / 2.0, cols / 2.0, -1.0, 1.0, 0.0);
+        v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / 2.0, 1.0, 1.0, 0.0);
+    }
+    double dt = 0.01 * HBAR / (g.gp->exchange);
+#if 0
     int n_stripes = 4;
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / n_stripes / 2.0, -1.0, 1.0, M_PI / 2.0);
-
     for (int i = 1; i <= n_stripes; ++i) {
         double a;
         if (i % 2 == 1) a = 0.02 * QE * 1.0e-3;
@@ -239,44 +252,52 @@ int main(void) {
                 grid_set_anisotropy_loc(&g, r, c, (anisotropy){.ani = a, .dir = v3d_c(0.0, 0.0, 1.0)});
 
     }
+#endif
 
-    //if (!grid_from_file(sv_from_cstr("./grid.grid"), &g))
-        //return 1;
 
     string_view current_func = sv_from_cstr("current ret = (current){};\n"\
-                                             "ret.type = CUR_STT;\n"\
-                                             "ret.stt.j = v3d_c(5.0e10, 0.0, 0.0);\n"\
-                                             "ret.stt.beta = 0.0;\n"\
-                                             "ret.stt.polarization = -1.0;\n"\
-                                             "return ret;");
+                                            "//return ret;\n"\
+                                            "ret.type = CUR_STT;\n"\
+                                            "ret.stt.j = v3d_c(5.0e10, 0.0, 0.0);\n"\
+                                            "ret.stt.beta = 0.0;\n"\
+                                            "ret.stt.polarization = -1.0;\n"\
+                                            "return ret;");
 
-    string_view field_func = sv_from_cstr("double normalized = 0.5;\n"\
-                                          "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
-                                          "double k1 = 1.0 * 2.0 * M_PI / 64.0;\n"\
-                                          "double k2 = 2.0 * 2.0 * M_PI / 64.0;\n"\
-                                          "double T = 10.0 * NS;\n"\
-                                          "double w = 2.0 * M_PI / T;\n"\
-                                          "double osc1s = sin(k1 * gs.row - w * time);\n"\
-                                          "double osc1c = cos(k1 * gs.row - w * time);\n"\
-                                          "double osc2s = sin(k2 * gs.row - w * time);\n"\
-                                          "double osc2c = cos(k2 * gs.row - w * time);\n"\
-                                          "return v3d_c(0.0, real * (0.0 * osc1s + 0.5 * osc2s), real);");
+    /*string_view field_func = sv_from_cstr("double hz = 0.015;\n"\
+                                          "double factor = gs.exchange / gs.mu;\n"\
+                                          "double w = 16.4e9 * 2.0 * M_PI;\n"\
+                                          "double osc = 0.003 * (sin(w * time) + sin(2.0 * w * time));\n"\
+                                          "return v3d_c(osc * factor, 0.0, hz * factor);");*/
+    
+    string_view field_func = sv_from_cstr("double Hz = 0.02 * gs.exchange / gs.mu;\n"\
+                                          "double Hy = 0.004 * gs.exchange / gs.mu;\n"\
+                                          "double w = 0.017 * gs.exchange / HBAR;\n"\
+                                          "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\
+                                          "//if (gs.col == 0 && gs.row == 0) printf(\"Hz=%e Hy=%e w=%e h=%e f=%e\\n\", Hz, Hy, w, h, w / (2.0 * M_PI));\n"\
+                                          "return v3d_c(0.0, 0.0, Hz);");
 
-    string_view temperature_func = sv_from_cstr("return 0.0 / (time / NS + EPS);");
+    /*string_view field_func = sv_from_cstr("double H = 0.5 * gs.dm * gs.dm / gs.exchange / gs.mu; //50e-3;\n"\
+                                          "double w = 8.0e9 * 2.0 * M_PI;\n"\
+                                          "double theta = M_PI / 4.0;\n"\
+                                          "double osc = sin(w * time);\n"\
+                                          "return v3d_c(0.0, 0.0, H);");*/
+
+    string_view temperature_func = sv_from_cstr("return 0.0;");
 
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
 
-    //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
+    //integrate(&g, .dt = dt, .duration = 6.0e4 * HBAR / g.gp->exchange, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile, .interval_for_information=500);
 
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
     //run_gradient_descent(&g, &gpu, 1.0e-1);
+    logging_log(LOG_INFO, "Integration dt: %e", dt);
     run_integration(&g, &gpu, dt);
 
-    FILE *f = fopen("./grid.grid", "wb");
-    grid_dump(f, &g);
-    fclose(f);
+    //FILE *f = fopen("./grid.grid", "wb");
+    //grid_dump(f, &g);
+    //fclose(f);
     grid_free(&g);
     return 0;
 }

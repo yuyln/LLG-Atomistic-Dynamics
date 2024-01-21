@@ -15,5 +15,6 @@
 #include "complete_kernel.h"
 #include "kernel_funcs.h"
 #include "gsa.h"
+#include "logging.h"
 
 #endif

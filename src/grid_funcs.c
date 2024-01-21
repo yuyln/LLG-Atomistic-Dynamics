@@ -297,10 +297,16 @@ bool grid_from_file(string_view path, grid *g) {
     char *data = NULL;
     bool ret = true;
 
+    if (!g)
+        logging_log(LOG_FATAL, "NULL pointer to grid provided");
+
+    if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows)
+        logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
+
     if (!f) {
         logging_log(LOG_WARNING, "Could not open file %.*s: %s. Using defaults", (int)path.len, path.str, strerror(errno));
         *g = grid_init(272, 272);
-        return true;
+        return false;
     }
     string_free(&p_);
 
