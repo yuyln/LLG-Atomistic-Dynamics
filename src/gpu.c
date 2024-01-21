@@ -324,12 +324,15 @@ static void gpu_cl_init_context(gpu_cl *gpu) {
 
 static void gpu_cl_init_queue(gpu_cl *gpu) {
     cl_int err;
-    cl_queue_properties properties[] = {
+#ifdef _WIN32
+    gpu->queue = clCreateCommandQueue(gpu->ctx, gpu->devices[d_id], CL_QUEUE_PROFILING_ENABLE, &err);
+#else
+    cl_command_queue_properties properties[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
         0
     };
-
     gpu->queue = clCreateCommandQueueWithProperties(gpu->ctx, gpu->devices[d_id], properties, &err);
+#endif
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not create command queue with profiling properties");
 }

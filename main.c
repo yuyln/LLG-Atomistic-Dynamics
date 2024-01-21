@@ -11,7 +11,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     window_init("GSA", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
-    gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 10.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
+    gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 10.0, .inner_steps=700000, .print_factor=10);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -269,7 +269,7 @@ int main(void) {
                                           "double osc = 0.003 * (sin(w * time) + sin(2.0 * w * time));\n"\
                                           "return v3d_c(osc * factor, 0.0, hz * factor);");*/
     
-    string_view field_func = sv_from_cstr("double Hz = 0.5 * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
+    string_view field_func = sv_from_cstr("double Hz = 0.5 * gs.dm * gs.dm / 1.0 / gs.mu;\n"\
                                           "double Hy = 0.004 * gs.exchange / gs.mu;\n"\
                                           "double w = 0.017 * gs.exchange / HBAR;\n"\
                                           "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\
@@ -292,7 +292,7 @@ int main(void) {
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
     logging_log(LOG_INFO, "Integration dt: %e", dt);
-    run_gsa(&g, &gpu);
+    //run_gsa(&g, &gpu);
     run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 

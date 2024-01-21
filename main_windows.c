@@ -161,9 +161,6 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     //window_close(window);
 }
 
-//@TODO: Check uint64_t->int changes
-//@TODO: Do 3D
-//@TODO: Clear everything on integrate context and gsa context(done?)
 int main(void) {
     int rows = 128;
     int cols = 128;
@@ -205,23 +202,4 @@ int main(void) {
 
     grid_free(&g);
     return 0;
-}
-
-#include "render.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-int main3(void) {
-    window_init("teste", 800, 800);
-    RGBA32 *t = calloc(800 * 800, sizeof(RGBA32));
-    for (int i = 0; i < 800 * 800; ++i)
-        t[i] = (RGBA32){.x=0, .y=0, .z=255, .w=255};
-    while(!window_should_close()) {
-        //printf("sus");
-        window_draw_from_bytes(t, 0, 0, 800, 800);
-
-        window_render();
-        window_poll();
-    }
-    ////window_close();
 }

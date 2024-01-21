@@ -96,7 +96,7 @@ void grid_renderer_energy(grid_renderer *gr, double time) {
     
     gpu_cl_set_kernel_arg(gr->gpu, gr->energy_id, 3, sizeof(min_energy), &min_energy);
     gpu_cl_set_kernel_arg(gr->gpu, gr->energy_id, 4, sizeof(max_energy), &max_energy);
-    gpu_cl_enqueue_nd(gr->gpu, gr->calc_energy_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->energy_id, 1, &local, &global, NULL);
 
     gpu_cl_read_buffer(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
 
@@ -124,7 +124,7 @@ void grid_renderer_charge(grid_renderer *gr) {
     
     gpu_cl_set_kernel_arg(gr->gpu, gr->charge_id, 3, sizeof(min_charge), &min_charge);
     gpu_cl_set_kernel_arg(gr->gpu, gr->charge_id, 4, sizeof(max_charge), &max_charge);
-    gpu_cl_enqueue_nd(gr->gpu, gr->calc_charge_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->charge_id, 1, &local, &global, NULL);
 
     gpu_cl_read_buffer(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
 
