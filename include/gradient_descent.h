@@ -53,7 +53,7 @@ gradient_descent_context gradient_descent_context_init_params(grid *g, gpu_cl *g
 gradient_descent_context gradient_descent_context_init_base(grid *g, gpu_cl *gpu, double T, double mass, double dt, double damping, double restoring, double T_factor);
 
 void gradient_descent_step(gradient_descent_context *ctx);
-void gradient_descent_clear(gradient_descent_context *ctx);
+void gradient_descent_close(gradient_descent_context *ctx);
 void gradient_descent_exchange(gradient_descent_context *ctx);
-void gradient_descente_read_mininum_grid(gradient_descent_context *ctx);
+void gradient_descent_read_mininum_grid(gradient_descent_context *ctx);
 #endif

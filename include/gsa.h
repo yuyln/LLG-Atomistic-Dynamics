@@ -78,7 +78,7 @@ typedef struct {
 
 gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param);
 gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param);
-void gsa_context_clear(gsa_context *ctx);
+void gsa_context_close(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
 void gsa_params(grid *g, gsa_parameters param);

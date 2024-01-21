@@ -7,8 +7,6 @@
 #include "grid_funcs.h"
 #include "string_view.h"
 #include "constants.h"
-#include "stb_image_write.h"
-#include "openclwrapper.h"
 #include "complete_kernel.h"
 
 #define integrate(grid, ...) integrate_vars(grid, (integration_params){\

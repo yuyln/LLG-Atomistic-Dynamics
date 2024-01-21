@@ -6,7 +6,6 @@
 #include "grid_types.h"
 #include "grid_render.h"
 #include "integrate.h"
-#include "openclwrapper.h"
 #include "profiler.h"
 #include "gradient_descent.h"
 #include "render.h"

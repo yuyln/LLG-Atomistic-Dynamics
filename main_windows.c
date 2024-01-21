@@ -46,7 +46,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
         window_poll();
     }
     gsa_context_read_minimun_grid(&ctx);
-    gsa_context_clear(&ctx);
+    gsa_context_close(&ctx);
     grid_renderer_close(&gr);
     //window_close(window);
 }
@@ -155,13 +155,12 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
         window_render();
 
     }
-    gradient_descente_read_mininum_grid(&ctx);
-    gradient_descent_clear(&ctx);
+    gradient_descent_read_mininum_grid(&ctx);
+    gradient_descent_close(&ctx);
     grid_renderer_close(&gr);
     //window_close(window);
 }
 
-//@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Check uint64_t->int changes
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)

@@ -1,9 +1,8 @@
-#include <inttypes.h>
 #include "integrate.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 #include "kernel_funcs.h"
 #include "logging.h"
+
+#include <inttypes.h>
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     integrate_context ctx = {0};
@@ -12,27 +11,29 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     grid_to_gpu(grid, *gpu);
     ctx.dt = dt;
     ctx.time = 0.0;
-    ctx.swap_buffer = clw_create_buffer(sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, gpu->ctx, CL_MEM_READ_WRITE);
-    ctx.step_id = gpu_append_kernel(gpu, "gpu_step");
-    ctx.exchange_id = gpu_append_kernel(gpu, "exchange_grid");
+    ctx.swap_buffer = gpu_cl_create_buffer(gpu, sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, CL_MEM_READ_WRITE);
+    ctx.step_id = gpu_cl_append_kernel(gpu, "gpu_step");
+    ctx.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
 
-    gpu_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_buffer, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_buffer, sizeof(cl_mem),
                                                  &grid->m_buffer, sizeof(cl_mem),
                                                  &ctx.swap_buffer, sizeof(cl_mem),
                                                  &dt, sizeof(double),
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
-    gpu_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_buffer, sizeof(cl_mem), &ctx.swap_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_buffer, sizeof(cl_mem), &ctx.swap_buffer, sizeof(cl_mem));
     ctx.global = grid->gi.cols * grid->gi.rows;
-    ctx.local = clw_gcd(ctx.global, 32);
+    ctx.local = gpu_cl_gcd(ctx.global, 32);
 
     return ctx;
 }
 
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
-    clw_print_cl_error(stderr, clReleaseMemObject(ctx->swap_buffer), "[ FATAL ] Could not release ctx swap buffer from GPU");
+    cl_int err;
+    if ((err = clReleaseMemObject(ctx->swap_buffer)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not release integrate context swap buffer fro GPU %d: %s", err, gpu_cl_get_string_error(err));
 }
 
 void integrate_vars(grid *g, integration_params param) {
@@ -40,16 +41,15 @@ void integrate_vars(grid *g, integration_params param) {
 }
 
 void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view func_temperature, string_view dir_out, string_view compile_augment) {
-
     gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, sv_from_cstr(""), compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
-    uint64_t info_id = gpu_append_kernel(&gpu, "extract_info");
+    uint64_t info_id = gpu_cl_append_kernel(&gpu, "extract_info");
 
     information_packed *info = calloc(g->gi.rows * g->gi.cols, sizeof(information_packed));
-    cl_mem info_buffer = clw_create_buffer(g->gi.rows * g->gi.cols * sizeof(*info), gpu.ctx, CL_MEM_READ_WRITE);
+    cl_mem info_buffer = gpu_cl_create_buffer(&gpu, g->gi.rows * g->gi.cols * sizeof(*info), CL_MEM_READ_WRITE);
 
-    gpu_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
                                               &g->m_buffer, sizeof(cl_mem),
                                               &ctx.swap_buffer, sizeof(cl_mem),
                                               &info_buffer, sizeof(cl_mem),
@@ -64,10 +64,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     string_add_cstr(&output_info_path, "/integration_info.dat");
 
     FILE *output_info = fopen(string_as_cstr(&output_info_path), "w");
-    if (!output_info) {
-        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
-        exit(1);
-    }
+    if (!output_info)
+        logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
+
     string_free(&output_info_path);
 
     fprintf(output_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
@@ -83,10 +82,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     string_add_cstr(&output_grid_path, "/integration_evolution.dat");
 
     FILE *grid_evolution = fopen(string_as_cstr(&output_grid_path), "w");
-    if (!output_info) {
-        fprintf(stderr, "[ FATAL ] Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
-        exit(1);
-    }
+    if (!output_info)
+        logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
+
     string_free(&output_grid_path);
     grid_dump(grid_evolution, g);
 
@@ -98,7 +96,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
         if (step % interval_info == 0) {
             integrate_get_info(&ctx, info_id);
-            clw_print_cl_error(stderr, clEnqueueReadBuffer(gpu.queue, info_buffer, CL_TRUE, 0, sizeof(*info) * g->gi.rows * g->gi.cols, info, 0, NULL, NULL), "[ FATAL ] Could not read info_buiffer");
+            gpu_cl_read_buffer(&gpu, sizeof(*info) * g->gi.rows * g->gi.cols, 0, info, info_buffer);
             information_packed info_local = {0};
             for (uint64_t i = 0; i < g->gi.rows * g->gi.cols; ++i) {
                 info_local.energy += info[i].energy;
@@ -145,7 +143,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
 
     integrate_context_close(&ctx);
-    clw_print_cl_error(stderr, clReleaseMemObject(info_buffer), "[ FATAL ] Could not release info buffer from GPU");
+    cl_int err = clReleaseMemObject(info_buffer);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not release info buffer from GPU %d: %s", err, gpu_cl_get_string_error(err));
 
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
@@ -153,17 +153,17 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 }
 
 void integrate_step(integrate_context *ctx) {
-    clw_set_kernel_arg(ctx->gpu->kernels[ctx->step_id], 4, sizeof(double), &ctx->time);
-    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->step_id], 1, NULL, &ctx->global, &ctx->local);
+    gpu_cl_set_kernel_arg(ctx->gpu, ctx->step_id, 4, sizeof(double), &ctx->time);
+    gpu_cl_enqueue_nd(ctx->gpu, ctx->step_id, 1, &ctx->local, &ctx->global, NULL);
 }
 
 void integrate_get_info(integrate_context *ctx, uint64_t info_id) {
-    clw_set_kernel_arg(ctx->gpu->kernels[info_id], 5, sizeof(double), &ctx->time);
-    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[info_id], 1, NULL, &ctx->global, &ctx->local);
+    gpu_cl_set_kernel_arg(ctx->gpu, info_id, 5, sizeof(double), &ctx->time);
+    gpu_cl_enqueue_nd(ctx->gpu, info_id, 1, &ctx->local, &ctx->global, NULL);
 }
 
 void integrate_exchange_grids(integrate_context *ctx) {
-    clw_enqueue_nd(ctx->gpu->queue, ctx->gpu->kernels[ctx->exchange_id], 1, NULL, &ctx->global, &ctx->local);
+    gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
 }
 
 void integrate_context_read_grid(integrate_context *ctx) {

@@ -11,7 +11,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
     window_init("GSA", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
-    gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 500.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
+    gsa_context ctx = gsa_context_init(g, gr.gpu, .T0 = 10.0, .inner_steps=700000, .qV = 2.7, .print_factor=10);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -68,7 +68,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
         }
     }
     gsa_context_read_minimun_grid(&ctx);
-    gsa_context_clear(&ctx);
+    gsa_context_close(&ctx);
     grid_renderer_close(&gr);
 }
 
@@ -199,23 +199,23 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
             frames = 0;
         }
     }
-    gradient_descente_read_mininum_grid(&ctx);
-    gradient_descent_clear(&ctx);
+    gradient_descent_read_mininum_grid(&ctx);
+    gradient_descent_close(&ctx);
     grid_renderer_close(&gr);
 }
 
-//@TODO: Change openclwrapper to print file and location correctly
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper error handling
+//@TODO: My create buffer should not be a function from gpu_cl. This difficults figuring where the error came from
 int main(void) {
     grid g = {0};
     //g = grid_init(rows, cols);
 
     if (!grid_from_file(sv_from_cstr("./grid.grid"), &g)) {
         logging_log(LOG_WARNING, "Could not read ./grid.grid, falling back do defaults");
-        int rows = 512;
-        int cols = 512;
+        int rows = 64;
+        int cols = 64;
         g = grid_init(rows, cols);
         for (int r = 0; r < rows; ++r)
             for (int c = 0; c < cols; ++c)
@@ -223,7 +223,7 @@ int main(void) {
 
         double J = 1.0e-3 * QE;
         grid_set_exchange(&g, J);
-        grid_set_dm(&g, 0.18 * J, 0.0, R_ij);
+        grid_set_dm(&g, 0.5 * J, 0.0, R_ij);
         grid_set_alpha(&g, 0.3);
         grid_set_anisotropy(&g, (anisotropy){.ani = 0.00 * J, .dir = v3d_c(0.0, 0.0, 1.0)});
         grid_set_mu(&g, HBAR * g.gp->gamma);
@@ -269,7 +269,7 @@ int main(void) {
                                           "double osc = 0.003 * (sin(w * time) + sin(2.0 * w * time));\n"\
                                           "return v3d_c(osc * factor, 0.0, hz * factor);");*/
     
-    string_view field_func = sv_from_cstr("double Hz = 0.02 * gs.exchange / gs.mu;\n"\
+    string_view field_func = sv_from_cstr("double Hz = 0.5 * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "double Hy = 0.004 * gs.exchange / gs.mu;\n"\
                                           "double w = 0.017 * gs.exchange / HBAR;\n"\
                                           "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\
@@ -291,8 +291,9 @@ int main(void) {
     srand(time(NULL));
 
     gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
-    //run_gradient_descent(&g, &gpu, 1.0e-1);
     logging_log(LOG_INFO, "Integration dt: %e", dt);
+    run_gsa(&g, &gpu);
+    run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);
 
     //FILE *f = fopen("./grid.grid", "wb");

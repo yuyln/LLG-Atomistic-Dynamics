@@ -3,8 +3,7 @@
 #include <assert.h>
 
 #include "gpu.h"
-#define OPENCLWRAPPER_IMPLEMENTATION
-#include "openclwrapper.h"
+#include "logging.h"
 #include "constants.h"
 #include "kernel_funcs.h"
 static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the same as the size of uint32_t, which should not happen");
@@ -12,12 +11,79 @@ static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the
 uint64_t p_id = 0;
 uint64_t d_id = 0;
 
+static const char *errors[60] = {"CL_SUCCESS",
+                                 "CL_DEVICE_NOT_FOUND",
+                                 "CL_DEVICE_NOT_AVAILABLE",
+                                 "CL_COMPILER_NOT_AVAILABLE",
+                                 "CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                                 "CL_OUT_OF_RESOURCES",
+                                 "CL_OUT_OF_HOST_MEMORY",
+                                 "CL_PROFILING_INFO_NOT_AVAILABLE",
+                                 "CL_MEM_COPY_OVERLAP",
+                                 "CL_IMAGE_FORMAT_MISMATCH",
+                                 "CL_IMAGE_FORMAT_NOT_SUPPORTED",
+                                 "CL_BUILD_PROGRAM_FAILURE",
+                                 "CL_MAP_FAILURE",
+                                 "CL_MISALIGNED_SUB_BUFFER_OFFSET",
+                                 "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
+                                 "CL_COMPILE_PROGRAM_FAILURE",
+                                 "CL_LINKER_NOT_AVAILABLE",
+                                 "CL_LINK_PROGRAM_FAILURE",
+                                 "CL_DEVICE_PARTITION_FAILED",
+                                 "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
+                                 "CL_INVALID_VALUE",
+                                 "CL_INVALID_DEVICE_TYPE",
+                                 "CL_INVALID_PLATFORM",
+                                 "CL_INVALID_DEVICE",
+                                 "CL_INVALID_CONTEXT",
+                                 "CL_INVALID_QUEUE_PROPERTIES",
+                                 "CL_INVALID_COMMAND_QUEUE",
+                                 "CL_INVALID_HOST_PTR",
+                                 "CL_INVALID_MEM_OBJECT",
+                                 "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
+                                 "CL_INVALID_IMAGE_SIZE",
+                                 "CL_INVALID_SAMPLER",
+                                 "CL_INVALID_BINARY",
+                                 "CL_INVALID_BUILD_OPTIONS",
+                                 "CL_INVALID_PROGRAM",
+                                 "CL_INVALID_PROGRAM_EXECUTABLE",
+                                 "CL_INVALID_KERNEL_NAME",
+                                 "CL_INVALID_KERNEL_DEFINITION",
+                                 "CL_INVALID_KERNEL",
+                                 "CL_INVALID_ARG_INDEX",
+                                 "CL_INVALID_ARG_VALUE",
+                                 "CL_INVALID_ARG_SIZE",
+                                 "CL_INVALID_KERNEL_ARGS",
+                                 "CL_INVALID_WORK_DIMENSION",
+                                 "CL_INVALID_WORK_GROUP_SIZE",
+                                 "CL_INVALID_WORK_ITEM_SIZE",
+                                 "CL_INVALID_GLOBAL_OFFSET",
+                                 "CL_INVALID_EVENT_WAIT_LIST",
+                                 "CL_INVALID_EVENT",
+                                 "CL_INVALID_OPERATION",
+                                 "CL_INVALID_GL_OBJECT",
+                                 "CL_INVALID_BUFFER_SIZE",
+                                 "CL_INVALID_MIP_LEVEL",
+                                 "CL_INVALID_GLOBAL_WORK_SIZE",
+                                 "CL_INVALID_PROPERTY",
+                                 "CL_INVALID_IMAGE_DESCRIPTOR",
+                                 "CL_INVALID_COMPILER_OPTIONS",
+                                 "CL_INVALID_LINKER_OPTIONS",
+                                 "CL_INVALID_DEVICE_PARTITION_COUNT"};
+
+const char *gpu_cl_get_string_error(cl_int err) {
+    int err_ = abs(err);                                                        
+    if (err_ >= 30)                                                               
+        err_ = err_ - 10;                                                         
+    return errors[err_];
+}
+
 INCEPTION("Compile OPT is assumed to be storing a null terminated string")
 static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt) {
     cl_int err;
     gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source.str, &source.len, &err);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not create program on GPU %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not create program on GPU %d: %s", err, gpu_cl_get_string_error(err));
 
     logging_log(LOG_INFO, "Compile OpenCL program with: %.*s", (int)compile_opt.len, compile_opt.str);
 
@@ -25,20 +91,20 @@ static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view c
 
     uint64_t size;
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not get program building log size %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not get program building log size %d: %s", err, gpu_cl_get_string_error(err));
 
     char *info = calloc(size, 1);
     if (!info)
         logging_log(LOG_FATAL, "Could not calloc[%u bytes] buffer for program bulding info: %s", size, strerror(errno));
 
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, size, info, NULL)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not get program building info %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not get program building info %d: %s", err, gpu_cl_get_string_error(err));
 
     logging_log(LOG_INFO, "Build Log: \n%s", info);
     free(info);
 
     if (err_building != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not build the program on GPU %d: %s", err_building, clw_get_error_string(err_building));
+        logging_log(LOG_FATAL, "Could not build the program on GPU %d: %s", err_building, gpu_cl_get_string_error(err_building));
 }
 
 void gpu_cl_get_platforms(gpu_cl *gpu) {
@@ -54,7 +120,7 @@ void gpu_cl_get_platforms(gpu_cl *gpu) {
     cl_uint nn;
     cl_int err = clGetPlatformIDs(0, NULL, &nn);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not find number of platforms %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not find number of platforms %d: %s", err, gpu_cl_get_string_error(err));
     gpu->n_platforms = nn;
 
     gpu->platforms = calloc(sizeof(cl_platform_id) * nn, 1);
@@ -63,7 +129,7 @@ void gpu_cl_get_platforms(gpu_cl *gpu) {
 
     err = clGetPlatformIDs(nn, gpu->platforms, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", (unsigned int)nn, err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", (unsigned int)nn, err, gpu_cl_get_string_error(err));
 }
 
 static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
@@ -72,7 +138,7 @@ static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
     cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
 
     if (err != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name size %d: %s", iplat, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name size %d: %s", iplat, err, gpu_cl_get_string_error(err));
         goto defer;
     }
 
@@ -83,7 +149,7 @@ static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
     }
 
     if ((err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name %d: %s", iplat, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get platform [%"PRIu64"] name %d: %s", iplat, err, gpu_cl_get_string_error(err));
         goto defer;
     }
 
@@ -97,14 +163,14 @@ static void gpu_cl_get_devices(gpu_cl *gpu) {
     cl_uint nn;
     cl_int err;
     if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, 0, NULL, &nn)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not find number of devices %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not find number of devices %d: %s", err, gpu_cl_get_string_error(err));
     gpu->n_devices = nn;
 
     gpu->devices = calloc(sizeof(cl_device_id) * nn, 1);
     if (!gpu->devices)
         logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for store devices: %s", sizeof(cl_device_id) * nn, strerror(errno));
     if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, nn, gpu->devices, NULL)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, gpu_cl_get_string_error(err));
 }
 
 static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
@@ -114,17 +180,17 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     char *info = NULL;
 
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plt, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Platform from Device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Platform from Device[%"PRIu64"] %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, 0, NULL, &n)) != CL_SUCCESS)
-            logging_log(LOG_ERROR, "Could not get Platform name from Device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
+            logging_log(LOG_ERROR, "Could not get Platform name from Device[%"PRIu64"] %d: %s", idev, err, gpu_cl_get_string_error(err));
         else {
             char *info = calloc(n, 1);
             if (!info)
                 logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for platform name: %s", n, strerror(errno));
 
             if ((err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get platform name for device[%"PRIu64"] %d: %s", idev, err, clw_get_error_string(err));
+                logging_log(LOG_ERROR, "Could not get platform name for device[%"PRIu64"] %d: %s", idev, err, gpu_cl_get_string_error(err));
             else
                 logging_log(LOG_INFO, "Device[%"PRIu64"] on Platform %s", idev, info);
 
@@ -134,14 +200,14 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     }
 
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &n)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor Size %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor Size %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         info = calloc(n, 1);
         if (!info)
             logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Vendor: %s", n, idev, strerror(errno));
         else {
             if ((err = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor info %d: %s", idev, err, clw_get_error_string(err));
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Vendor info %d: %s", idev, err, gpu_cl_get_string_error(err));
             else
                 logging_log(LOG_INFO, "Device[%"PRIu64"] Vendor: %s", idev, info);
         }
@@ -149,14 +215,14 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     }
 
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &n)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         info = calloc(n, 1);
         if (!info)
             logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Version: %s", n, idev, strerror(errno));
         else {
             if ((err = clGetDeviceInfo(dev, CL_DEVICE_VERSION, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, clw_get_error_string(err));
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Version %d: %s", idev, err, gpu_cl_get_string_error(err));
             else
                 logging_log(LOG_INFO, "Device[%"PRIu64"] Version: %s", idev, info);
         }
@@ -164,14 +230,14 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     }
 
     if ((err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &n)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         info = calloc(n, 1);
         if (!info)
             logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Driver Version: %s", n, idev, strerror(errno));
         else {
             if ((err = clGetDeviceInfo(dev, CL_DRIVER_VERSION, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, clw_get_error_string(err));
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Driver Version %d: %s", idev, err, gpu_cl_get_string_error(err));
             else
                 logging_log(LOG_INFO, "Device[%"PRIu64"] Driver Version: %s", idev, info);
         }
@@ -179,14 +245,14 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
     }
 
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         info = calloc(n, 1);
         if (!info)
             logging_log(LOG_ERROR, "Could not calloc[%"PRIu64" bytes] for Device[%"PRIu64"] Name: %s", n, idev, strerror(errno));
         else {
             if ((err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL)) != CL_SUCCESS)
-                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, clw_get_error_string(err));
+                logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] Name %d: %s", idev, err, gpu_cl_get_string_error(err));
             else
                 logging_log(LOG_INFO, "Device[%"PRIu64"] Name: %s", idev, info);
         }
@@ -195,44 +261,44 @@ static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
 
     cl_bool device_avaiable;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_AVAILABLE, sizeof(cl_bool), &device_avaiable, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get if Device[%"PRIu64"] is available %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get if Device[%"PRIu64"] is available %d: %s", idev, err, gpu_cl_get_string_error(err));
     else
         logging_log(LOG_INFO, "Device[%"PRIu64"] Available: %d", idev, device_avaiable);
 
     cl_ulong memsize;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] memory size %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] memory size %d: %s", idev, err, gpu_cl_get_string_error(err));
     else
         logging_log(LOG_INFO, "Device[%"PRIu64"] Global Memory: %.4f MB", idev, memsize / (1.0e6));
 
 
     cl_ulong mem_allocable;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &mem_allocable, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] allocable memory %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] allocable memory %d: %s", idev, err, gpu_cl_get_string_error(err));
     else
         logging_log(LOG_INFO, "Device[%"PRIu64"] Allocatable Memory: %.4f MB", idev, mem_allocable / (1.0e6));
 
     cl_uint maxcomp;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max compute units %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max compute units %d: %s", idev, err, gpu_cl_get_string_error(err));
     else
         logging_log(LOG_INFO, "Device[%"PRIu64"] Compute Units: %"PRIu64"", idev, maxcomp);
 
     uint64_t maxworgroup;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(uint64_t), &maxworgroup, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] work group size %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] work group size %d: %s", idev, err, gpu_cl_get_string_error(err));
     else
         logging_log(LOG_INFO, "Device[%"PRIu64"] Max Work Group Size: %"PRIu64"", idev, maxworgroup);
 
     cl_uint dimension;
     if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &dimension, NULL)) != CL_SUCCESS)
-        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work item dimensions %d: %s", idev, err, clw_get_error_string(err));
+        logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work item dimensions %d: %s", idev, err, gpu_cl_get_string_error(err));
     else {
         logging_log(LOG_INFO, "Device[%"PRIu64"] Max Dimension: %"PRIu64"", idev, dimension);
 
         uint64_t dim_size[dimension];
         if ((err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(uint64_t) * dimension, dim_size, NULL)) != CL_SUCCESS)
-            logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work items per dimension %d: %s", idev, err, clw_get_error_string(err));
+            logging_log(LOG_ERROR, "Could not get Device[%"PRIu64"] max work items per dimension %d: %s", idev, err, gpu_cl_get_string_error(err));
         else {
             char buffer[1024] = {0};
             char *ptr = buffer;
@@ -253,7 +319,7 @@ static void gpu_cl_init_context(gpu_cl *gpu) {
     cl_int err;
     gpu->ctx = clCreateContext(NULL, gpu->n_devices, gpu->devices, NULL, NULL, &err);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not create context on GPU %d: %s", err, clw_get_error_string(err));
+        logging_log(LOG_FATAL, "Could not create context on GPU %d: %s", err, gpu_cl_get_string_error(err));
 }
 
 static void gpu_cl_init_queue(gpu_cl *gpu) {
@@ -295,51 +361,119 @@ gpu_cl gpu_cl_init(string_view current_function, string_view field_function, str
 }
 
 void gpu_cl_close(gpu_cl *gpu) {
+    cl_int err;
     for (uint64_t i = 0; i < gpu->n_kernels; ++i)
-        clw_print_cl_error(stderr, clReleaseKernel(gpu->kernels[i].kernel), "[ FATAL ] Could not release kernel %s", gpu->kernels[i].name);
+        if ((err = clReleaseKernel(gpu->kernels[i].kernel)) != CL_SUCCESS)
+            logging_log(LOG_FATAL, "Could not release kernel \"%s\" %d: %s", gpu->kernels[i].name, err, gpu_cl_get_string_error(err));
     free(gpu->kernels);
 
-    clw_print_cl_error(stderr, clReleaseProgram(gpu->program), "[ FATAL ] Could not release program");
-    clw_print_cl_error(stderr, clReleaseCommandQueue(gpu->queue), "[ FATAL ] Could not release command queue");
-    clw_print_cl_error(stderr, clReleaseContext(gpu->ctx), "[ FATAL ] Could not release context");
+    if ((err = clReleaseProgram(gpu->program)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not release program");
+
+    if ((err = clReleaseCommandQueue(gpu->queue)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not release command queue");
+
+    if ((err = clReleaseContext(gpu->ctx)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not release context");
 
     for (uint64_t i = 0; i < gpu->n_devices; ++i)
-        clw_print_cl_error(stderr, clReleaseDevice(gpu->devices[i]), "[ FATAL ] Could not release device %zu", i);
+        if ((err = clReleaseDevice(gpu->devices[i])) != CL_SUCCESS)
+            logging_log(LOG_FATAL, "Could not release device %zu", i);
+
     free(gpu->devices);
     free(gpu->platforms);
     memset(gpu, 0, sizeof(*gpu));
 }
 
-uint64_t gpu_append_kernel(gpu_cl *gpu, const char *kernel) {
+uint64_t gpu_cl_append_kernel(gpu_cl *gpu, const char *kernel) {
     cl_int err;
+    cl_kernel temp = clCreateKernel(gpu->program, kernel, &err);
+
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not append kernel \"%s\" %d: %s", kernel, err, gpu_cl_get_string_error(err));
+
     gpu->kernels = realloc(gpu->kernels, sizeof(*gpu->kernels) * (gpu->n_kernels + 1));
     gpu->kernels[gpu->n_kernels].name = kernel;
-    gpu->kernels[gpu->n_kernels].kernel = clCreateKernel(gpu->program, kernel, &err);
-    clw_print_cl_error(stderr, err, "[ FATAL ] Could not load kernel %s", kernel);
+    gpu->kernels[gpu->n_kernels].kernel = temp;
     uint64_t index = gpu->n_kernels;
     ++gpu->n_kernels;
     return index;
 }
 
-void gpu_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...) {
+void gpu_cl_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...) {
     va_list arg_list;
     va_start(arg_list, nargs);
+    cl_int err;
     for (uint64_t i = offset; i < offset + nargs; ++i) {
         void *item = (void*)va_arg(arg_list,  uint64_t);
         uint64_t sz = va_arg(arg_list, uint64_t);
-        clw_print_cl_error(stderr, clSetKernelArg(gpu->kernels[kernel].kernel, i, sz, item), "[ FATAL ] Could not set argument %d of kernel %s", (int)i, gpu->kernels[kernel].name);
+        if ((err = clSetKernelArg(gpu->kernels[kernel].kernel, i, sz, item)) != CL_SUCCESS)
+            logging_log(LOG_FATAL, "Could not set argument %d of kernel \"%s\" %d: %s", (int)i, gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
     }
     va_end(arg_list);
 }
 
-/*uint64_t gpu_profiling_base(FILE *f, cl_event ev, const char *description) {
+void gpu_cl_enqueue_nd_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset) {
+    cl_event ev;
+    cl_int err;
+    if ((err = clEnqueueNDRangeKernel(gpu->queue, gpu->kernels[kernel].kernel, n_dim, offset, global, local, 0, NULL, &ev)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not enqueue kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+
     uint64_t start, end, duration;
     uint64_t size;
-    clw_print_cl_error(stderr, clWaitForEvents(1, &ev), "[ FATAL ] Could not wait for event \"%s\"", description);
-    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(start), &start, &size), "[ FATAL ] Could not retrieve submit information from profiling \"%s\"", description);
-    clw_print_cl_error(stderr, clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size), "[ FATAL ] Could not retrieve complete information from profiling \"%s\"", description);
-    duration = end - start;
-    fprintf(f, "%s Spent %e us\n", description, (double)duration / 1000.0);
-    //clReleaseEvent(ev);
-    return duration;
-}*/
+    if ((err = clWaitForEvents(1, &ev)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not wait for kernel \"%s\" event %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+    else {
+        if ((err = clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(start), &start, &size)) != CL_SUCCESS)
+            logging_log(LOG_ERROR, "Could not get command start for kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+        else {
+            if ((err = clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(end), &end, &size)) != CL_SUCCESS)
+                logging_log(LOG_ERROR, "Could not get command end for kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+            else {
+                duration = end - start;
+                fprintf(stdout, "%s: %e us\n", gpu->kernels[kernel].name, (double)duration / 1000.0);
+            }
+        }
+    }
+    if ((err = clReleaseEvent(ev)) != CL_SUCCESS)
+        logging_log(LOG_ERROR, "Could not release event for kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+}
+
+void gpu_cl_enqueue_nd_no_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset) {
+    cl_int err;
+    if ((err = clEnqueueNDRangeKernel(gpu->queue, gpu->kernels[kernel].kernel, n_dim, offset, global, local, 0, NULL, NULL)) != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not enqueue kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+}
+
+cl_mem gpu_cl_create_buffer(gpu_cl *gpu, uint64_t size, cl_mem_flags flags) {
+    cl_int err;
+    cl_mem ret = clCreateBuffer(gpu->ctx, flags, size, NULL, &err);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not create buffer with size %"PRIu64" %d: %s", size, err, gpu_cl_get_string_error(err));
+    return ret;
+}
+
+void gpu_cl_write_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device) {
+    cl_int err = clEnqueueWriteBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not write to GPU buffer using size=%"PRIu64" and offset=%"PRIu64" %d: %s", size, offset, err, gpu_cl_get_string_error(err));
+}
+
+void gpu_cl_read_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device) {
+    cl_int err = clEnqueueReadBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not read from GPU buffer using size=%"PRIu64" and offset=%"PRIu64" %d: %s", size, offset, err, gpu_cl_get_string_error(err));
+}
+
+void gpu_cl_set_kernel_arg(gpu_cl *gpu, uint64_t kernel, uint64_t index, uint64_t size, void *data) {
+    cl_int err = clSetKernelArg(gpu->kernels[kernel].kernel, index, size, data);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "Could not set argument %d of kernel \"%s\" %d: %s", (int)index, gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
+}
+
+uint64_t gpu_cl_gcd(uint64_t a, uint64_t b) {
+    if (b == 0)
+        return a;
+    else
+        return gpu_cl_gcd(b, a % b);
+}

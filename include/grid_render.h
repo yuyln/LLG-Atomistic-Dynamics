@@ -6,7 +6,6 @@
 #include "render.h"
 #include "grid_funcs.h"
 #include "gpu.h"
-#include "openclwrapper.h"
 
 typedef struct {
     grid *g;
