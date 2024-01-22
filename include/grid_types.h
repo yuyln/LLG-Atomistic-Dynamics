@@ -6,8 +6,8 @@
 #include "v3d.h"
 
 typedef enum {
-    R_ij_CROSS_Z = 0,
-    R_ij         = 1
+    R_ij         = 0,
+    R_ij_CROSS_Z = 1
 } dm_symmetry;
 
 typedef enum {

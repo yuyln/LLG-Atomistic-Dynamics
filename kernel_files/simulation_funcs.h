@@ -33,13 +33,17 @@ double dm_energy(parameters param);
 double anisotropy_energy(parameters param);
 double cubic_anisotropy_energy(parameters param);
 double field_energy(parameters param);
+#ifdef INCLUDE_DIPOLAR
 double dipolar_energy(parameters param);
+#endif
 double energy(parameters param);
 
-v3d dipolar_field(parameters param);
+#ifdef INCLUDE_DIPOLAR
+static v3d dipolar_field(parameters param);
+#endif
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param, double dt);
-v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
+static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
 v3d step_llg(parameters param, double dt);
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);

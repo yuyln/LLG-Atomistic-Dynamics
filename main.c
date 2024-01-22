@@ -269,7 +269,7 @@ int main(void) {
                                           "double osc = 0.003 * (sin(w * time) + sin(2.0 * w * time));\n"\
                                           "return v3d_c(osc * factor, 0.0, hz * factor);");*/
     
-    string_view field_func = sv_from_cstr("double Hz = 0.5 * gs.dm * gs.dm / 1.0 / gs.mu;\n"\
+    string_view field_func = sv_from_cstr("double Hz = 0.5 * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "double Hy = 0.004 * gs.exchange / gs.mu;\n"\
                                           "double w = 0.017 * gs.exchange / HBAR;\n"\
                                           "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\

@@ -64,7 +64,9 @@ kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d 
     local_info.field_energy = field_energy(param);
     local_info.anisotropy_energy = anisotropy_energy(param);
     local_info.cubic_energy = cubic_anisotropy_energy(param);
+#ifdef INCLUDE_DIPOLAR
     local_info.dipolar_energy = dipolar_energy(param);
+#endif
     local_info.energy = 0.5 * local_info.exchange_energy + 0.5 * local_info.dm_energy + local_info.field_energy + local_info.anisotropy_energy + local_info.cubic_energy + 0.5 * local_info.dipolar_energy;
     local_info.charge_finite = charge_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.charge_lattice = charge_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);

@@ -19,7 +19,9 @@ v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols
     return v[row * cols + col];
 }
 
-v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
+/*
+ * This is the older version. For a grid of 64x64 it is 2us slower on average than the newer version
+v3d get_dm_vec_old(v3d dr, double dm, dm_symmetry dm_sym) {
     switch (dm_sym) {
         case R_ij_CROSS_Z: {
             return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, 1)), dm);
@@ -29,6 +31,10 @@ v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
         }
     }
     return v3d_s(0);
+}*/
+
+v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
+    return v3d_c(dm * dr.x + dm * dm_sym * (dr.y - dr.x), dm * dr.y - dm * dm_sym * (dr.x + dr.y), dm * dr.z - dm * dm_sym * dr.z);
 }
 
 double exchange_energy(parameters param) {
@@ -61,8 +67,8 @@ double field_energy(parameters param) {
 }
 
 //@TODO Proper user os mu_s
-double dipolar_energy(parameters param) {
 #ifdef INCLUDE_DIPOLAR
+double dipolar_energy(parameters param) {
     double ret = 0.0;
     for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
         double dy = dr * param.gs.lattice;
@@ -79,10 +85,8 @@ double dipolar_energy(parameters param) {
         }
     }
     return ret;
-#else
-    return 0.0;
-#endif
 }
+#endif
 
 double energy(parameters param) {
     double e = 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param);
@@ -92,8 +96,8 @@ double energy(parameters param) {
     return e;
 }
 
-v3d dipolar_field(parameters param) {
 #ifdef INCLUDE_DIPOLAR
+static v3d dipolar_field(parameters param) {
     v3d ret = v3d_s(0.0);
     for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
         double dy = dr * param.gs.lattice;
@@ -112,10 +116,8 @@ v3d dipolar_field(parameters param) {
         }
     }
     return ret;
-#else
-    return v3d_s(0.0);
-#endif
 }
+#endif
 
 //@TODO: Check DM interaction vectors
 v3d effective_field(parameters param) {
@@ -151,7 +153,7 @@ v3d effective_field(parameters param) {
 }
 
 //@TODO: Add Z derivative
-v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
+static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
     v3d ret = {0};
     ret.x = v.x * (neigh.right.x - neigh.left.x) / (2.0 * dx) +
             v.y * (neigh.up.x - neigh.down.x) / (2.0 * dy);
