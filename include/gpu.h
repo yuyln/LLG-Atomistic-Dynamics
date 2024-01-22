@@ -18,6 +18,8 @@
 #define gpu_cl_enqueue_nd(gpu, kernel, n_dim, local, global, offset) gpu_cl_enqueue_nd_no_profiling(gpu, kernel, n_dim, local, global, offset)
 #endif
 
+#define gpu_cl_create_buffer(gpu, size, flags) gpu_cl_create_buffer_base(gpu, size, flags, __FILE__, __LINE__)
+
 
 extern uint64_t p_id;
 extern uint64_t d_id;
@@ -50,7 +52,7 @@ void gpu_cl_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint
 void gpu_cl_enqueue_nd_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset);
 void gpu_cl_enqueue_nd_no_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset);
 const char *gpu_cl_get_string_error(cl_int err);
-cl_mem gpu_cl_create_buffer(gpu_cl *gpu, uint64_t size, cl_mem_flags flags);
+cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line);
 void gpu_cl_write_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device);
 void gpu_cl_read_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device);
 void gpu_cl_set_kernel_arg(gpu_cl *gpu, uint64_t kernel, uint64_t index, uint64_t size, void *data);

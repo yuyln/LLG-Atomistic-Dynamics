@@ -208,6 +208,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper error handling
 //@TODO: My create buffer should not be a function from gpu_cl. This difficults figuring where the error came from
+//@TODO: Change things on gpu.h to macros to print file and line
 int main(void) {
     grid g = {0};
     //g = grid_init(rows, cols);

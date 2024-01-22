@@ -448,11 +448,13 @@ void gpu_cl_enqueue_nd_no_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim
         logging_log(LOG_FATAL, "Could not enqueue kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_string_error(err));
 }
 
-cl_mem gpu_cl_create_buffer(gpu_cl *gpu, uint64_t size, cl_mem_flags flags) {
+cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line) {
     cl_int err;
     cl_mem ret = clCreateBuffer(gpu->ctx, flags, size, NULL, &err);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not create buffer with size %"PRIu64" %d: %s", size, err, gpu_cl_get_string_error(err));
+        logging_log(LOG_FATAL, "On file %s line %d: Could not create buffer with size %"PRIu64" bytes %d: %s", file, line, size, err, gpu_cl_get_string_error(err));
+
+    logging_log(LOG_INFO, "On file %s line %d: Created buffer with size %"PRIu64" bytes", file, line, size);
     return ret;
 }
 
