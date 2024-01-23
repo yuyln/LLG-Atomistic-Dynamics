@@ -19,24 +19,6 @@ v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols
     return v[row * cols + col];
 }
 
-/*
- * This is the older version. For a grid of 64x64 it is 2us slower on average than the newer version
-v3d get_dm_vec_old(v3d dr, double dm, dm_symmetry dm_sym) {
-    switch (dm_sym) {
-        case R_ij_CROSS_Z: {
-            return v3d_scalar(v3d_cross(dr, v3d_c(0, 0, 1)), dm);
-        }
-        case R_ij: {
-            return v3d_scalar(dr, dm);
-        }
-    }
-    return v3d_s(0);
-}*/
-
-v3d get_dm_vec(v3d dr, double dm, dm_symmetry dm_sym) {
-    return v3d_c(dm * dr.x + dm * dm_sym * (dr.y - dr.x), dm * dr.y - dm * dm_sym * (dr.x + dr.y), dm * dr.z - dm * dm_sym * dr.z);
-}
-
 double exchange_energy(parameters param) {
     return -(v3d_dot(param.m, param.neigh.left) + v3d_dot(param.m, param.neigh.right) +
              v3d_dot(param.m, param.neigh.up) + v3d_dot(param.m, param.neigh.down)) * param.gs.exchange;
@@ -44,10 +26,10 @@ double exchange_energy(parameters param) {
 
 double dm_energy(parameters param) {
     double ret = 0.0;
-    ret += v3d_dot(get_dm_vec(v3d_c(1, 0, 0), param.gs.dm + param.gs.dm_ani, param.gs.dm_sym), v3d_cross(param.m, param.neigh.right));
-    ret += v3d_dot(get_dm_vec(v3d_c(-1, 0, 0), param.gs.dm + param.gs.dm_ani, param.gs.dm_sym), v3d_cross(param.m, param.neigh.left));
-    ret += v3d_dot(get_dm_vec(v3d_c(0, 1, 0), param.gs.dm - param.gs.dm_ani, param.gs.dm_sym), v3d_cross(param.m, param.neigh.up));
-    ret += v3d_dot(get_dm_vec(v3d_c(0, -1, 0), param.gs.dm - param.gs.dm_ani, param.gs.dm_sym), v3d_cross(param.m, param.neigh.down));
+    ret += v3d_dot(param.gs.dm.dmv_right, v3d_cross(param.m, param.neigh.right));
+    ret += v3d_dot(param.gs.dm.dmv_left, v3d_cross(param.m, param.neigh.left));
+    ret += v3d_dot(param.gs.dm.dmv_up, v3d_cross(param.m, param.neigh.up));
+    ret += v3d_dot(param.gs.dm.dmv_down, v3d_cross(param.m, param.neigh.down));
     return -ret;
 }
 
@@ -119,7 +101,6 @@ static v3d dipolar_field(parameters param) {
 }
 #endif
 
-//@TODO: Check DM interaction vectors
 v3d effective_field(parameters param) {
     v3d ret = v3d_s(0);
 
@@ -128,11 +109,11 @@ v3d effective_field(parameters param) {
     ret = v3d_sub(ret, exchange_field);
 
 
-    v3d dm_field_x = v3d_sum(v3d_cross(get_dm_vec(v3d_c(1, 0, 0), param.gs.dm + param.gs.dm_ani, param.gs.dm_sym), param.neigh.right),
-                             v3d_cross(get_dm_vec(v3d_c(-1, 0, 0), param.gs.dm + param.gs.dm_ani, param.gs.dm_sym), param.neigh.left));
+    v3d dm_field_x = v3d_sum(v3d_cross(param.gs.dm.dmv_right, param.neigh.right),
+                             v3d_cross(param.gs.dm.dmv_left, param.neigh.left));
 
-    v3d dm_field_y = v3d_sum(v3d_cross(get_dm_vec(v3d_c(0, 1, 0), param.gs.dm - param.gs.dm_ani, param.gs.dm_sym), param.neigh.up),
-                             v3d_cross(get_dm_vec(v3d_c(0, -1, 0), param.gs.dm - param.gs.dm_ani, param.gs.dm_sym), param.neigh.down));
+    v3d dm_field_y = v3d_sum(v3d_cross(param.gs.dm.dmv_up, param.neigh.up),
+                             v3d_cross(param.gs.dm.dmv_down, param.neigh.down));
     v3d dm_field = v3d_sum(dm_field_x, dm_field_y);
 
     ret = v3d_sum(ret, dm_field);

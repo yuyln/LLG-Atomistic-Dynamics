@@ -33,17 +33,21 @@ grid grid_init(unsigned int rows, unsigned int cols) {
 
     if (!ret.gp || !ret.m)
         logging_log(LOG_FATAL, "Could not allocate grid. Buy more ram lol");
+    double dm = 0.18 * QE * 1.0e-3;
+
+    dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(dm, 0, 0),
+                                                 .dmv_up = v3d_c(-dm, 0, 0),
+                                                 .dmv_left = v3d_c(0, -dm, 0),
+                                                 .dmv_right = v3d_c(0, dm, 0)};
 
     grid_site_param default_grid = (grid_site_param){
-        .exchange = 1.0e-3 * QE,
-            .dm = 0.18 * 1.0e-3 * QE,
-            .dm_ani = 0.0,
+            .exchange = 1.0e-3 * QE,
+            .dm = default_dm,
             .lattice = 5.0e-10,
             .cubic_ani = 0.0,
             .mu = 1.856952954255053e-23,
             .alpha = 0.3,
             .gamma = 1.760859644000000e+11,
-            .dm_sym = R_ij_CROSS_Z,
             .ani = {{0}},
             .pin = {{0}},
     };
@@ -66,11 +70,9 @@ void grid_set_exchange_loc(grid *g, int row, int col, double exchange) {
     g->gp[row * g->gi.cols + col].exchange = exchange;
 }
 
-void grid_set_dm_loc(grid *g, int row, int col, double dm, double dm_ani, dm_symmetry dm_sym) {
+void grid_set_dm_loc(grid *g, int row, int col, dm_interaction dm) {
     CHECK_BOUNDS(g->gi.rows, g->gi.cols, row, col);
     g->gp[row * g->gi.cols + col].dm = dm;
-    g->gp[row * g->gi.cols + col].dm_ani = dm_ani;
-    g->gp[row * g->gi.cols + col].dm_sym = dm_sym;
 }
 
 void grid_set_lattice_loc(grid *g, int row, int col, double lattice) {
@@ -119,10 +121,10 @@ void grid_set_exchange(grid *g, double exchange) {
             grid_set_exchange_loc(g, r, c, exchange);
 }
 
-void grid_set_dm(grid *g, double dm, double dm_ani, dm_symmetry dm_sym) {
+void grid_set_dm(grid *g, dm_interaction dm) {
     for (unsigned int r = 0; r < g->gi.rows; ++r)
         for (unsigned int c = 0; c < g->gi.cols; ++c)
-            grid_set_dm_loc(g, r, c, dm, dm_ani, dm_sym);
+            grid_set_dm_loc(g, r, c, dm);
 }
 
 void grid_set_lattice(grid *g, double lattice) {

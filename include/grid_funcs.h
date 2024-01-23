@@ -19,7 +19,7 @@ double shit_random(double from, double to);
 grid grid_init(unsigned int rows, unsigned int cols);
 
 void grid_set_exchange_loc(grid *g, int row, int col, double exchange);
-void grid_set_dm_loc(grid *g, int row, int col, double dm, double dm_ani, dm_symmetry dm_sym);
+void grid_set_dm_loc(grid *g, int row, int col, dm_interaction dm);
 void grid_set_lattice_loc(grid *g, int row, int col, double lattice);
 void grid_set_cubic_anisotropy_loc(grid *g, int row, int col, double cubic_ani);
 void grid_set_mu_loc(grid *g, int row, int col, double mu);
@@ -30,7 +30,7 @@ void grid_set_pinning_loc(grid *g, int row, int col, pinning pin);
 void v3d_set_at_loc(v3d *v, unsigned int rows, unsigned int cols, int row, int col, v3d m);
 
 void grid_set_exchange(grid *g, double exchange);
-void grid_set_dm(grid *g, double dm, double dm_ani, dm_symmetry dm_sym);
+void grid_set_dm(grid *g, dm_interaction dm);
 void grid_set_lattice(grid *g, double lattice);
 void grid_set_cubic_anisotropy(grid *g, double cubic_ani);
 void grid_set_mu(grid *g, double mu);

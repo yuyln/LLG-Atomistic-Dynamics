@@ -5,10 +5,10 @@
 
 #include "v3d.h"
 
-typedef enum {
+/*typedef enum {
     R_ij         = 0,
-    R_ij_CROSS_Z = 1
-} dm_symmetry;
+    R_ij_CROSS_Z = 1,
+} dm_symmetry;*/
 
 typedef enum {
     CUR_NONE = 0,
@@ -51,13 +51,16 @@ typedef struct {
 } pinning;
 
 typedef struct {
+    v3d dmv_left, dmv_right, dmv_up, dmv_down;
+} dm_interaction;
+
+typedef struct {
     int row, col;
-    //double y, x, z;
-    double exchange, dm, dm_ani, lattice, cubic_ani;
+    double exchange, lattice, cubic_ani;
     double mu, alpha, gamma;
-    dm_symmetry dm_sym;
     anisotropy ani;
     pinning pin;
+    dm_interaction dm;
 } grid_site_param;
 
 typedef struct {

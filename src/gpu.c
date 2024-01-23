@@ -130,7 +130,7 @@ void gpu_cl_get_platforms(gpu_cl *gpu) {
     err = clGetPlatformIDs(nn, gpu->platforms, NULL);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", gpu->n_platforms, err, gpu_cl_get_string_error(err));
-    logging_log(LOG_INFO, "Initialized $"PRIu64" platforms", gpu->n_platforms);
+    logging_log(LOG_INFO, "Initialized %"PRIu64" platforms", gpu->n_platforms);
 }
 
 static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
@@ -173,7 +173,7 @@ static void gpu_cl_get_devices(gpu_cl *gpu) {
     if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, nn, gpu->devices, NULL)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, gpu_cl_get_string_error(err));
 
-    logging_log(LOG_INFO, "Initialized $"PRIu64" devices", gpu->n_devices);
+    logging_log(LOG_INFO, "Initialized %"PRIu64" devices", gpu->n_devices);
 }
 
 static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
