@@ -129,7 +129,8 @@ void gpu_cl_get_platforms(gpu_cl *gpu) {
 
     err = clGetPlatformIDs(nn, gpu->platforms, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", (unsigned int)nn, err, gpu_cl_get_string_error(err));
+        logging_log(LOG_FATAL, "Could not init %"PRIu64" platforms %d: %s", gpu->n_platforms, err, gpu_cl_get_string_error(err));
+    logging_log(LOG_INFO, "Initialized $"PRIu64" platforms", gpu->n_platforms);
 }
 
 static void gpu_cl_get_platform_info(cl_platform_id plat, uint64_t iplat) {
@@ -171,6 +172,8 @@ static void gpu_cl_get_devices(gpu_cl *gpu) {
         logging_log(LOG_FATAL, "Could not calloc[%"PRIu64" bytes] for store devices: %s", sizeof(cl_device_id) * nn, strerror(errno));
     if ((err = clGetDeviceIDs(gpu->platforms[p_id], CL_DEVICE_TYPE_ALL, nn, gpu->devices, NULL)) != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not initialize devices %d: %s", err, gpu_cl_get_string_error(err));
+
+    logging_log(LOG_INFO, "Initialized $"PRIu64" devices", gpu->n_devices);
 }
 
 static void gpu_cl_get_device_info(cl_device_id dev, uint64_t idev) {
@@ -320,6 +323,7 @@ static void gpu_cl_init_context(gpu_cl *gpu) {
     gpu->ctx = clCreateContext(NULL, gpu->n_devices, gpu->devices, NULL, NULL, &err);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not create context on GPU %d: %s", err, gpu_cl_get_string_error(err));
+    logging_log(LOG_INFO, "Created context on GPU");
 }
 
 static void gpu_cl_init_queue(gpu_cl *gpu) {
@@ -335,6 +339,7 @@ static void gpu_cl_init_queue(gpu_cl *gpu) {
 #endif
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not create command queue with profiling properties");
+    logging_log(LOG_INFO, "Created command queue on GPU");
 }
 
 gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
@@ -458,16 +463,16 @@ cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags,
     return ret;
 }
 
-void gpu_cl_write_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device) {
+void gpu_cl_write_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueWriteBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not write to GPU buffer using size=%"PRIu64" and offset=%"PRIu64" %d: %s", size, offset, err, gpu_cl_get_string_error(err));
+        logging_log(LOG_FATAL, "On file %s line %d: Could not write to GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_string_error(err));
 }
 
-void gpu_cl_read_buffer(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device) {
+void gpu_cl_read_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueReadBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not read from GPU buffer using size=%"PRIu64" and offset=%"PRIu64" %d: %s", size, offset, err, gpu_cl_get_string_error(err));
+        logging_log(LOG_FATAL, "On file %s line %d: Could not read from GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_string_error(err));
 }
 
 void gpu_cl_set_kernel_arg(gpu_cl *gpu, uint64_t kernel, uint64_t index, uint64_t size, void *data) {
@@ -481,4 +486,11 @@ uint64_t gpu_cl_gcd(uint64_t a, uint64_t b) {
         return a;
     else
         return gpu_cl_gcd(b, a % b);
+}
+
+void gpu_cl_release_memory_base(cl_mem mem, const char *name, const char *file, int line) {
+    cl_int err = clReleaseMemObject(mem);
+    if (err != CL_SUCCESS)
+        logging_log(LOG_FATAL, "On file %s line %d: could not release memory buffer \"%s\" from GPU %d: %s", file, line, name, err, gpu_cl_get_string_error(err));
+    logging_log(LOG_INFO, "On file %s line %d: released memory buffer \"%s\" from GPU", file, line, name);
 }

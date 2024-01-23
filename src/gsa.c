@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "grid_funcs.h"
 #include "kernel_funcs.h"
+#include "logging.h"
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
@@ -95,11 +96,8 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
         }
     }
 
-    cl_int err;
-    if ((err = clSetKernelArg(ctx.gpu->kernels[ctx.exchange_id].kernel, 0, sizeof(cl_mem), &ctx.g->m_buffer)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not set min grid as argument of exchange grids GSA");
-    if ((err = clSetKernelArg(ctx.gpu->kernels[ctx.exchange_id].kernel, 1, sizeof(cl_mem), &ctx.min_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not set min grid as argument of exchange grids GSA");
+    gpu_cl_set_kernel_arg(&gpu, ctx.exchange_id, 0, sizeof(cl_mem), &ctx.g->m_buffer);
+    gpu_cl_set_kernel_arg(&gpu, ctx.exchange_id, 1, sizeof(cl_mem), &ctx.min_gpu);
 
     gpu_cl_enqueue_nd(ctx.gpu, ctx.exchange_id, 1, &ctx.local, &ctx.global, NULL);
 
@@ -107,8 +105,7 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
     gpu_cl_enqueue_nd(ctx.gpu, ctx.exchange_id, 1, &ctx.local, &ctx.global, NULL);
 
     gsa_context_read_minimun_grid(&ctx);
-
-    printf("GSA Done. Minimun energy obtained %.15e eV\n", ctx.min_energy / QE);
+    logging_log(LOG_INFO, "GSA Done. Minimun energy found %.15e eV", ctx.min_energy / QE);
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
@@ -158,14 +155,9 @@ void gsa_metropolis_step(gsa_context *ctx) {
 void gsa_context_close(gsa_context *ctx) {
     gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
     free(ctx->energy_cpu);
-    cl_int err;
-    if ((err = clReleaseMemObject(ctx->swap_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release swap buffer from GPU gsa");
-    if ((err = clReleaseMemObject(ctx->min_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release min buffer from GPU gsa");
-    if ((err = clReleaseMemObject(ctx->energy_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release energy buffer from GPU gsa");
-
+    gpu_cl_release_memory(ctx->swap_gpu);
+    gpu_cl_release_memory(ctx->min_gpu);
+    gpu_cl_release_memory(ctx->energy_gpu);
     memset(ctx, 0, sizeof(*ctx));
 }
 

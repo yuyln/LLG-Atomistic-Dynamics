@@ -47,14 +47,8 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
 void grid_renderer_close(grid_renderer *gr) {
     free(gr->rgba_cpu);
     free(gr->buffer_cpu);
-    cl_int err;
-
-    if ((err = clReleaseMemObject(gr->rgba_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release RGBA buffer from gpu");
-
-    if ((err = clReleaseMemObject(gr->buffer_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release buffer buffer from gpu");
-
+    gpu_cl_release_memory(gr->rgba_gpu);
+    gpu_cl_release_memory(gr->buffer_gpu);
     grid_release_from_gpu(gr->g);
 }
 

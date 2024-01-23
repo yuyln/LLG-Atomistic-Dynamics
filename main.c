@@ -62,7 +62,7 @@ void run_gsa(grid *g, gpu_cl *gpu) {
         stopwatch_print += dt_real;
         frames++;
         if (stopwatch_print >= 0) {
-            printf("FPS: %d - Frame Time: %e ms\n", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3);
+            logging_log(LOG_INFO, "FPS: %d - Frame Time: %e ms", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3);
             stopwatch_print = -1.0;
             frames = 0;
         }
@@ -129,7 +129,7 @@ void run_integration(grid *g, gpu_cl *gpu, double dt) {
         stopwatch_print += dt_real;
         frames++;
         if (stopwatch_print >= 0) {
-            printf("FPS: %d - Frame Time: %e ms - System Steps: %d - System dt: %e - System Time: %e\n", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3, steps * frames, frames * steps * dt, ctx.time);
+            logging_log(LOG_INFO, "FPS: %d - Frame Time: %e ms - System Steps: %d - System dt: %e - System Time: %e", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3, steps * frames, frames * steps * dt, ctx.time);
             stopwatch_print = -1.0;
             frames = 0;
         }
@@ -143,7 +143,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
     window_init("Gradient Descent", 800 * ratio, 800);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
-    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.9999);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gr.gpu, .dt=dt, .T = 500.0, .T_factor = 0.99999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -194,7 +194,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
         stopwatch_print += dt_real;
         frames++;
         if (stopwatch_print >= 0) {
-            printf("FPS: %d - Frame Time: %e ms - System Steps: %d - System dt: %e - System Temperature %e - System Mininum Energy: %e\n", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3, steps * frames, frames * steps * dt, ctx.T, ctx.min_energy);
+            logging_log(LOG_INFO, "FPS: %d - Frame Time: %e ms - System Steps: %d - System dt: %e - System Temperature %e - System Mininum Energy: %e", (int)(frames / time_for_print), time_for_print / frames / 1.0e-3, steps * frames, frames * steps * dt, ctx.T, ctx.min_energy);
             stopwatch_print = -1.0;
             frames = 0;
         }
@@ -215,8 +215,8 @@ int main(void) {
 
     if (!grid_from_file(sv_from_cstr("./grid.grid"), &g)) {
         logging_log(LOG_WARNING, "Could not read ./grid.grid, falling back do defaults");
-        int rows = 64;
-        int cols = 64;
+        int rows = 512;
+        int cols = 512;
         g = grid_init(rows, cols);
         for (int r = 0; r < rows; ++r)
             for (int c = 0; c < cols; ++c)
@@ -224,7 +224,7 @@ int main(void) {
 
         double J = 1.0e-3 * QE;
         grid_set_exchange(&g, J);
-        grid_set_dm(&g, 0.5 * J, 0.0, R_ij);
+        grid_set_dm(&g, 0.18 * J, 0.0, R_ij);
         grid_set_alpha(&g, 0.3);
         grid_set_anisotropy(&g, (anisotropy){.ani = 0.00 * J, .dir = v3d_c(0.0, 0.0, 1.0)});
         grid_set_mu(&g, HBAR * g.gp->gamma);

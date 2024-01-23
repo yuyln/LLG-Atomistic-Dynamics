@@ -31,9 +31,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
 
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
-    cl_int err;
-    if ((err = clReleaseMemObject(ctx->swap_buffer)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release integrate context swap buffer fro GPU %d: %s", err, gpu_cl_get_string_error(err));
+    gpu_cl_release_memory(ctx->swap_buffer);
 }
 
 void integrate_vars(grid *g, integration_params param) {
@@ -47,6 +45,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     uint64_t info_id = gpu_cl_append_kernel(&gpu, "extract_info");
 
     information_packed *info = calloc(g->gi.rows * g->gi.cols, sizeof(information_packed));
+    if (!info)
+        logging_log(LOG_FATAL, "Could not allocate for information[%"PRIu64" bytes]", g->gi.rows * g->gi.cols * sizeof(*info));
+
     cl_mem info_buffer = gpu_cl_create_buffer(&gpu, g->gi.rows * g->gi.cols * sizeof(*info), CL_MEM_READ_WRITE);
 
     gpu_cl_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
@@ -141,12 +142,8 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
     v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
     v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
-
     integrate_context_close(&ctx);
-    cl_int err = clReleaseMemObject(info_buffer);
-    if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release info buffer from GPU %d: %s", err, gpu_cl_get_string_error(err));
-
+    gpu_cl_release_memory(info_buffer);
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
     free(info);

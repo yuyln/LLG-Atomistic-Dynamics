@@ -209,19 +209,9 @@ bool grid_free(grid *g) {
 }
 
 bool grid_release_from_gpu(grid *g) {
-    cl_int err;
     bool ret = true;
-
-    if ((err = clReleaseMemObject(g->gp_buffer)) != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not release Grid Parameters Buffer from GPU %d: %s", err, gpu_cl_get_string_error(err));
-        ret = false;
-    }
-
-    if ((err = clReleaseMemObject(g->m_buffer)) != CL_SUCCESS) {
-        logging_log(LOG_ERROR, "Could not release Grid Magnetic Moments from GPU %d: %s", err, gpu_cl_get_string_error(err));
-        ret = false;
-    }
-
+    gpu_cl_release_memory(g->gp_buffer);
+    gpu_cl_release_memory(g->m_buffer);
     g->on_gpu = false;
     return ret;
 }
@@ -235,23 +225,13 @@ void grid_to_gpu(grid *g, gpu_cl gpu) {
         goto writing;
     }
 
-    cl_int err;
-    g->gp_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, gp_size_bytes, NULL, &err);
-    if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not create Grid Parameters on GPU %d: %s", err, gpu_cl_get_string_error(err));
-
-    g->m_buffer = clCreateBuffer(gpu.ctx, CL_MEM_READ_WRITE, m_size_bytes, NULL, &err);
-    if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not create Grid Vectors on GPU %d: %s", err, gpu_cl_get_string_error(err));
-
+    g->gp_buffer = gpu_cl_create_buffer(&gpu, gp_size_bytes, CL_MEM_READ_WRITE);
+    g->m_buffer = gpu_cl_create_buffer(&gpu, m_size_bytes, CL_MEM_READ_WRITE);
     g->on_gpu = true;
     
 writing:
-    if ((err = clEnqueueWriteBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not write to Grid Parameters on GPU %d: %s", err, gpu_cl_get_string_error(err));
-
-    if ((err = clEnqueueWriteBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL) != CL_SUCCESS))
-        logging_log(LOG_FATAL, "Could not write to Grid Vectors on GPU %d: %s", err, gpu_cl_get_string_error(err));
+    gpu_cl_write_buffer(&gpu, gp_size_bytes, 0, g->gp, g->gp_buffer);
+    gpu_cl_write_buffer(&gpu, m_size_bytes, 0, g->m, g->m_buffer);
 }
 
 void grid_from_gpu(grid *g, gpu_cl gpu) {
@@ -262,21 +242,14 @@ void grid_from_gpu(grid *g, gpu_cl gpu) {
 
     int gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     int m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
-    cl_int err;
 
-    if ((err = clEnqueueReadBuffer(gpu.queue, g->gp_buffer, CL_TRUE, 0, gp_size_bytes, g->gp, 0, NULL, NULL)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not read from Grid Parameters on GPU %d: %s", err, gpu_cl_get_string_error(err));
-
-    if ((err = clEnqueueReadBuffer(gpu.queue, g->m_buffer, CL_TRUE, 0, m_size_bytes, g->m, 0, NULL, NULL) != CL_SUCCESS))
-        logging_log(LOG_FATAL, "Could not read from Grid Vectors on GPU %d: %s", err, gpu_cl_get_string_error(err));
+    gpu_cl_read_buffer(&gpu, gp_size_bytes, 0, g->gp, g->gp_buffer);
+    gpu_cl_read_buffer(&gpu, m_size_bytes, 0, g->m, g->m_buffer);
 }
 
 void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, gpu_cl gpu) {
     int m_size_bytes = rows * cols * sizeof(*g);
-    cl_int err;
-
-    if ((err = clEnqueueReadBuffer(gpu.queue, buffer, CL_TRUE, 0, m_size_bytes, g, 0, NULL, NULL) != CL_SUCCESS))
-        logging_log(LOG_FATAL, "Could not read from Vectors on GPU %d: %s", err, gpu_cl_get_string_error(err));
+    gpu_cl_read_buffer(&gpu, m_size_bytes, 0, g, buffer);
 }
 
 bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols) {

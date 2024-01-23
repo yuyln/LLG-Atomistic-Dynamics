@@ -73,15 +73,10 @@ void gradient_descent_step(gradient_descent_context *ctx) {
 
 void gradient_descent_close(gradient_descent_context *ctx) {
     free(ctx->energy_cpu);
-    cl_int err;
-    if ((err = clReleaseMemObject(ctx->before_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release before_buffer from GPU gradient descent");
-    if ((err = clReleaseMemObject(ctx->after_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release after_buffer from GPU gradient descent");
-    if ((err = clReleaseMemObject(ctx->min_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release min_gpu from GPU gradient descent");
-    if ((err = clReleaseMemObject(ctx->energy_gpu)) != CL_SUCCESS)
-        logging_log(LOG_FATAL, "Could not release energy_buffer from GPU gradient descent");
+    gpu_cl_release_memory(ctx->before_gpu)
+    gpu_cl_release_memory(ctx->after_gpu)
+    gpu_cl_release_memory(ctx->min_gpu)
+    gpu_cl_release_memory(ctx->energy_gpu)
     memset(ctx, 0, sizeof(*ctx));
 }
 
