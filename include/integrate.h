@@ -14,11 +14,11 @@
                                                                        .duration=1.0 * NS,\
                                                                        .interval_for_information=100,\
                                                                        .interval_for_writing_grid=1000,\
-                                                                       .current_generation_function=sv_from_cstr("return (current){0};"),\
-                                                                       .field_generation_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
-                                                                       .temperature_generation_function=sv_from_cstr("return 0.0;"),\
-                                                                       .output_path = sv_from_cstr("./integration/"),\
-                                                                       .compile_augment = (string_view){0},\
+                                                                       .current_generation_function=str_is_cstr("return (current){0};"),\
+                                                                       .field_generation_function=str_is_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
+                                                                       .temperature_generation_function=str_is_cstr("return 0.0;"),\
+                                                                       .output_path = str_is_cstr("./integration/"),\
+                                                                       .compile_augment = (string){0},\
                                                                        __VA_ARGS__})
 
 typedef struct {
@@ -26,11 +26,11 @@ typedef struct {
     double duration;
     unsigned int interval_for_information;
     unsigned int interval_for_writing_grid;
-    string_view current_generation_function;
-    string_view field_generation_function;
-    string_view temperature_generation_function;
-    string_view compile_augment;
-    string_view output_path;
+    string current_generation_function;
+    string field_generation_function;
+    string temperature_generation_function;
+    string compile_augment;
+    string output_path;
 } integration_params;
 
 typedef struct {
@@ -50,7 +50,7 @@ void integrate_context_close(integrate_context *ctx);
 void integrate_context_read_grid(integrate_context *ctx);
 
 void integrate_vars(grid *g, integration_params param);
-void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view func_temperature, string_view dir_out, string_view compile_augment);
+void integrate_base(grid *grid, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string func_current, string func_field, string func_temperature, string dir_out, string compile_augment);
 
 void integrate_step(integrate_context *ctx);
 void integrate_exchange_grids(integrate_context *ctx);

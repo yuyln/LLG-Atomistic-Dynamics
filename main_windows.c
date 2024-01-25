@@ -172,7 +172,7 @@ int main(void) {
     grid_set_anisotropy(&g, (anisotropy){.ani = 0.0 * QE * 1.0e-3, .dir = v3d_c(0.0, 0.0, 1.0)});
     v3d_fill_with_random(g.m, rows, cols);
 
-    string current_func = str_from_cstr("current ret = (current){0};\n"\
+    string current_func = str_is_cstr("current ret = (current){0};\n"\
                                              "return ret;\n"\
                                              "ret.type = CUR_SHE;\n"\
                                              "time -= 0.1 * NS;\n"\
@@ -181,21 +181,21 @@ int main(void) {
                                              "ret.she.beta = 0.0;\n"\
                                              "ret.she.theta_sh = 1.0;\n"\
                                              "return ret;");
-    string field_func = str_from_cstr("double normalized = 0.5;\n"\
+    string field_func = str_is_cstr("double normalized = 0.5;\n"\
                                           "double real = normalized * gs.dm * gs.dm / gs.exchange / gs.mu;\n"\
                                           "//double osc = sin(5 * M_PI * gs.col / 64.0 - M_PI * 1.0 * time / NS);\n"\
                                           "//real = real * (1.0 + 0.1 * osc);\n"\
                                           "return v3d_c(0.0, 0.0, real);");
 
-    string temperature_func = str_from_cstr("return 0.0 / (time / NS + EPS);");
+    string temperature_func = str_is_cstr("return 0.0 / (time / NS + EPS);");
 
-    string compile = str_from_cstr("-cl-fast-relaxed-math");
+    string compile = str_is_cstr("-cl-fast-relaxed-math");
 
     //integrate(&g, .dt = dt, .duration = 1 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .compile_augment = compile);
 
     srand(time(NULL));
 
-    gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, sv_from_cstr(""), compile);
+    gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, STR_NULL, compile);
     run_gsa(&g, &gpu);
     run_gradient_descent(&g, &gpu, 1.0e-1);
     run_integration(&g, &gpu, dt);

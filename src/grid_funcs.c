@@ -265,9 +265,9 @@ bool grid_dump(FILE *f, grid *g) {
     return ret;
 }
 
-bool grid_from_file(string_view path, grid *g) {
+bool grid_from_file(string path, grid *g) {
     string p_ = {0};
-    str_cat_sv(&p_, path);
+    str_cat_str(&p_, path);
     FILE *f = fopen(str_as_cstr(&p_), "rb");
     char *data = NULL;
     bool ret = true;

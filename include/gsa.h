@@ -12,8 +12,8 @@
                                                   .inner_steps = 100000,\
                                                   .outer_steps = 15,\
                                                   .print_factor = 10,\
-                                                  .field_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
-                                                  .compile_augment = (string_view){0},\
+                                                  .field_function=str_is_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
+                                                  .compile_augment = STR_NULL,\
                                                   __VA_ARGS__})
 
 #define gsa_context_init(g, gpu, ...) gsa_context_init_params(g, gpu, (gsa_parameters){.qA = 2.8,\
@@ -23,8 +23,8 @@
                                                                                        .inner_steps = 100000,\
                                                                                        .outer_steps = 15,\
                                                                                        .print_factor = 10,\
-                                                                                       .field_function=sv_from_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
-                                                                                       .compile_augment = (string_view){0},\
+                                                                                       .field_function=str_is_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
+                                                                                       .compile_augment = STR_NULL,\
                                                                                        __VA_ARGS__})
 
 typedef struct {
@@ -36,8 +36,8 @@ typedef struct {
     uint64_t outer_steps;
     uint64_t print_factor;
 
-    string_view field_function;
-    string_view compile_augment;
+    string field_function;
+    string compile_augment;
 } gsa_parameters;
 
 typedef struct {
@@ -82,7 +82,7 @@ void gsa_context_close(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
 void gsa_params(grid *g, gsa_parameters param);
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string_view field_function, string_view compile_augment);
+void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string field_function, string compile_augment);
 
 void gsa_thermal_step(gsa_context *ctx);
 void gsa_metropolis_step(gsa_context *ctx);

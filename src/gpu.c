@@ -79,7 +79,7 @@ const char *gpu_cl_get_str_error(cl_int err) {
 }
 
 INCEPTION("Compile OPT is assumed to be storing a null terminated string")
-static void gpu_cl_compile_source(gpu_cl *gpu, string_view source, string_view compile_opt) {
+static void gpu_cl_compile_source(gpu_cl *gpu, string source, string compile_opt) {
     cl_int err;
     gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source.str, &source.len, &err);
     if (err != CL_SUCCESS)
@@ -342,7 +342,7 @@ static void gpu_cl_init_queue(gpu_cl *gpu) {
     logging_log(LOG_INFO, "Created command queue on GPU");
 }
 
-gpu_cl gpu_cl_init(string_view current_function, string_view field_function, string_view temperature_function, string_view kernel_augment, string_view compile_augment) {
+gpu_cl gpu_cl_init(string current_function, string field_function, string temperature_function, string kernel_augment, string compile_augment) {
     gpu_cl ret = {0};
     gpu_cl_get_platforms(&ret);
     p_id = p_id % ret.n_platforms;
@@ -358,10 +358,13 @@ gpu_cl gpu_cl_init(string_view current_function, string_view field_function, str
     gpu_cl_init_context(&ret);
     gpu_cl_init_queue(&ret);
 
-    const char cmp[] = "-DOPENCL_COMPILATION";
+    const char *cmp_ = "-DOPENCL_COMPILATION";
+    string cmp = str_is_cstr(cmp_);
+
     string kernel = fill_functions_on_kernel(current_function, field_function, temperature_function, kernel_augment);
-    string compile = fill_compilation_params(sv_from_cstr(cmp), compile_augment);
-    gpu_cl_compile_source(&ret, sv_from_cstr(str_as_cstr(&kernel)), sv_from_cstr(str_as_cstr(&compile)));
+    string compile = fill_compilation_params(cmp, compile_augment);
+    gpu_cl_compile_source(&ret, kernel, compile);
+
     str_free(&kernel);
     str_free(&compile);
 

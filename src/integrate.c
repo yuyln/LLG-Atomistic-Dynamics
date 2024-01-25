@@ -38,8 +38,8 @@ void integrate_vars(grid *g, integration_params param) {
     integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.temperature_generation_function, param.output_path,  param.compile_augment);
 }
 
-void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string_view func_current, string_view func_field, string_view func_temperature, string_view dir_out, string_view compile_augment) {
-    gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, sv_from_cstr(""), compile_augment);
+void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string func_current, string func_field, string func_temperature, string dir_out, string compile_augment) {
+    gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, (string){.str="\0", .len=0}, compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
 
     uint64_t info_id = gpu_cl_append_kernel(&gpu, "extract_info");
@@ -62,7 +62,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
 
     string output_info_path = (string){0};
 
-    str_cat_sv(&output_info_path, dir_out);
+    str_cat_str(&output_info_path, dir_out);
     str_cat_cstr(&output_info_path, "/integration_info.dat");
 
     FILE *output_info = fopen(str_as_cstr(&output_info_path), "w");
@@ -80,7 +80,7 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     fprintf(output_info, "charge_center_x(m),charge_center_y(m)\n");
 
     string output_grid_path = (string){0};
-    str_cat_sv(&output_grid_path, dir_out);
+    str_cat_str(&output_grid_path, dir_out);
     str_cat_cstr(&output_grid_path, "/integration_evolution.dat");
 
     FILE *grid_evolution = fopen(str_as_cstr(&output_grid_path), "w");

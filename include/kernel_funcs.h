@@ -3,7 +3,7 @@
 #include "complete_kernel.h"
 #include "string_view.h"
 
-string fill_functions_on_kernel(string_view current_augment, string_view field_augment, string_view temperature_augment, string_view kernel_augment);
-string fill_compilation_params(string_view compilation, string_view compilation_augment);
+string fill_functions_on_kernel(string current_augment, string field_augment, string temperature_augment, string kernel_augment);
+string fill_compilation_params(string compilation, string compilation_augment);
 
 #endif
