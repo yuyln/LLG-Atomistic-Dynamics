@@ -243,75 +243,51 @@ int main(void) {
                 g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
 
         double J = 1.0e-3 * QE;
-        grid_set_exchange(&g, J);
 
-        double dm = 0.18 * J;
-        dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(0.0, 0.0, -dm),
-            .dmv_up = v3d_c(0.0, 0.0, dm),
-            .dmv_left = v3d_c(0.0, -dm, 0),
-            .dmv_right = v3d_c(0.0, dm, 0)};
+        double dm = 0.2 * J;
+        dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(0.0, -dm, 0.0),
+                                                     .dmv_up = v3d_c(0.0, dm, 0.0),
+                                                     .dmv_left = v3d_c(-dm, 0.0, 0),
+                                                     .dmv_right = v3d_c(dm, 0.0, 0)};
 
-        grid_set_alpha(&g, 0.3);
+        grid_set_alpha(&g, 0.1);
         grid_set_dm(&g, default_dm);
-        grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * J, .dir = v3d_c(1.0, 0.0, 0.0)});
+        grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * J, .dir = v3d_c(0.0, 0.0, 1.0)});
         grid_set_mu(&g, HBAR * g.gp->gamma);
         logging_log(LOG_INFO, "Gamma: %e", g.gp->gamma);
         grid_set_lattice(&g, 0.5e-9);
         g.gi.pbc.pbc_x = true;
         g.gi.pbc.pbc_y = true;
 
-        v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 15, rows / 2.0, cols / 2.0,
-                -1.0, -1.0, 0.0);
-        // v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols
-        // / 2.0, 1.0, 1.0, 0.0);
+        v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 30, rows / 2.0, cols / 2.0, -1.0, 1.0, 0.0);
+        v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2.0, cols / 2.0, 1.0, -1.0, 0.0);
+        J *= 1.0;
+        grid_set_exchange(&g, J);
+
+//        for (int r = 0; r < g.gi.rows; ++r) {
+//            for (int c = 0; c < g.gi.cols; ++c) {
+//                v3d m = g.m[r * g.gi.cols + c];
+//                double x = m.z;
+//                double y = m.y;
+//                double z = m.x;
+//                g.m[r * g.gi.cols + c] = v3d_scalar(v3d_c(x, y, z), pow(SIGN(J), r + c));
+//
+//            }
+//        }
     }
 
-    //for (int r = 0; r < g.gi.rows; ++r) {
-    //  for (int c = 0; c < g.gi.cols; ++c) {
-    //    v3d m = g.m[r * g.gi.cols + c];
-    //    double x = m.z;
-    //    double y = m.y;
-    //    double z = m.x;
-    //    g.m[r * g.gi.cols + c] = v3d_c(x, y, z);
-    //  }
-    //}
 
-    v3d_fill_with_random(g.m, g.gi.rows, g.gi.cols);
-    double dt = 0.01 * HBAR / (g.gp->exchange);
-#if 0
-    int n_stripes = 4;
-    for (int i = 1; i <= n_stripes; ++i) {
-        double a;
-        if (i % 2 == 1) a = 0.02 * QE * 1.0e-3;
-        if (i % 2 == 0) a = 0.05 * QE * 1.0e-3;
-        int stripe_size = cols / n_stripes;
-
-        int start = (i - 1) * stripe_size;
-        int end = i * stripe_size;
-
-        for (int r = 0; r < g.gi.rows; ++r)
-            for (int c = start; c < end; ++c)
-                grid_set_anisotropy_loc(&g, r, c, (anisotropy){.ani = a, .dir = v3d_c(0.0, 0.0, 1.0)});
-
-    }
-#endif
+    double dt = 0.01 * HBAR / (g.gp->exchange * SIGN(g.gp->exchange));
 
     string_view current_func =
         sv_from_cstr("current ret = (current){};\n"\
                 "//return ret;\n"\
-                "ret.type = CUR_STT;\n"\
-                "ret.stt.j = v3d_c(5.0e10, 0.0, 0.0);\n"\
-                "ret.stt.beta = 0.0;\n"\
-                "ret.stt.polarization = -1.0;\n"\
+                "ret.type = CUR_SHE;\n"\
+                "ret.she.p = v3d_c(1.0e9 * (time > 1 * NS), 0.0, 0.0);\n"\
+                "ret.she.beta = 0.0;\n"\
+                "ret.she.theta_sh = -1.0;\n"\
+                "ret.she.thickness = gs.lattice;\n"\
                 "return ret;");
-
-    /*string_view field_func = sv_from_cstr("double hz = 0.015;\n"\
-      "double factor = gs.exchange /
-      gs.mu;\n"\
-      "double w = 16.4e9 * 2.0 * M_PI;\n"\
-      "double osc = 0.003 * (sin(w * time) +
-      sin(2.0 * w * time));\n"\ "return v3d_c(osc * factor, 0.0, hz *
-      factor);");*/
 
     string_view field_func =
         sv_from_cstr("double Hz = 2.592e-24 / gs.mu;\n"\
@@ -319,22 +295,11 @@ int main(void) {
                 "double w = 0.017 * gs.exchange / HBAR;\n"\
                 "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\
                 "//if (gs.col == 0 && gs.row == 0) printf(\"Hz=%e\\n\", Hz);\n"\
-                "return v3d_c(Hz, 0.0, 0.0);");
-
-    /*string_view field_func = sv_from_cstr("double H = 0.5 * gs.dm * gs.dm /
-      gs.exchange / gs.mu; //50e-3;\n"\
-      "double w = 8.0e9 * 2.0 * M_PI;\n"\
-      "double theta = M_PI / 4.0;\n"\
-      "double osc = sin(w * time);\n"\
-      "return v3d_c(0.0, 0.0, H);");*/
+                "return v3d_c(0.0, 0.0, Hz);");
 
     string_view temperature_func = sv_from_cstr("return 0.0;");
 
     string_view compile = sv_from_cstr("-cl-fast-relaxed-math");
-
-    // integrate(&g, .dt = dt, .duration = 6.0e4 * HBAR / g.gp->exchange,
-    // .current_generation_function = current_func, .field_generation_function =
-    // field_func, .compile_augment = compile, .interval_for_information=500);
 
     srand(time(NULL));
 

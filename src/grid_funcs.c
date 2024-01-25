@@ -184,7 +184,7 @@ void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radiu
 
             double r = sqrt(r2);
 
-            if (r > (2.0 * radius))
+            if (r > (1.0 * radius))
                 continue;
 
             v[il * cols + jl].z = 2.0 * Q * (exp(-r2 / R2) - 0.5);
@@ -267,8 +267,8 @@ bool grid_dump(FILE *f, grid *g) {
 
 bool grid_from_file(string_view path, grid *g) {
     string p_ = {0};
-    string_add_sv(&p_, path);
-    FILE *f = fopen(string_as_cstr(&p_), "rb");
+    str_cat_sv(&p_, path);
+    FILE *f = fopen(str_as_cstr(&p_), "rb");
     char *data = NULL;
     bool ret = true;
 
@@ -283,7 +283,7 @@ bool grid_from_file(string_view path, grid *g) {
         *g = grid_init(272, 272);
         return false;
     }
-    string_free(&p_);
+    str_free(&p_);
 
     if (fseek(f, 0, SEEK_END) < 0) {
         logging_log(LOG_ERROR, "Moving cursor to the end of %.*s failed: %s", (int)path.len, path.str, strerror(errno));

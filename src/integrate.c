@@ -61,14 +61,15 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     uint64_t step = 0;
 
     string output_info_path = (string){0};
-    string_add_sv(&output_info_path, dir_out);
-    string_add_cstr(&output_info_path, "/integration_info.dat");
 
-    FILE *output_info = fopen(string_as_cstr(&output_info_path), "w");
+    str_cat_sv(&output_info_path, dir_out);
+    str_cat_cstr(&output_info_path, "/integration_info.dat");
+
+    FILE *output_info = fopen(str_as_cstr(&output_info_path), "w");
     if (!output_info)
         logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
 
-    string_free(&output_info_path);
+    str_free(&output_info_path);
 
     fprintf(output_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
     fprintf(output_info, "charge_finite,charge_lattice,");
@@ -79,14 +80,14 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     fprintf(output_info, "charge_center_x(m),charge_center_y(m)\n");
 
     string output_grid_path = (string){0};
-    string_add_sv(&output_grid_path, dir_out);
-    string_add_cstr(&output_grid_path, "/integration_evolution.dat");
+    str_cat_sv(&output_grid_path, dir_out);
+    str_cat_cstr(&output_grid_path, "/integration_evolution.dat");
 
-    FILE *grid_evolution = fopen(string_as_cstr(&output_grid_path), "w");
+    FILE *grid_evolution = fopen(str_as_cstr(&output_grid_path), "w");
     if (!output_info)
         logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
 
-    string_free(&output_grid_path);
+    str_free(&output_grid_path);
     grid_dump(grid_evolution, g);
 
     uint64_t expected_steps = duration / dt + 1;
