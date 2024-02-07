@@ -17,7 +17,6 @@ typedef enum {
     CUR_BOTH = CUR_STT | CUR_SHE //=3
 } current_type;
 
-
 typedef struct {
     v3d m;
     int pbc_x;

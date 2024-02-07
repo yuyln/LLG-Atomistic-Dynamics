@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdlib.h>
 #define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
 #include <sys/time.h>
@@ -154,7 +156,7 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 
     grid_renderer gr = grid_renderer_init(g, gpu);
     gradient_descent_context ctx = gradient_descent_context_init(
-            g, gr.gpu, .dt = dt, .T = 500.0, .T_factor = 0.99999);
+            g, gr.gpu, .dt = dt, .T = 500.0, .T_factor = 0.9999999);
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
@@ -224,13 +226,10 @@ void run_gradient_descent(grid *g, gpu_cl *gpu, double dt) {
 //@TODO: Do 3D
 //@TODO: Clear everything on integrate context and gsa context(done?)
 //@TODO: Proper error handling
-//@TODO: My create buffer should not be a function from gpu_cl. This difficults
-//figuring where the error came from
-//@TODO: Change things on gpu.h to macros to print file and line
 //@TODO: Create functions to better get DM vectors
-int main(void) {
-    int rows = 128;
-    int cols = 128;
+int main_old(void) {
+    int rows = 64;
+    int cols = 64;
 
     grid g = grid_init(rows, cols);
     for (int r = 0; r < rows; ++r)
@@ -239,11 +238,11 @@ int main(void) {
 
     double J = 1.0e-3 * QE;
 
-    double dm = 0.2 * J;
+    double dm = 0.8 * J;
     dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(0.0, -dm, 0.0),
                                                  .dmv_up = v3d_c(0.0, dm, 0.0),
-                                                 .dmv_left = v3d_c(-dm, 0.0, 0),
-                                                 .dmv_right = v3d_c(dm, 0.0, 0)};
+                                                 .dmv_left = v3d_c(0.0, 0.0, -dm),
+                                                 .dmv_right = v3d_c(0.0, 0.0, dm)};
 
     grid_set_alpha(&g, 0.1);
     grid_set_dm(&g, default_dm);
@@ -265,10 +264,10 @@ int main(void) {
 
         }
     }
-    grid_set_pinning_loc(&g, rows / 2, cols / 5, (pinning){.pinned=1, .dir=v3d_c(0.0, 0.0, 1.0)});
-    grid_set_pinning_loc(&g, rows / 2 + 1, cols / 5, (pinning){.pinned=1, .dir=v3d_c(0.0, 0.0, 1.0)});
-    grid_set_pinning_loc(&g, rows / 2, cols / 5 + 1, (pinning){.pinned=1, .dir=v3d_c(0.0, 0.0, 1.0)});
-    grid_set_pinning_loc(&g, rows / 2 + 1, cols / 5 + 1, (pinning){.pinned=1, .dir=v3d_c(0.0, 0.0, 1.0)});
+    grid_set_pinning_loc(&g, rows / 2, cols / 5, (pinning){.pinned=1, .dir=v3d_c(1.0, 0.0, 0.0)});
+    grid_set_pinning_loc(&g, rows / 2 + 1, cols / 5, (pinning){.pinned=1, .dir=v3d_c(1.0, 0.0, 0.0)});
+    grid_set_pinning_loc(&g, rows / 2, cols / 5 + 1, (pinning){.pinned=1, .dir=v3d_c(1.0, 0.0, 0.0)});
+    grid_set_pinning_loc(&g, rows / 2 + 1, cols / 5 + 1, (pinning){.pinned=1, .dir=v3d_c(1.0, 0.0, 0.0)});
 
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
@@ -286,7 +285,7 @@ int main(void) {
                                      "double Hy = 0.004 * gs.exchange / gs.mu;\n"\
                                      "double w = 0.017 * gs.exchange / HBAR;\n"\
                                      "double h = 2.0e-4 * sin(w * time) * gs.exchange / gs.mu;\n"\
-                                     "return v3d_c(0.0, 0.0, Hz);", 0.405 * dm * dm / (J * SIGN(J)));
+                                     "return v3d_c(Hz, 0.0, 0.0);", 0.405 * dm * dm / (J * SIGN(J)));
 
     string temperature_func = str_is_cstr("return 0.0;");
 
@@ -298,7 +297,75 @@ int main(void) {
     str_free(&field_func);
     logging_log(LOG_INFO, "Integration dt: %e", dt);
     //run_gsa(&g, &gpu);
-    //run_gradient_descent(&g, &gpu, 1.0e-1);
+    run_gradient_descent(&g, &gpu, 1.0e-2);
+    run_integration(&g, &gpu, dt * 1.0);
+    grid_free(&g);
+    return 0;
+}
+
+int main(void) {
+    int stripe_size = 54;
+    int rows = 64;
+    int cols = stripe_size * 2;
+
+    grid g = grid_init(rows, cols);
+    for (int r = 0; r < rows; ++r)
+        for (int c = 0; c < cols; ++c)
+            g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
+
+    double J = 1.0e-3 * QE;
+    grid_set_exchange(&g, J);
+    double dm = 0.18 * J;
+
+    dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(-dm, 0.0, 0.0),
+                                                 .dmv_up = v3d_c(dm, 0.0, 0.0),
+                                                 .dmv_left = v3d_c(0.0, dm, 0.0),
+                                                 .dmv_right = v3d_c(0.0, -dm, 0.0)};
+
+    grid_set_alpha(&g, 0.3);
+    grid_set_dm(&g, default_dm);
+    grid_set_anisotropy(&g, (anisotropy){.ani = 0.02 * J, .dir = v3d_c(0.0, 0.0, 1.0)});
+    grid_set_mu(&g, HBAR * g.gp->gamma);
+    grid_set_lattice(&g, 0.5e-9);
+
+    for (int r = 0; r < rows; ++r)
+        for (int c = stripe_size; c < cols; ++c)
+            grid_set_anisotropy_loc(&g, r, c, (anisotropy){.dir = v3d_c(0.0, 0.0, 1.0), .ani = 0.05 * J});
+
+
+    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 5, rows / 2.0, stripe_size / 2, -1.0, -1.0, 0.0);
+    double dt = 0.01 * HBAR / (J * SIGN(J));
+
+    string current_func = str_is_cstr("current ret = (current){};\n"\
+                                        "time -= 0.5 * NS;\n"\
+                                        "ret.type = CUR_STT;\n"\
+                                        "ret.stt.j = v3d_c(2.0e10, 0.0, 0.0);\n"\
+                                        "ret.stt.beta = 0.0;\n"\
+                                        "ret.stt.polarization = -1.0;\n"\
+                                        "double omega = 318194630.401;\n"\
+                                        "double ac = 5.0e10 * sin(omega * time);\n"\
+                                        "ret.stt.j = v3d_sum(ret.stt.j, v3d_c(0.0, ac, 0.0));\n"\
+                                        "ret.stt.j = v3d_scalar(ret.stt.j, time > 0);\n"\
+                                        "return ret;");
+
+    string field_func = str_from_fmt("double Hz = %.15e / gs.mu;\n"\
+                                     "time -= 0.5 * NS;\n"\
+                                     "double period = 5 * NS;\n"\
+                                     "double omega = 2.0 * M_PI / period;//16.7e9;\n"\
+                                     "double h = sin(omega * time) + sin(2.0 * omega * time);\n"\
+                                     "return v3d_c(0.0 * Hz * h * (time > 0), 0.0, Hz);", 0.5 * dm * dm / (J * SIGN(J)));
+
+    string temperature_func = str_is_cstr("return 0.0;");
+    string compile = str_is_cstr("-cl-fast-relaxed-math");
+
+    srand(time(NULL));
+
+    gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, STR_NULL, compile);
+    str_free(&field_func);
+
+    logging_log(LOG_INFO, "Integration dt: %e", dt);
+    //run_gsa(&g, &gpu);
+    //run_gradient_descent(&g, &gpu, 1.0e-2);
     run_integration(&g, &gpu, dt * 1.0);
     grid_free(&g);
     return 0;

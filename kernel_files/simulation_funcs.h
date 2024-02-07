@@ -7,7 +7,6 @@
 #include "random.h"
 #include "tyche_i.c"
 
-//@TODO: Test optimization without parameters struct
 typedef struct {
     int rows;
     int cols;
