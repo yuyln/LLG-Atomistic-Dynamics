@@ -2,6 +2,9 @@
 #include "complete_kernel.h"
 #include "constants.h"
 #include "kernel_funcs.h"
+#include "gsa.h"
+#include "integrate.h"
+#include "gradient_descent.h"
 #include <float.h>
 
 grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
@@ -124,4 +127,138 @@ void grid_renderer_charge(grid_renderer *gr) {
 
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 
+}
+
+unsigned int steps_per_frame = 100;
+
+void grid_renderer_gsa(grid *g, gpu_cl *gpu, gsa_context ctx, unsigned int width, unsigned int height) {
+    window_init("GSA", width, height);
+
+    grid_renderer gr = grid_renderer_init(g, gpu);
+    int state = 'h';
+    while (!window_should_close()) {
+        switch (state) {
+            case 'q':
+                grid_renderer_charge(&gr);
+                break;
+            case 'e':
+                grid_renderer_energy(&gr, 0.0);
+                break;
+            case 'h':
+                grid_renderer_hsl(&gr);
+                break;
+            case 'b':
+                grid_renderer_bwr(&gr);
+                break;
+            default:
+                grid_renderer_hsl(&gr);
+        }
+        if (window_key_pressed('q'))
+            state = 'q';
+        else if (window_key_pressed('e'))
+            state = 'e';
+        else if (window_key_pressed('h'))
+            state = 'h';
+        else if (window_key_pressed('b'))
+            state = 'b';
+
+        for (unsigned int i = 0; i < steps_per_frame; ++i) {
+            gsa_metropolis_step(&ctx);
+            gsa_thermal_step(&ctx);
+        }
+
+        window_render();
+        window_poll();
+    }
+    gsa_context_read_minimun_grid(&ctx);
+    gsa_context_close(&ctx);
+    grid_renderer_close(&gr);
+}
+
+void grid_renderer_integration(grid *g, gpu_cl *gpu, integrate_context ctx, unsigned int width, unsigned int height) {
+    window_init("Integration", width, height);
+
+    grid_renderer gr = grid_renderer_init(g, gpu);
+
+    int state = 'b';
+    while (!window_should_close()) {
+        switch (state) {
+            case 'q':
+                grid_renderer_charge(&gr);
+                break;
+            case 'e':
+                grid_renderer_energy(&gr, ctx.time);
+                break;
+            case 'h':
+                grid_renderer_hsl(&gr);
+                break;
+            case 'b':
+                grid_renderer_bwr(&gr);
+                break;
+            default:
+                grid_renderer_hsl(&gr);
+        }
+        if (window_key_pressed('q'))
+            state = 'q';
+        else if (window_key_pressed('e'))
+            state = 'e';
+        else if (window_key_pressed('h'))
+            state = 'h';
+        else if (window_key_pressed('b'))
+            state = 'b';
+
+        for (unsigned int i = 0; i < steps_per_frame; ++i) {
+            integrate_step(&ctx);
+            integrate_exchange_grids(&ctx);
+            ctx.time += ctx.dt;
+        }
+
+        window_render();
+        window_poll();
+    }
+    integrate_context_close(&ctx);
+    grid_renderer_close(&gr);
+}
+
+void grid_renderer_gradient_descent(grid *g, gpu_cl *gpu, gradient_descent_context ctx, unsigned int width, unsigned int height) {
+    window_init("Gradient Descent", width, height);
+    grid_renderer gr = grid_renderer_init(g, gpu);
+    int state = 'h';
+    while (!window_should_close()) {
+        switch (state) {
+            case 'q':
+                grid_renderer_charge(&gr);
+                break;
+            case 'e':
+                grid_renderer_energy(&gr, 0.0);
+                break;
+            case 'h':
+                grid_renderer_hsl(&gr);
+                break;
+            case 'b':
+                grid_renderer_bwr(&gr);
+                break;
+            default:
+                grid_renderer_hsl(&gr);
+        }
+        if (window_key_pressed('q'))
+            state = 'q';
+        else if (window_key_pressed('e'))
+            state = 'e';
+        else if (window_key_pressed('h'))
+            state = 'h';
+        else if (window_key_pressed('b'))
+            state = 'b';
+
+        for (unsigned int i = 0; i < steps_per_frame; ++i) {
+            gradient_descent_step(&ctx);
+            gradient_descent_exchange(&ctx);
+        }
+
+        window_render();
+        window_poll();
+    }
+    gradient_descent_read_mininum_grid(&ctx);
+    gradient_descent_close(&ctx);
+    grid_renderer_close(&gr);
 }

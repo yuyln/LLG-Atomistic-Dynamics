@@ -6,6 +6,9 @@
 #include "render.h"
 #include "grid_funcs.h"
 #include "gpu.h"
+#include "gradient_descent.h"
+#include "integrate.h"
+#include "gsa.h"
 
 typedef struct {
     grid *g;
@@ -27,12 +30,17 @@ typedef struct {
 
 } grid_renderer;
 
+extern unsigned int steps_per_frame;
+
 grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu);
 void grid_renderer_close(grid_renderer *gr);
 void grid_renderer_hsl(grid_renderer *gr);
 void grid_renderer_bwr(grid_renderer *gr);
 void grid_renderer_energy(grid_renderer *gr, double time);
 void grid_renderer_charge(grid_renderer *gr);
+void grid_renderer_gsa(grid *g, gpu_cl *gpu, gsa_context ctx, unsigned int width, unsigned int height);
+void grid_renderer_gradient_descent(grid *g, gpu_cl *gpu, gradient_descent_context ctx, unsigned int width, unsigned int height);
+void grid_renderer_integration(grid *g, gpu_cl *gpu, integrate_context ctx, unsigned int width, unsigned int height);
 
 /*void grid_renderer_exchange_energy(grid_renderer *gr);
   void grid_renderer_eletric_field(grid_renderer *gr);
