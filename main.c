@@ -1,18 +1,19 @@
-#include "integrate.h"
 #include <stdint.h>
 #include <stdlib.h>
 #define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
 
+//@TODO: PROPER ERROR CHECKING URGENT!!!
+//@TODO: tools for generating defects
 int main(void) {
-    int stripe_size = 54;
+    int stripe_size = 20;
     unsigned int rows = 64;
-    unsigned int cols = stripe_size * 2;
+    unsigned int cols = rows * 2;
 
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.1 * J;
+    double dm = 0.18 * J;
     double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
@@ -34,30 +35,26 @@ int main(void) {
             g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
 
     for (unsigned int r = 0; r < rows; ++r)
-        for (unsigned int c = stripe_size; c < cols; ++c)
+        for (unsigned int c = cols - stripe_size; c < cols; ++c)
             grid_set_anisotropy_loc(&g, r, c, (anisotropy){.dir = v3d_c(0.0, 0.0, 1.0), .ani = 0.05 * J});
 
 
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 5, rows / 2.0, stripe_size / 2, -1.0, -1.0, M_PI / 2.0);
+    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 5, rows / 2.0, (cols - stripe_size) / 2, -1.0, -1.0, M_PI / 2.0);
     double dt = 0.01 * HBAR / (J * SIGN(J));
 
     string current_func = str_is_cstr("current ret = (current){};\n"\
-                                        "time -= 0.5 * NS;\n"\
-                                        "ret.type = CUR_STT;\n"\
-                                        "ret.stt.j = v3d_c(0.0e10, 0.0, 0.0);\n"\
-                                        "ret.stt.beta = 0.0;\n"\
-                                        "ret.stt.polarization = -1.0;\n"\
-                                        "double omega = 318194630.401;\n"\
-                                        "double ac = 5.0e10 * sin(omega * time);\n"\
-                                        "ret.stt.j = v3d_sum(ret.stt.j, v3d_c(0.0, ac, 0.0));\n"\
-                                        "ret.stt.j = v3d_scalar(ret.stt.j, time > 0);\n"\
-                                        "return ret;");
+                                      "time -= 0.5 * NS;\n"\
+                                      "ret.type = CUR_STT;\n"\
+                                      "ret.stt.j = v3d_c(2.05e10, 0.0, 0.0);\n"\
+                                      "ret.stt.beta = 0.0;\n"\
+                                      "ret.stt.polarization = -1.0;\n"\
+                                      "double omega = 318194630.401;\n"\
+                                      "double ac = 5.0e10 * sin(omega * time);\n"\
+                                      "ret.stt.j = v3d_sum(ret.stt.j, v3d_c(0.0, ac, 0.0));\n"\
+                                      "ret.stt.j = v3d_scalar(ret.stt.j, time > 0);\n"\
+                                      "return ret;");
 
     string field_func = str_from_fmt("double Hz = %.15e;\n"\
-                                     "time -= 0.5 * NS;\n"\
-                                     "double period = 5 * NS;\n"\
-                                     "double omega = 2.0 * M_PI / period;;\n"\
-                                     "double h = sin(omega * time);\n"\
                                      "return v3d_c(0.0, 0.0, Hz);", 0.5 * dm * dm / (J * SIGN(J)) * 1.0 / mu);
 
     string temperature_func = str_is_cstr("return 0.0;");
@@ -70,7 +67,12 @@ int main(void) {
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);
     double ratio = (double)rows / cols;
-    grid_renderer_integration(&g, &gpu, integrate_context_init(&g, &gpu, dt), 800, 800 * ratio);
+#if 1
+    integrate_context ctx = integrate_context_init(&g, &gpu, dt);
+    grid_renderer_integration(&g, &gpu, ctx, 800, 800 * ratio);
+#else
+    integrate(&g, .dt=dt, .duration=20 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .output_path = str_from_fmt("./out.dat"));
+#endif
     grid_free(&g);
     return 0;
 }

@@ -15,5 +15,4 @@
 #include "kernel_funcs.h"
 #include "gsa.h"
 #include "logging.h"
-
 #endif

@@ -27,7 +27,9 @@ void logging_log(logging_level level, const char *fmt, ...) {
             break;
         default: {} break;
     }
-    vfprintf(f, fmt, args);
+    if (fmt)
+        vfprintf(f, fmt, args);
+
     fprintf(f, "\n");
     va_end(args);
     if (terminate)

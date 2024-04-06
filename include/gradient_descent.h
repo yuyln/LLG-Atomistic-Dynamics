@@ -4,15 +4,6 @@
 #include "grid_types.h"
 #include "grid_funcs.h"
 
-#define gradient_descent_context_init(g, gpu, ...)  gradient_descent_context_init_params(g, gpu, (gradient_descent_param){.T = 0.0,\
-                                                                                                           .mass = 1.0,\
-                                                                                                           .dt = 1.0e-15,\
-                                                                                                           .damping = 1.0,\
-                                                                                                           .restoring = 10.0,\
-                                                                                                           .T_factor = 0.99,\
-                                                                                                           __VA_ARGS__})
-
-
 typedef struct {
     double T;
     double mass;
@@ -49,8 +40,8 @@ typedef struct {
     uint64_t local;
 } gradient_descent_context;
 
-gradient_descent_context gradient_descent_context_init_params(grid *g, gpu_cl *gpu, gradient_descent_param param);
-gradient_descent_context gradient_descent_context_init_base(grid *g, gpu_cl *gpu, double T, double mass, double dt, double damping, double restoring, double T_factor);
+gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gradient_descent_param param);
+void gradient_descent(grid *g, gradient_descent_param param);
 
 void gradient_descent_step(gradient_descent_context *ctx);
 void gradient_descent_close(gradient_descent_context *ctx);

@@ -9,9 +9,6 @@ static double energy_from_gradient_descent_context(gradient_descent_context *ctx
     return ret;
 }
 
-gradient_descent_context gradient_descent_context_init_params(grid *g, gpu_cl *gpu, gradient_descent_param param) {
-    return gradient_descent_context_init_base(g, gpu, param.T, param.mass, param.dt, param.damping, param.restoring, param.T_factor);
-}
 
 gradient_descent_context gradient_descent_context_init_base(grid *g, gpu_cl *gpu, double T, double mass, double dt, double damping, double restoring, double T_factor) {
     gradient_descent_context ret = (gradient_descent_context){0};
@@ -61,6 +58,10 @@ gradient_descent_context gradient_descent_context_init_base(grid *g, gpu_cl *gpu
     ret.min_energy = energy_from_gradient_descent_context(&ret);
 
     return ret;
+}
+
+gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gradient_descent_param param) {
+    return gradient_descent_context_init_base(g, gpu, param.T, param.mass, param.dt, param.damping, param.restoring, param.T_factor);
 }
 
 void gradient_descent_step(gradient_descent_context *ctx) {

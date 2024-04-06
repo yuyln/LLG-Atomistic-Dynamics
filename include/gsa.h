@@ -5,27 +5,6 @@
 #include "grid_funcs.h"
 #include "string_view.h"
 
-#define gsa(g, ...) gsa_param(g, (gsa_parameters){.qA = 2.8,\
-                                                  .qV = 2.6,\
-                                                  .qT = 2.6,\
-                                                  .T0 = 10.0,\
-                                                  .inner_steps = 100000,\
-                                                  .outer_steps = 15,\
-                                                  .print_factor = 10,\
-                                                  .field_function=str_is_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
-                                                  .compile_augment = STR_NULL,\
-                                                  __VA_ARGS__})
-
-#define gsa_context_init(g, gpu, ...) gsa_context_init_params(g, gpu, (gsa_parameters){.qA = 2.8,\
-                                                                                       .qV = 2.6,\
-                                                                                       .qT = 2.6,\
-                                                                                       .T0 = 10.0,\
-                                                                                       .inner_steps = 100000,\
-                                                                                       .outer_steps = 15,\
-                                                                                       .print_factor = 10,\
-                                                                                       .field_function=str_is_cstr("double normalized = 0.5 * gs.dm * gs.dm / gs.exchange;\ndouble real = normalized / gs.mu; return v3d_c(0.0, 0.0, real);"),\
-                                                                                       .compile_augment = STR_NULL,\
-                                                                                       __VA_ARGS__})
 
 typedef struct {
     double qA;
@@ -76,13 +55,11 @@ typedef struct {
     double gamma;
 } gsa_context;
 
-gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param);
-gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param);
+gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_parameters param);
 void gsa_context_close(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
-void gsa_params(grid *g, gsa_parameters param);
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string field_function, string compile_augment);
+void gsa(grid *g, gsa_parameters param);
 
 void gsa_thermal_step(gsa_context *ctx);
 void gsa_metropolis_step(gsa_context *ctx);

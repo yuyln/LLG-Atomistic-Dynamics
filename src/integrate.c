@@ -34,10 +34,6 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_release_memory(ctx->swap_buffer);
 }
 
-void integrate_vars(grid *g, integration_params param) {
-    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.temperature_generation_function, param.output_path,  param.compile_augment);
-}
-
 void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string func_current, string func_field, string func_temperature, string dir_out, string compile_augment) {
     gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, (string){.str="\0", .len=0}, compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, dt);
@@ -148,6 +144,10 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
     free(info);
+}
+
+void integrate(grid *g, integration_params param) {
+    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.temperature_generation_function, param.output_path,  param.compile_augment);
 }
 
 void integrate_step(integrate_context *ctx) {

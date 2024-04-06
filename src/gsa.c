@@ -17,9 +17,6 @@ static double energy_from_gsa_context(gsa_context *ctx) {
     return ret;
 }
 
-gsa_context gsa_context_init_params(grid *g, gpu_cl *gpu, gsa_parameters param) {
-    return gsa_context_init_base(g, gpu, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor);
-}
 
 gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_factor) {
     gsa_context ret = {0};
@@ -80,9 +77,10 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     return ret;
 }
 
-void gsa_params(grid *g, gsa_parameters param) {
-    gsa_base(g, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment);
+gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_parameters param) {
+    return gsa_context_init_base(g, gpu, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor);
 }
+
 
 void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string field_function, string compile_augment) {
     gpu_cl gpu = gpu_cl_init(STR_NULL, field_function, STR_NULL, STR_NULL, compile_augment);
@@ -106,6 +104,10 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
 
     gsa_context_read_minimun_grid(&ctx);
     logging_log(LOG_INFO, "GSA Done. Minimun energy found %.15e eV", ctx.min_energy / QE);
+}
+
+void gsa(grid *g, gsa_parameters param) {
+    gsa_base(g, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment);
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
