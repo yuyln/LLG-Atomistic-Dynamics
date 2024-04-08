@@ -2,7 +2,7 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
-kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
+kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
     int row = (id - col) / gi.cols;
@@ -34,7 +34,7 @@ kernel void gpu_step(GLOBAL grid_site_param *gs, GLOBAL v3d *input, GLOBAL v3d *
     out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step_llg(param, dt)));
 }
 
-kernel void extract_info(GLOBAL grid_site_param *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
+kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
     int row = (id - col) / gi.cols;
@@ -162,7 +162,7 @@ kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int 
     rgba[id] = linear_mapping(clamp(charge, 0.0, 1.0), start, middle, end);
 }
 
-kernel void calculate_energy(GLOBAL grid_site_param *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
+kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
     int row = (id - col) / gi.cols;
@@ -211,7 +211,7 @@ kernel void render_energy(GLOBAL double *ene, unsigned int rows, unsigned int co
     rgba[id] = linear_mapping(clamp(energy, 0.0, 1.0), start, middle, end);
 }
 
-kernel void thermal_step_gsa(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, grid_info gi, double qV, double gamma, double T, int seed) {
+kernel void thermal_step_gsa(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, grid_info gi, double qV, double gamma, double T, int seed) {
     size_t i = get_global_id(0);
     v3d v0l = v0[i];
     v3d v1l = v1[i];
@@ -232,7 +232,7 @@ kernel void thermal_step_gsa(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL 
 //0 -> before
 //1 -> current
 //2 -> new
-kernel void gradient_descent_step(GLOBAL grid_site_param *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, GLOBAL v3d *v2, grid_info gi,
+kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, GLOBAL v3d *v1, GLOBAL v3d *v2, grid_info gi,
                                   double mass, double T, double damping, double restoring, double dt, int seed) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;

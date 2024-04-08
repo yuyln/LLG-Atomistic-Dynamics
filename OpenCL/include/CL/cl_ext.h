@@ -328,10 +328,10 @@ clCommandSVMMemFillKHR_fn CL_API_SUFFIX__VERSION_2_0;
 typedef cl_int CL_API_CALL
 clGetCommandBufferInfoKHR_t(
     cl_command_buffer_khr command_buffer,
-    cl_command_buffer_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_command_buffer_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetCommandBufferInfoKHR_t *
 clGetCommandBufferInfoKHR_fn ;
@@ -519,10 +519,10 @@ clCommandSVMMemFillKHR(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetCommandBufferInfoKHR(
     cl_command_buffer_khr command_buffer,
-    cl_command_buffer_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+    cl_command_buffer_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) ;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -599,9 +599,9 @@ typedef struct _cl_mutable_dispatch_arg_khr {
     const void* arg_value;
 } cl_mutable_dispatch_arg_khr;
 typedef struct _cl_mutable_dispatch_exec_info_khr {
-    cl_uint param_name;
-    size_t param_value_size;
-    const void* param_value;
+    cl_uint params_name;
+    size_t params_value_size;
+    const void* params_value;
 } cl_mutable_dispatch_exec_info_khr;
 typedef struct _cl_mutable_dispatch_config_khr {
     cl_command_buffer_structure_type_khr type;
@@ -671,10 +671,10 @@ clUpdateMutableCommandsKHR_fn ;
 typedef cl_int CL_API_CALL
 clGetMutableCommandInfoKHR_t(
     cl_mutable_command_khr command,
-    cl_mutable_command_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_mutable_command_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetMutableCommandInfoKHR_t *
 clGetMutableCommandInfoKHR_fn ;
@@ -689,10 +689,10 @@ clUpdateMutableCommandsKHR(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetMutableCommandInfoKHR(
     cl_mutable_command_khr command,
-    cl_mutable_command_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+    cl_mutable_command_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) ;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -1218,10 +1218,10 @@ clGetDeviceImageInfoQCOM_t(
     size_t image_width,
     size_t image_height,
     const cl_image_format* image_format,
-    cl_image_pitch_info_qcom param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_image_pitch_info_qcom params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetDeviceImageInfoQCOM_t *
 clGetDeviceImageInfoQCOM_fn ;
@@ -1234,10 +1234,10 @@ clGetDeviceImageInfoQCOM(
     size_t image_width,
     size_t image_height,
     const cl_image_format* image_format,
-    cl_image_pitch_info_qcom param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+    cl_image_pitch_info_qcom params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) ;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -1454,12 +1454,12 @@ typedef cl_int CL_API_CALL
 clGetKernelSubGroupInfoKHR_t(
     cl_kernel in_kernel,
     cl_device_id in_device,
-    cl_kernel_sub_group_info param_name,
+    cl_kernel_sub_group_info params_name,
     size_t input_value_size,
     const void* input_value,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetKernelSubGroupInfoKHR_t *
 clGetKernelSubGroupInfoKHR_fn CL_API_SUFFIX__VERSION_2_0_DEPRECATED;
@@ -1470,12 +1470,12 @@ extern CL_API_ENTRY cl_int CL_API_CALL
 clGetKernelSubGroupInfoKHR(
     cl_kernel in_kernel,
     cl_device_id in_device,
-    cl_kernel_sub_group_info param_name,
+    cl_kernel_sub_group_info params_name,
     size_t input_value_size,
     const void* input_value,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_0_DEPRECATED;
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_2_0_DEPRECATED;
 
 #endif /* !defined(CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -1982,10 +1982,10 @@ clEnqueueSignalSemaphoresKHR_fn CL_API_SUFFIX__VERSION_1_2;
 typedef cl_int CL_API_CALL
 clGetSemaphoreInfoKHR_t(
     cl_semaphore_khr sema_object,
-    cl_semaphore_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_semaphore_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetSemaphoreInfoKHR_t *
 clGetSemaphoreInfoKHR_fn CL_API_SUFFIX__VERSION_1_2;
@@ -2035,10 +2035,10 @@ clEnqueueSignalSemaphoresKHR(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetSemaphoreInfoKHR(
     cl_semaphore_khr sema_object,
-    cl_semaphore_info_khr param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_semaphore_info_khr params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clReleaseSemaphoreKHR(
@@ -2232,9 +2232,9 @@ clSetKernelArgSVMPointerARM_fn CL_API_SUFFIX__VERSION_1_2;
 typedef cl_int CL_API_CALL
 clSetKernelExecInfoARM_t(
     cl_kernel kernel,
-    cl_kernel_exec_info_arm param_name,
-    size_t param_value_size,
-    const void* param_value);
+    cl_kernel_exec_info_arm params_name,
+    size_t params_value_size,
+    const void* params_value);
 
 typedef clSetKernelExecInfoARM_t *
 clSetKernelExecInfoARM_fn CL_API_SUFFIX__VERSION_1_2;
@@ -2314,9 +2314,9 @@ clSetKernelArgSVMPointerARM(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelExecInfoARM(
     cl_kernel kernel,
-    cl_kernel_exec_info_arm param_name,
-    size_t param_value_size,
-    const void* param_value) CL_API_SUFFIX__VERSION_1_2;
+    cl_kernel_exec_info_arm params_name,
+    size_t params_value_size,
+    const void* params_value) CL_API_SUFFIX__VERSION_1_2;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -2505,10 +2505,10 @@ clCreateAcceleratorINTEL_fn CL_API_SUFFIX__VERSION_1_2;
 typedef cl_int CL_API_CALL
 clGetAcceleratorInfoINTEL_t(
     cl_accelerator_intel accelerator,
-    cl_accelerator_info_intel param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_accelerator_info_intel params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetAcceleratorInfoINTEL_t *
 clGetAcceleratorInfoINTEL_fn CL_API_SUFFIX__VERSION_1_2;
@@ -2540,10 +2540,10 @@ clCreateAcceleratorINTEL(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetAcceleratorInfoINTEL(
     cl_accelerator_intel accelerator,
-    cl_accelerator_info_intel param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_accelerator_info_intel params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainAcceleratorINTEL(
@@ -3003,10 +3003,10 @@ typedef cl_int CL_API_CALL
 clGetMemAllocInfoINTEL_t(
     cl_context context,
     const void* ptr,
-    cl_mem_info_intel param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_mem_info_intel params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetMemAllocInfoINTEL_t *
 clGetMemAllocInfoINTEL_fn ;
@@ -3103,10 +3103,10 @@ extern CL_API_ENTRY cl_int CL_API_CALL
 clGetMemAllocInfoINTEL(
     cl_context context,
     const void* ptr,
-    cl_mem_info_intel param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+    cl_mem_info_intel params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelArgMemPointerINTEL(
@@ -3264,11 +3264,11 @@ clCreateBufferWithPropertiesINTEL(
 #define CL_INTEL_PROGRAM_SCOPE_HOST_PIPE_EXTENSION_NAME \
     "cl_intel_program_scope_host_pipe"
 
-/* clGetEventInfo response when param_name is CL_EVENT_COMMAND_TYPE */
+/* clGetEventInfo response when params_name is CL_EVENT_COMMAND_TYPE */
 #define CL_COMMAND_READ_HOST_PIPE_INTEL                     0x4214
 #define CL_COMMAND_WRITE_HOST_PIPE_INTEL                    0x4215
 
-/* clGetProgramInfo param_name */
+/* clGetProgramInfo params_name */
 #define CL_PROGRAM_NUM_HOST_PIPES_INTEL                     0x4216
 #define CL_PROGRAM_HOST_PIPE_NAMES_INTEL                    0x4217
 
@@ -3442,10 +3442,10 @@ clGetImageRequirementsInfoEXT_t(
     cl_mem_flags flags,
     const cl_image_format* image_format,
     const cl_image_desc* image_desc,
-    cl_image_requirements_info_ext param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_image_requirements_info_ext params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetImageRequirementsInfoEXT_t *
 clGetImageRequirementsInfoEXT_fn CL_API_SUFFIX__VERSION_3_0;
@@ -3459,10 +3459,10 @@ clGetImageRequirementsInfoEXT(
     cl_mem_flags flags,
     const cl_image_format* image_format,
     const cl_image_desc* image_desc,
-    cl_image_requirements_info_ext param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_3_0;
+    cl_image_requirements_info_ext params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_3_0;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
@@ -3500,10 +3500,10 @@ typedef cl_uint             cl_icdl_info;
 
 typedef cl_int CL_API_CALL
 clGetICDLoaderInfoOCLICD_t(
-    cl_icdl_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_icdl_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetICDLoaderInfoOCLICD_t *
 clGetICDLoaderInfoOCLICD_fn ;
@@ -3512,10 +3512,10 @@ clGetICDLoaderInfoOCLICD_fn ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetICDLoaderInfoOCLICD(
-    cl_icdl_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+    cl_icdl_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) ;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 

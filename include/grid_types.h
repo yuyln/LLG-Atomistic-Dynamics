@@ -60,7 +60,7 @@ typedef struct {
     anisotropy ani;
     pinning pin;
     dm_interaction dm;
-} grid_site_param;
+} grid_site_params;
 
 typedef struct {
     unsigned int rows, cols;

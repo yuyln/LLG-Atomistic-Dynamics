@@ -43,7 +43,7 @@ Generates a random 64-bit unsigned integer using tyche_i RNG.
 
 This is alternative, macro implementation of tyche_i RNG.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_macro_ulong(state) (tyche_i_macro_advance(state), state.res)
 #define tyche_i_macro_advance(state) ( \
@@ -60,7 +60,7 @@ This is alternative, macro implementation of tyche_i RNG.
 /**
 Generates a random 64-bit unsigned integer using tyche_i RNG.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_ulong(state) (tyche_i_advance(&state), state.res)
 void tyche_i_advance(tyche_i_state* state){
@@ -77,8 +77,8 @@ void tyche_i_advance(tyche_i_state* state){
 /**
 Seeds tyche_i RNG.
 
-@param state Variable, that holds state of the generator to be seeded.
-@param seed Value used for seeding. Should be randomly generated for each instance of generator (thread).
+@params state Variable, that holds state of the generator to be seeded.
+@params seed Value used for seeding. Should be randomly generated for each instance of generator (thread).
 */
 void tyche_i_seed(tyche_i_state* state, ulong seed){
 	state->a = seed >> 32;
@@ -93,28 +93,28 @@ void tyche_i_seed(tyche_i_state* state, ulong seed){
 /**
 Generates a random 32-bit unsigned integer using tyche_i RNG.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_uint(state) ((uint)tyche_i_ulong(state))
 
 /**
 Generates a random float using tyche_i RNG.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_float(state) (tyche_i_ulong(state)*TYCHE_I_FLOAT_MULTI)
 
 /**
 Generates a random double using tyche_i RNG.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_double(state) (tyche_i_ulong(state)*TYCHE_I_DOUBLE_MULTI)
 
 /**
 Generates a random double using tyche_i RNG. Since tyche_i returns 64-bit numbers this is equivalent to tyche_i_double.
 
-@param state State of the RNG to use.
+@params state State of the RNG to use.
 */
 #define tyche_i_double2(state) tyche_i_double(state)
 

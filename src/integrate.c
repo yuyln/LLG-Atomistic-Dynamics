@@ -4,12 +4,13 @@
 
 #include <inttypes.h>
 
-integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
+
+integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_params params) {
     integrate_context ctx = {0};
     ctx.g = grid;
     ctx.gpu = gpu;
     grid_to_gpu(grid, *gpu);
-    ctx.dt = dt;
+    ctx.params = params;
     ctx.time = 0.0;
     ctx.swap_buffer = gpu_cl_create_buffer(gpu, sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, CL_MEM_READ_WRITE);
     ctx.step_id = gpu_cl_append_kernel(gpu, "gpu_step");
@@ -18,7 +19,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt) {
     gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_buffer, sizeof(cl_mem),
                                                  &grid->m_buffer, sizeof(cl_mem),
                                                  &ctx.swap_buffer, sizeof(cl_mem),
-                                                 &dt, sizeof(double),
+                                                 &params.dt, sizeof(double),
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
@@ -34,9 +35,24 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_release_memory(ctx->swap_buffer);
 }
 
-void integrate_base(grid *g, double dt, double duration, unsigned int interval_info, unsigned int interval_grid, string func_current, string func_field, string func_temperature, string dir_out, string compile_augment) {
-    gpu_cl gpu = gpu_cl_init(func_current, func_field, func_temperature, (string){.str="\0", .len=0}, compile_augment);
-    integrate_context ctx = integrate_context_init(g, &gpu, dt);
+integrate_params integrate_params_init() {
+    integrate_params ret = {0};
+    ret.dt = 1.0e-15;
+    ret.duration = 1.0 * NS;
+    ret.interval_for_information = 100;
+    ret.interval_for_writing_grid = 1000;
+
+    ret.current_func = str_is_cstr("return (current){0};");
+    ret.field_func = str_is_cstr("return v3d_s(0);");
+    ret.temperature_func = str_is_cstr("return 0;");
+    ret.compile_augment = STR_NULL;
+    ret.output_path = str_is_cstr("./integrate");
+    return ret;
+}
+
+void integrate(grid *g, integrate_params params) {
+    gpu_cl gpu = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, (string){.str="\0", .len=0}, params.compile_augment);
+    integrate_context ctx = integrate_context_init(g, &gpu, params);
 
     uint64_t info_id = gpu_cl_append_kernel(&gpu, "extract_info");
 
@@ -47,19 +63,19 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     cl_mem info_buffer = gpu_cl_create_buffer(&gpu, g->gi.rows * g->gi.cols * sizeof(*info), CL_MEM_READ_WRITE);
 
     gpu_cl_fill_kernel_args(&gpu, info_id, 0, 7, &g->gp_buffer, sizeof(cl_mem),
-                                              &g->m_buffer, sizeof(cl_mem),
-                                              &ctx.swap_buffer, sizeof(cl_mem),
-                                              &info_buffer, sizeof(cl_mem),
-                                              &dt, sizeof(double),
-                                              &ctx.time, sizeof(double),
-                                              &g->gi, sizeof(grid_info));
+                                                 &g->m_buffer, sizeof(cl_mem),
+                                                 &ctx.swap_buffer, sizeof(cl_mem),
+                                                 &info_buffer, sizeof(cl_mem),
+                                                 &ctx.params.dt, sizeof(double),
+                                                 &ctx.time, sizeof(double),
+                                                 &g->gi, sizeof(grid_info));
 
     uint64_t step = 0;
 
-    string output_info_path = (string){0};
+    string output_info_path = str_from_cstr("");
 
-    str_cat_str(&output_info_path, dir_out);
-    str_cat_cstr(&output_info_path, "/integration_info.dat");
+    str_cat_str(&output_info_path, params.output_path);
+    str_cat_cstr(&output_info_path, "/integrate_info.dat");
 
     FILE *output_info = fopen(str_as_cstr(&output_info_path), "w");
     if (!output_info)
@@ -75,9 +91,9 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     fprintf(output_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
     fprintf(output_info, "charge_center_x(m),charge_center_y(m)\n");
 
-    string output_grid_path = (string){0};
-    str_cat_str(&output_grid_path, dir_out);
-    str_cat_cstr(&output_grid_path, "/integration_evolution.dat");
+    string output_grid_path = str_from_cstr("");
+    str_cat_str(&output_grid_path, params.output_path);
+    str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
     FILE *grid_evolution = fopen(str_as_cstr(&output_grid_path), "w");
     if (!output_info)
@@ -86,13 +102,13 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     str_free(&output_grid_path);
     grid_dump(grid_evolution, g);
 
-    uint64_t expected_steps = duration / dt + 1;
-    logging_log(LOG_INFO, "Expected integration steps: %"PRIu64, expected_steps);
+    uint64_t expected_steps = params.duration / params.dt + 1;
+    logging_log(LOG_INFO, "Expected integrate steps: %"PRIu64, expected_steps);
 
-    while (ctx.time <= duration) {
+    while (ctx.time <= params.duration) {
         integrate_step(&ctx);
 
-        if (step % interval_info == 0) {
+        if (step % params.interval_for_information == 0) {
             integrate_get_info(&ctx, info_id);
             gpu_cl_read_buffer(&gpu, sizeof(*info) * g->gi.rows * g->gi.cols, 0, info, info_buffer);
             information_packed info_local = {0};
@@ -122,16 +138,16 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
             fprintf(output_info, "%.15e,%.15e\n", info_local.charge_center_x / info_local.charge_finite, info_local.charge_center_y / info_local.charge_finite);
         }
 
-        if (step % interval_grid == 0) {
+        if (step % params.interval_for_writing_grid == 0) {
             v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
             v3d_dump(grid_evolution, g->m, g->gi.rows, g->gi.cols);
         }
 
         if (step % (expected_steps / 100) == 0)
-            logging_log(LOG_INFO, "%.3es - %.2f%%", ctx.time, ctx.time / duration * 100.0);
+            logging_log(LOG_INFO, "%.3es - %.2f%%", ctx.time, ctx.time / params.duration * 100.0);
 
         integrate_exchange_grids(&ctx);
-        ctx.time += dt;
+        ctx.time += params.dt;
         step++;
     }
     logging_log(LOG_INFO, "Steps: %d", step);
@@ -144,10 +160,6 @@ void integrate_base(grid *g, double dt, double duration, unsigned int interval_i
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
     free(info);
-}
-
-void integrate(grid *g, integration_params param) {
-    integrate_base(g, param.dt, param.duration, param.interval_for_information, param.interval_for_writing_grid, param.current_generation_function, param.field_generation_function, param.temperature_generation_function, param.output_path,  param.compile_augment);
 }
 
 void integrate_step(integrate_context *ctx) {

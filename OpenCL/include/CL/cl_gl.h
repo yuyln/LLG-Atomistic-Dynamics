@@ -94,10 +94,10 @@ typedef cl_uint             cl_gl_platform_info;
 typedef cl_int CL_API_CALL
 clGetGLContextInfoKHR_t(
     const cl_context_properties* properties,
-    cl_gl_context_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_gl_context_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetGLContextInfoKHR_t *
 clGetGLContextInfoKHR_fn CL_API_SUFFIX__VERSION_1_0;
@@ -117,10 +117,10 @@ clCreateFromGLBuffer_fn CL_API_SUFFIX__VERSION_1_0;
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetGLContextInfoKHR(
     const cl_context_properties* properties,
-    cl_gl_context_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+    cl_gl_context_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
 
 extern CL_API_ENTRY cl_mem CL_API_CALL
 clCreateFromGLBuffer(
@@ -183,10 +183,10 @@ clGetGLObjectInfo_fn CL_API_SUFFIX__VERSION_1_0;
 typedef cl_int CL_API_CALL
 clGetGLTextureInfo_t(
     cl_mem memobj,
-    cl_gl_texture_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_gl_texture_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetGLTextureInfo_t *
 clGetGLTextureInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -233,10 +233,10 @@ clGetGLObjectInfo(
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetGLTextureInfo(
     cl_mem memobj,
-    cl_gl_texture_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+    cl_gl_texture_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueAcquireGLObjects(

@@ -77,16 +77,16 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     return ret;
 }
 
-gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_parameters param) {
-    return gsa_context_init_base(g, gpu, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor);
+gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_params params) {
+    return gsa_context_init_base(g, gpu, params.qA, params.qV, params.qT, params.T0, params.inner_steps, params.outer_steps, params.print_factor);
 }
 
 
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_param, string field_function, string compile_augment) {
-    gpu_cl gpu = gpu_cl_init(STR_NULL, field_function, STR_NULL, STR_NULL, compile_augment);
+void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_params, string field_func, string compile_augment) {
+    gpu_cl gpu = gpu_cl_init(STR_NULL, field_func, STR_NULL, STR_NULL, compile_augment);
     grid_to_gpu(g, gpu);
 
-    gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_param);
+    gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_params);
     while (ctx.outer_step < outer_steps) {
         while (ctx.inner_step < inner_steps) {
             gsa_thermal_step(&ctx);
@@ -106,8 +106,8 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
     logging_log(LOG_INFO, "GSA Done. Minimun energy found %.15e eV", ctx.min_energy / QE);
 }
 
-void gsa(grid *g, gsa_parameters param) {
-    gsa_base(g, param.qA, param.qV, param.qT, param.T0, param.inner_steps, param.outer_steps, param.print_factor, param.field_function, param.compile_augment);
+void gsa(grid *g, gsa_params params) {
+    gsa_base(g, params.qA, params.qV, params.qT, params.T0, params.inner_steps, params.outer_steps, params.print_factor, params.field_func, params.compile_augment);
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
@@ -165,4 +165,18 @@ void gsa_context_close(gsa_context *ctx) {
 
 void gsa_context_read_minimun_grid(gsa_context *ctx) {
     gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
+}
+
+gsa_params gsa_params_init() {
+    gsa_params ret = {0};
+    ret.qA = 2.8;
+    ret.qV = 2.6;
+    ret.qT = 2.6;
+    ret.T0 = 10.0;
+    ret.inner_steps = 100000;
+    ret.outer_steps = 15;
+    ret.print_factor = 10;
+    ret.field_func = str_is_cstr("return v3d_s(0);");
+    ret.compile_augment = STR_NULL;
+    return ret;
 }

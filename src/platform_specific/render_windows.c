@@ -25,19 +25,19 @@ static void window_close(void) {
     free(w->buffer);
 }
 
-LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparams, LPARAM lparams) {
     LRESULT ret = 0;
     switch(msg) {
         case WM_CLOSE: {
             DestroyWindow(w->window_handle);
-            //ret = DefWindowProc(window, msg, wparam, lparam);
+            //ret = DefWindowProc(window, msg, wparams, lparams);
         } break;
 
         case WM_DESTROY: {
             w->should_close = true;
             window_close();
             PostQuitMessage(0);
-            //ret = DefWindowProc(window, msg, wparam, lparam);
+            //ret = DefWindowProc(window, msg, wparams, lparams);
         } break;
 
         case WM_ACTIVATEAPP: {
@@ -59,15 +59,15 @@ LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
         } break;
 
         case WM_SIZE: {
-            ret = DefWindowProc(window, msg, wparam, lparam);
+            ret = DefWindowProc(window, msg, wparams, lparams);
         } break;
 
         case WM_CHAR: {
-            w->input.key_pressed[wparam] = true;
+            w->input.key_pressed[wparams] = true;
         } break;
 
         default: {
-            ret = DefWindowProc(window, msg, wparam, lparam);
+            ret = DefWindowProc(window, msg, wparams, lparams);
         } break;
     }
     return ret;

@@ -14,17 +14,17 @@ typedef struct {
     double duration;
     unsigned int interval_for_information;
     unsigned int interval_for_writing_grid;
-    string current_generation_function;
-    string field_generation_function;
-    string temperature_generation_function;
+    string current_func;
+    string field_func;
+    string temperature_func;
     string compile_augment;
     string output_path;
-} integration_params;
+} integrate_params;
 
 typedef struct {
     grid *g;
     gpu_cl *gpu;
-    double dt;
+    integrate_params params;
     double time;
     cl_mem swap_buffer;
     uint64_t step_id;
@@ -33,11 +33,12 @@ typedef struct {
     uint64_t local;
 } integrate_context;
 
-integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, double dt);
+integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_params dt);
 void integrate_context_close(integrate_context *ctx);
 void integrate_context_read_grid(integrate_context *ctx);
 
-void integrate(grid *g, integration_params param);
+integrate_params integrate_params_init();
+void integrate(grid *g, integrate_params params);
 
 void integrate_step(integrate_context *ctx);
 void integrate_exchange_grids(integrate_context *ctx);

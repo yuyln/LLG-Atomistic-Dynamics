@@ -11,7 +11,9 @@ typedef struct {
     double damping;
     double restoring;
     double T_factor;
-} gradient_descent_param;
+    string field_func;
+    string compile_augment;
+} gradient_descent_params;
 
 typedef struct {
     grid *g;
@@ -25,12 +27,7 @@ typedef struct {
     double min_energy;
     cl_mem energy_gpu;
 
-    double T;
-    double mass;
-    double dt;
-    double damping;
-    double restoring;
-    double T_factor;
+    gradient_descent_params params;
 
     uint64_t step_id;
     uint64_t exchange_id;
@@ -40,9 +37,10 @@ typedef struct {
     uint64_t local;
 } gradient_descent_context;
 
-gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gradient_descent_param param);
-void gradient_descent(grid *g, gradient_descent_param param);
+gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gradient_descent_params params);
+void gradient_descent(grid *g, gradient_descent_params params);
 
+gradient_descent_params gradient_descent_params_init();
 void gradient_descent_step(gradient_descent_context *ctx);
 void gradient_descent_close(gradient_descent_context *ctx);
 void gradient_descent_exchange(gradient_descent_context *ctx);

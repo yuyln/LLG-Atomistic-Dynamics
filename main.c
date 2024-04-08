@@ -1,5 +1,4 @@
-#include <stdint.h>
-#include <stdlib.h>
+
 #define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
 
@@ -13,7 +12,7 @@ int main(void) {
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.18 * J;
+    double dm = 0.5 * J;
     double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
@@ -61,18 +60,27 @@ int main(void) {
     string compile = str_is_cstr("-cl-fast-relaxed-math");
 
     srand(time(NULL));
+    double ratio = (double)rows / cols;
 
-    gpu_cl gpu = gpu_cl_init(current_func, field_func, temperature_func, STR_NULL, compile);
-    str_free(&field_func);
+    gradient_descent_params gd_params = gradient_descent_params_init();
+    gd_params.dt = 1.0e-2;
+    gd_params.T = 500.0;
+    gd_params.T_factor = 0.99999;
+    gd_params.compile_augment = compile;
+    gd_params.field_func = field_func;
+    grid_renderer_gradient_descent(&g, gd_params, 800, 800 * ratio);
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);
-    double ratio = (double)rows / cols;
-#if 1
-    integrate_context ctx = integrate_context_init(&g, &gpu, dt);
-    grid_renderer_integration(&g, &gpu, ctx, 800, 800 * ratio);
-#else
-    integrate(&g, .dt=dt, .duration=20 * NS, .current_generation_function = current_func, .field_generation_function = field_func, .output_path = str_from_fmt("./out.dat"));
-#endif
+    integrate_params int_params = integrate_params_init();
+    int_params.dt = dt;
+    int_params.current_func = current_func;
+    int_params.field_func = field_func;
+    int_params.temperature_func = temperature_func;
+    int_params.compile_augment = compile;
+    grid_renderer_integrate(&g, int_params, 800, 800 * ratio);
+    integrate(&g, int_params);
+
+    str_free(&field_func);
     grid_free(&g);
     return 0;
 }

@@ -6,7 +6,7 @@
 
 typedef struct {
     grid_info gi;
-    grid_site_param *gp;
+    grid_site_params *gp;
     v3d *m;
 
     cl_mem gp_buffer;

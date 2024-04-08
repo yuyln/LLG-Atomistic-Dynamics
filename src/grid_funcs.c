@@ -40,7 +40,7 @@ grid grid_init(unsigned int rows, unsigned int cols) {
                                                  .dmv_left = v3d_c(0, -dm, 0),
                                                  .dmv_right = v3d_c(0, dm, 0)};
 
-    grid_site_param default_grid = (grid_site_param){
+    grid_site_params default_grid = (grid_site_params){
             .exchange = 1.0e-3 * QE,
             .dm = default_dm,
             .lattice = 5.0e-10,

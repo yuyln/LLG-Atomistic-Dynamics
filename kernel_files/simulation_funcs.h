@@ -10,7 +10,7 @@
 typedef struct {
     int rows;
     int cols;
-    grid_site_param gs;
+    grid_site_params gs;
     v3d m;
     neighbors_set neigh;
     double time;
@@ -22,9 +22,9 @@ typedef struct {
 } parameters;
 
 v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols);
-v3d generate_magnetic_field(grid_site_param gs, double time);
-current generate_current(grid_site_param gs, double time);
-double generate_temperature(grid_site_param gs, double time);
+v3d generate_magnetic_field(grid_site_params gs, double time);
+current generate_current(grid_site_params gs, double time);
+double generate_temperature(grid_site_params gs, double time);
 
 double exchange_energy(parameters param);
 double dm_energy(parameters param);

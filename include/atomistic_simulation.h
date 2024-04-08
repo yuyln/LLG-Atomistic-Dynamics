@@ -1,5 +1,6 @@
 #ifndef __ATOMISTIC_SIMULATION_H
 #define __ATOMISTIC_SIMULATION_H
+
 #include "constants.h"
 #include "gpu.h"
 #include "grid_funcs.h"

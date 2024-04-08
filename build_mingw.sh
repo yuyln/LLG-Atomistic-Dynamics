@@ -18,4 +18,4 @@ ar cr libatomistic.a $FILES_OBJ
 
 rm *.o
 
-$CC -L./ $CFLAGS main_windows.c -o main -latomistic $LIBS
+$CC -L./ $CFLAGS main.c -o main -latomistic $LIBS

@@ -5,7 +5,6 @@
 #include "grid_funcs.h"
 #include "string_view.h"
 
-
 typedef struct {
     double qA;
     double qV;
@@ -15,9 +14,9 @@ typedef struct {
     uint64_t outer_steps;
     uint64_t print_factor;
 
-    string field_function;
+    string field_func;
     string compile_augment;
-} gsa_parameters;
+} gsa_params;
 
 typedef struct {
     grid *g;
@@ -43,7 +42,7 @@ typedef struct {
     uint64_t local;
 
     double T;
-    gsa_parameters parameters;
+    gsa_params parameters;
 
     double qA1;
     double qV1;
@@ -55,11 +54,13 @@ typedef struct {
     double gamma;
 } gsa_context;
 
-gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_parameters param);
+gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_params params);
 void gsa_context_close(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
-void gsa(grid *g, gsa_parameters param);
+gsa_params gsa_params_init();
+
+void gsa(grid *g, gsa_params params);
 
 void gsa_thermal_step(gsa_context *ctx);
 void gsa_metropolis_step(gsa_context *ctx);

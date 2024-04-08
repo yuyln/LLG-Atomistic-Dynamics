@@ -342,7 +342,7 @@ static void gpu_cl_init_queue(gpu_cl *gpu) {
     logging_log(LOG_INFO, "Created command queue on GPU");
 }
 
-gpu_cl gpu_cl_init(string current_function, string field_function, string temperature_function, string kernel_augment, string compile_augment) {
+gpu_cl gpu_cl_init(string current_function, string field_func, string temperature_function, string kernel_augment, string compile_augment) {
     gpu_cl ret = {0};
     gpu_cl_get_platforms(&ret);
     p_id = p_id % ret.n_platforms;
@@ -361,7 +361,7 @@ gpu_cl gpu_cl_init(string current_function, string field_function, string temper
     const char *cmp_ = "-DOPENCL_COMPILATION";
     string cmp = str_is_cstr(cmp_);
 
-    string kernel = fill_functions_on_kernel(current_function, field_function, temperature_function, kernel_augment);
+    string kernel = fill_functions_on_kernel(current_function, field_func, temperature_function, kernel_augment);
     string compile = fill_compilation_params(cmp, compile_augment);
     gpu_cl_compile_source(&ret, kernel, compile);
 

@@ -17,4 +17,4 @@ lib .\*.obj /OUT:libatomistic.lib
 
 del .\*.obj
 
-cl %CFLAGS% main_windows.c /o main %LIBS% .\libatomistic.lib
+cl %CFLAGS% main.c /o main %LIBS% .\libatomistic.lib

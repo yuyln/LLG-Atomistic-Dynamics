@@ -131,7 +131,10 @@ void grid_renderer_charge(grid_renderer *gr) {
 
 unsigned int steps_per_frame = 100;
 
-void grid_renderer_gsa(grid *g, gpu_cl *gpu, gsa_context ctx, unsigned int width, unsigned int height) {
+void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height) {
+    gpu_cl gpu_stack = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    gpu_cl *gpu = &gpu_stack;
+    gsa_context ctx = gsa_context_init(g, gpu, params);
     window_init("GSA", width, height);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
@@ -173,10 +176,14 @@ void grid_renderer_gsa(grid *g, gpu_cl *gpu, gsa_context ctx, unsigned int width
     gsa_context_read_minimun_grid(&ctx);
     gsa_context_close(&ctx);
     grid_renderer_close(&gr);
+    gpu_cl_close(gpu);
 }
 
-void grid_renderer_integration(grid *g, gpu_cl *gpu, integrate_context ctx, unsigned int width, unsigned int height) {
+void grid_renderer_integrate(grid *g, integrate_params params, unsigned int width, unsigned int height) {
+    gpu_cl gpu_stack = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, STR_NULL, params.compile_augment);
+    gpu_cl *gpu = &gpu_stack;
     window_init("Integration", width, height);
+    integrate_context ctx = integrate_context_init(g, gpu, params);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
 
@@ -210,7 +217,7 @@ void grid_renderer_integration(grid *g, gpu_cl *gpu, integrate_context ctx, unsi
         for (unsigned int i = 0; i < steps_per_frame; ++i) {
             integrate_step(&ctx);
             integrate_exchange_grids(&ctx);
-            ctx.time += ctx.dt;
+            ctx.time += params.dt;
         }
 
         window_render();
@@ -218,10 +225,14 @@ void grid_renderer_integration(grid *g, gpu_cl *gpu, integrate_context ctx, unsi
     }
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
+    gpu_cl_close(gpu);
 }
 
-void grid_renderer_gradient_descent(grid *g, gpu_cl *gpu, gradient_descent_context ctx, unsigned int width, unsigned int height) {
+void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, unsigned int width, unsigned int height) {
+    gpu_cl gpu_stack = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    gpu_cl *gpu = &gpu_stack;
     window_init("Gradient Descent", width, height);
+    gradient_descent_context ctx = gradient_descent_context_init(g, gpu, params);
     grid_renderer gr = grid_renderer_init(g, gpu);
     int state = 'h';
     while (!window_should_close()) {
@@ -261,4 +272,5 @@ void grid_renderer_gradient_descent(grid *g, gpu_cl *gpu, gradient_descent_conte
     gradient_descent_read_mininum_grid(&ctx);
     gradient_descent_close(&ctx);
     grid_renderer_close(&gr);
+    gpu_cl_close(gpu);
 }

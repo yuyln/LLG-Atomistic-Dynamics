@@ -16,6 +16,10 @@ void str_cat_str(string *s, string s2) {
         logging_log(LOG_ERROR, "String argument passed to %s for manipulation can not be manipulated", __func__);
         return;
     }
+    if (!s2.str) {
+        logging_log(LOG_WARNING, "String argument passed to concatenate (s2) is NULL. Trying to concatenate %.*s.", (int)s->len, s->str);
+        return;
+    }
 
     uint64_t old_len = s->len;
     s->len += s2.len;

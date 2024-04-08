@@ -31,10 +31,10 @@ clGetPlatformIDs_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetPlatformInfo_t(
     cl_platform_id platform,
-    cl_platform_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_platform_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetPlatformInfo_t *
 clGetPlatformInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -51,10 +51,10 @@ clGetDeviceIDs_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetDeviceInfo_t(
     cl_device_id device,
-    cl_device_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_device_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetDeviceInfo_t *
 clGetDeviceInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -94,10 +94,10 @@ clReleaseContext_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetContextInfo_t(
     cl_context context,
-    cl_context_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_context_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetContextInfo_t *
 clGetContextInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -116,10 +116,10 @@ clReleaseCommandQueue_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetCommandQueueInfo_t(
     cl_command_queue command_queue,
-    cl_command_queue_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_command_queue_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetCommandQueueInfo_t *
 clGetCommandQueueInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -159,20 +159,20 @@ clGetSupportedImageFormats_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetMemObjectInfo_t(
     cl_mem memobj,
-    cl_mem_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_mem_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetMemObjectInfo_t *
 clGetMemObjectInfo_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetImageInfo_t(
     cl_mem image,
-    cl_image_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_image_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetImageInfo_t *
 clGetImageInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -191,10 +191,10 @@ clReleaseSampler_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetSamplerInfo_t(
     cl_sampler sampler,
-    cl_sampler_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_sampler_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetSamplerInfo_t *
 clGetSamplerInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -246,10 +246,10 @@ clBuildProgram_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetProgramInfo_t(
     cl_program program,
-    cl_program_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_program_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetProgramInfo_t *
 clGetProgramInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -257,10 +257,10 @@ clGetProgramInfo_fn CL_API_SUFFIX__VERSION_1_0;
 typedef cl_int CL_API_CALL clGetProgramBuildInfo_t(
     cl_program program,
     cl_device_id device,
-    cl_program_build_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_program_build_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetProgramBuildInfo_t *
 clGetProgramBuildInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -305,10 +305,10 @@ clSetKernelArg_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetKernelInfo_t(
     cl_kernel kernel,
-    cl_kernel_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_kernel_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetKernelInfo_t *
 clGetKernelInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -316,10 +316,10 @@ clGetKernelInfo_fn CL_API_SUFFIX__VERSION_1_0;
 typedef cl_int CL_API_CALL clGetKernelWorkGroupInfo_t(
     cl_kernel kernel,
     cl_device_id device,
-    cl_kernel_work_group_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_kernel_work_group_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetKernelWorkGroupInfo_t *
 clGetKernelWorkGroupInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -333,10 +333,10 @@ clWaitForEvents_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetEventInfo_t(
     cl_event event,
-    cl_event_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_event_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetEventInfo_t *
 clGetEventInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -355,10 +355,10 @@ clReleaseEvent_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clGetEventProfilingInfo_t(
     cl_event event,
-    cl_profiling_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_profiling_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetEventProfilingInfo_t *
 clGetEventProfilingInfo_fn CL_API_SUFFIX__VERSION_1_0;
@@ -845,10 +845,10 @@ clUnloadPlatformCompiler_fn CL_API_SUFFIX__VERSION_1_2;
 typedef cl_int CL_API_CALL clGetKernelArgInfo_t(
     cl_kernel kernel,
     cl_uint arg_index,
-    cl_kernel_arg_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_kernel_arg_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetKernelArgInfo_t *
 clGetKernelArgInfo_fn CL_API_SUFFIX__VERSION_1_2;
@@ -943,10 +943,10 @@ clCreatePipe_fn CL_API_SUFFIX__VERSION_2_0;
 
 typedef cl_int CL_API_CALL clGetPipeInfo_t(
     cl_mem pipe,
-    cl_pipe_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    cl_pipe_info params_name,
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetPipeInfo_t *
 clGetPipeInfo_fn CL_API_SUFFIX__VERSION_2_0;
@@ -985,9 +985,9 @@ clSetKernelArgSVMPointer_fn CL_API_SUFFIX__VERSION_2_0;
 
 typedef cl_int CL_API_CALL clSetKernelExecInfo_t(
     cl_kernel kernel,
-    cl_kernel_exec_info param_name,
-    size_t param_value_size,
-    const void* param_value);
+    cl_kernel_exec_info params_name,
+    size_t params_value_size,
+    const void* params_value);
 
 typedef clSetKernelExecInfo_t *
 clSetKernelExecInfo_fn CL_API_SUFFIX__VERSION_2_0;
@@ -1100,12 +1100,12 @@ clCloneKernel_fn CL_API_SUFFIX__VERSION_2_1;
 typedef cl_int CL_API_CALL clGetKernelSubGroupInfo_t(
     cl_kernel kernel,
     cl_device_id device,
-    cl_kernel_sub_group_info param_name,
+    cl_kernel_sub_group_info params_name,
     size_t input_value_size,
     const void* input_value,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret);
+    size_t params_value_size,
+    void* params_value,
+    size_t* params_value_size_ret);
 
 typedef clGetKernelSubGroupInfo_t *
 clGetKernelSubGroupInfo_fn CL_API_SUFFIX__VERSION_2_1;
