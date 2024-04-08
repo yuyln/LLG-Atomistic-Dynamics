@@ -1,6 +1,6 @@
-
 #define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
+
 
 //@TODO: PROPER ERROR CHECKING URGENT!!!
 //@TODO: tools for generating defects
@@ -13,7 +13,7 @@ int main(void) {
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
     double dm = 0.5 * J;
-    double ani = 0.02 * J;
+    double ani = 0.05 * J;
 
     grid g = grid_init(rows, cols);
     grid_set_lattice(&g, lattice);
@@ -21,26 +21,13 @@ int main(void) {
     grid_set_exchange(&g, J);
     grid_set_anisotropy(&g, (anisotropy){.dir=v3d_c(0.0, 0.0, 1.0), .ani = ani});
     double mu = g.gp->mu;
-
     dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(-dm, 0.0, 0.0),
                                                  .dmv_up = v3d_c(dm, 0.0, 0.0),
                                                  .dmv_left = v3d_c(0.0, dm, 0.0),
                                                  .dmv_right = v3d_c(0.0, -dm, 0.0)};
 
     grid_set_dm(&g, default_dm);
-
-    for (unsigned int r = 0; r < rows; ++r)
-        for (unsigned int c = 0; c < cols; ++c)
-            g.m[r * cols + c] = v3d_c(0.0, 0.0, 1.0);
-
-    for (unsigned int r = 0; r < rows; ++r)
-        for (unsigned int c = cols - stripe_size; c < cols; ++c)
-            grid_set_anisotropy_loc(&g, r, c, (anisotropy){.dir = v3d_c(0.0, 0.0, 1.0), .ani = 0.05 * J});
-
-
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 5, rows / 2.0, (cols - stripe_size) / 2, -1.0, -1.0, M_PI / 2.0);
     double dt = 0.01 * HBAR / (J * SIGN(J));
-
     string current_func = str_is_cstr("current ret = (current){};\n"\
                                       "time -= 0.5 * NS;\n"\
                                       "ret.type = CUR_STT;\n"\
@@ -78,7 +65,7 @@ int main(void) {
     int_params.temperature_func = temperature_func;
     int_params.compile_augment = compile;
     grid_renderer_integrate(&g, int_params, 800, 800 * ratio);
-    integrate(&g, int_params);
+    //integrate(&g, int_params);
 
     str_free(&field_func);
     grid_free(&g);

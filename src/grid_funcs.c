@@ -337,3 +337,19 @@ defer:
     free(data);
     return ret;
 }
+
+void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+    for (int64_t y = y0; y < y1; ++y)
+        for (int64_t x = x0; x < x1; ++x)
+            if (x > 0 && x < g->gi.cols && y > 0 && y < g->gi.rows)
+                fun(g, y, x);
+
+}
+
+void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+    for (int64_t y = y0 - b; y < y0 + b; ++y)
+        for (int64_t x = x0 - a; x < x0 + a; ++x)
+            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
+                if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1)
+                    fun(g, y, x);
+}
