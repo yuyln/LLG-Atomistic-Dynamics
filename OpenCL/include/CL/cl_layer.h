@@ -66,10 +66,10 @@ typedef cl_uint             cl_layer_api_version;
 
 typedef cl_int CL_API_CALL
 clGetLayerInfo_t(
-    cl_layer_info params_name,
-    size_t params_value_size,
-    void* params_value,
-    size_t* params_value_size_ret);
+    cl_layer_info paramss_name,
+    size_t paramss_value_size,
+    void* paramss_value,
+    size_t* paramss_value_size_ret);
 
 typedef clGetLayerInfo_t *
 clGetLayerInfo_fn ;
@@ -101,10 +101,10 @@ pfn_clInitLayer ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetLayerInfo(
-    cl_layer_info params_name,
-    size_t params_value_size,
-    void* params_value,
-    size_t* params_value_size_ret) ;
+    cl_layer_info paramss_name,
+    size_t paramss_value_size,
+    void* paramss_value,
+    size_t* paramss_value_size_ret) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clInitLayer(
