@@ -13,8 +13,8 @@ int main(void) {
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.5 * J;
-    double ani = 0.02 * J;
+    double dm = 0.18 * J;
+    double ani = 0.00 * J;
 
     grid g = grid_init(rows, cols);
     grid_set_lattice(&g, lattice);
@@ -47,7 +47,7 @@ int main(void) {
     string field_func = str_from_fmt("double Hz = -%.15e;\n"\
                                      "return v3d_c(0.0, 0.0, Hz);", 0.5 * dm * dm / (J * SIGN(J)) * 1.0 / mu);
 
-    string temperature_func = str_is_cstr("return 10.0;");
+    string temperature_func = str_is_cstr("return 0.0;");
     string compile = str_is_cstr("-cl-fast-relaxed-math");
 
     srand(time(NULL));
@@ -55,14 +55,13 @@ int main(void) {
 
     gradient_descent_params gd_params = gradient_descent_params_init();
     gd_params.dt = 1.0e-2;
-    gd_params.T = 500.0;
-    gd_params.T_factor = 0.9999;
+    gd_params.T = 5000.0;
+    gd_params.T_factor = 0.99985;
     gd_params.compile_augment = compile;
     gd_params.field_func = field_func;
     gd_params.damping = 1.0;
     gd_params.restoring = 10.0;
     gd_params.steps = 100000;
-    steps_per_frame = 1;
     grid_renderer_gradient_descent(&g, gd_params, 400 / ratio, 400);
     //gradient_descent(&g, gd_params);
 

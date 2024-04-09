@@ -9,6 +9,7 @@ typedef struct {
     double mass;
     double dt;
     uint64_t steps;
+    uint64_t outer_steps;
     double damping;
     double restoring;
     double T_factor;
@@ -29,6 +30,9 @@ typedef struct {
     cl_mem energy_gpu;
 
     gradient_descent_params params;
+    uint64_t step;
+    uint64_t outer_step;
+    double T0;
 
     uint64_t step_id;
     uint64_t exchange_id;

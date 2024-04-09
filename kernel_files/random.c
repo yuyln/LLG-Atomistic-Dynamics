@@ -33,7 +33,7 @@ double get_random_gsa_(tyche_i_state *state, double qV, double T, double gamma) 
     return c * dx / l;
 }
 
-double get_random_gsa(tyche_i_state *state, double qV, double T, double gamma_) {
+double get_random_gsa(tyche_i_state *state, double qV, double T, double _gamma) {
     double f1 = exp(log(T) / (qV - 1.0));
     double f2 = exp((4.0 - qV) * log(qV - 1.0));
     double f3 = exp((2.0 - qV) * log(2.0) / (qV - 1.0));
