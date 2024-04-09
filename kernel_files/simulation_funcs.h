@@ -12,16 +12,18 @@ typedef struct {
     int cols;
     grid_site_params gs;
     v3d m;
+    v3d temperature_effect;
     neighbors_set neigh;
     double time;
     PRIVATE tyche_i_state *state;
 #ifdef INCLUDE_DIPOLAR
-    pbc_rules pbc;
-    GLOBAL v3d *v;
+    v3d dipolar_field;
+    double dipolar_energy;
 #endif
 } parameters;
 
 v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols);
+void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int rows, int cols);
 v3d generate_magnetic_field(grid_site_params gs, double time);
 current generate_current(grid_site_params gs, double time);
 double generate_temperature(grid_site_params gs, double time);

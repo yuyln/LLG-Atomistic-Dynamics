@@ -19,6 +19,29 @@ v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols
     return v[row * cols + col];
 }
 
+void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int rows, int cols) {
+    if (row >= rows || row < 0) {
+        if (!pbc.pbc_y) {
+            *out = pbc.m;
+            *gsout = gs[(row >= rows? rows - 1: 0) * cols + (col >= cols? cols - 1: col < 0? 0: col)];
+            return;
+        }
+        row = ((row % rows) + rows) % rows;
+    }
+
+    if (col >= cols || col < 0) {
+        if (!pbc.pbc_x) {
+            *out = pbc.m;
+            *gsout = gs[(row >= rows? rows - 1: row < 0? 0: row) * cols + (col >= cols? cols - 1: 0)];
+            return;
+        }
+        col = ((col % cols) + cols) % cols;
+    }
+
+    *out = v[row * cols + col];
+    *gsout = gs[row * cols + col];
+}
+
 double exchange_energy(parameters param) {
     return -(v3d_dot(param.m, param.neigh.left) + v3d_dot(param.m, param.neigh.right) +
              v3d_dot(param.m, param.neigh.up) + v3d_dot(param.m, param.neigh.down)) * param.gs.exchange;
@@ -48,58 +71,13 @@ double field_energy(parameters param) {
     return -param.gs.mu * v3d_dot(generate_magnetic_field(param.gs, param.time), param.m);
 }
 
-//@TODO Proper user os mu_s
-#ifdef INCLUDE_DIPOLAR
-double dipolar_energy(parameters param) {
-    double ret = 0.0;
-    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
-        double dy = dr * param.gs.lattice;
-        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
-            if (dr == 0 && dc == 0)
-                continue;
-            double dx = dc * param.gs.lattice;
-            double r_ij_ = sqrt(dx * dx + dy * dy);
-            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
-            v3d mj = apply_pbc(param.v, param.pbc, param.gs.row + dr, param.gs.col + dc, param.rows, param.cols);
-            double interaction = -MU_0 * param.gs.mu * param.gs.mu / (4.0 * M_PI);
-            interaction *= (3.0 * v3d_dot(param.m, r_ij) - v3d_dot(param.m, mj)) / (r_ij_ * r_ij_ * r_ij_);
-            ret += interaction;
-        }
-    }
-    return ret;
-}
-#endif
-
 double energy(parameters param) {
     double e = 0.5 * exchange_energy(param) + 0.5 * dm_energy(param) + anisotropy_energy(param) + field_energy(param) + cubic_anisotropy_energy(param);
 #ifdef INCLUDE_DIPOLAR
-    e += 0.5 * dipolar_energy(param);
+    e += 0.5 * param.dipolar_energy;
 #endif
     return e;
 }
-
-#ifdef INCLUDE_DIPOLAR
-static v3d dipolar_field(parameters param) {
-    v3d ret = v3d_s(0.0);
-    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
-        double dy = dr * param.gs.lattice;
-        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
-            if (dr == 0 && dc == 0)
-                continue;
-            double dx = dc * param.gs.lattice;
-            double r_ij_ = sqrt(dx * dx + dy * dy);
-            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
-            v3d mj = apply_pbc(param.v, param.pbc, param.gs.row + dr, param.gs.col + dc, param.rows, param.cols);
-            double factor = -MU_0 * param.gs.mu * param.gs.mu / (4.0 * M_PI);
-            v3d interaction = v3d_scalar(r_ij, 3.0 * v3d_dot(mj, r_ij));
-            interaction = v3d_sub(interaction, mj);
-            interaction = v3d_scalar(interaction, factor / (r_ij_ * r_ij_ * r_ij_));
-            ret = v3d_sum(ret, interaction);
-        }
-    }
-    return ret;
-}
-#endif
 
 v3d effective_field(parameters param) {
     v3d ret = v3d_s(0);
@@ -127,7 +105,7 @@ v3d effective_field(parameters param) {
                                         param.m.z * param.m.z * param.m.z), 4.0 * param.gs.cubic_ani));
 
 #ifdef INCLUDE_DIPOLAR
-    ret = v3d_sum(ret, dipolar_field(param));
+    ret = v3d_sum(ret, param.dipolar_field);
 #endif
 
     return v3d_scalar(ret, -1.0 / param.gs.mu);
@@ -150,12 +128,7 @@ static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
 
 v3d dm_dt(parameters param, double dt) {
     v3d H_eff = effective_field(param);
-    double temperature = generate_temperature(param.gs, param.time);
-    if (!CLOSE_ENOUGH(temperature, 0.0, EPS)) {
-        H_eff = v3d_sum(H_eff, v3d_scalar(v3d_c(normal_distribution(param.state), normal_distribution(param.state), normal_distribution(param.state)),
-                    sqrt(2.0 * param.gs.alpha * KB * temperature / (param.gs.gamma * param.gs.mu * dt))));
-    }
-
+    H_eff = v3d_sum(H_eff, param.temperature_effect);
     v3d v = v3d_scalar(v3d_cross(param.m, H_eff), -param.gs.gamma);
     current cur = generate_current(param.gs, param.time);
     switch (cur.type) {

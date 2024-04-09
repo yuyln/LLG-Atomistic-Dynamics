@@ -14,10 +14,6 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
     parameters param = (parameters){};
     param.rows = gi.rows;
     param.cols = gi.cols;
-#ifdef INCLUDE_DIPOLAR
-    param.pbc = gi.pbc;
-    param.v = input;
-#endif
     param.gs = gs[id];
     param.m = apply_pbc(input, gi.pbc, row, col, gi.rows, gi.cols);
     param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, gi.rows, gi.cols);
@@ -31,6 +27,34 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
     tyche_i_seed(&state, seed + id);
     param.state = &state;
 
+#ifdef INCLUDE_DIPOLAR
+    param.dipolar_field = v3d_s(0.0);
+    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
+        double dy = dr * param.gs.lattice;
+        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+            v3d mj;
+            grid_site_params gj;
+            apply_pbc_complete(gs, input, &mj, &gj, gi.pbc, row + dr, col + dc, param.rows, param.cols);
+            double factor = -MU_0 * param.gs.mu * gj.mu / (4.0 * M_PI);
+            v3d interaction = v3d_scalar(r_ij, 3.0 * v3d_dot(mj, r_ij));
+            interaction = v3d_sub(interaction, mj);
+            interaction = v3d_scalar(interaction, factor / (r_ij_ * r_ij_ * r_ij_));
+            param.dipolar_field = v3d_sum(param.dipolar_field, interaction);
+        }
+    }
+#endif
+
+    double temperature = generate_temperature(param.gs, param.time);
+    if (!CLOSE_ENOUGH(temperature, 0.0, EPS)) {
+        param.temperature_effect = v3d_scalar(v3d_normalize(v3d_c(normal_distribution(param.state), normal_distribution(param.state), normal_distribution(param.state))),
+                sqrt(2.0 * param.gs.alpha * KB * temperature / (param.gs.gamma * param.gs.mu * dt)));
+    }
+
     out[id] = v3d_normalize(param.gs.pin.pinned? param.gs.pin.dir: v3d_sum(param.m, step_llg(param, dt)));
 }
 
@@ -43,10 +67,6 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
         return;
 
     parameters param;
-#ifdef INCLUDE_DIPOLAR
-    param.pbc = gi.pbc;
-    param.v = m0;
-#endif
     param.rows = gi.rows;
     param.cols = gi.cols;
     param.gs = gs[id];
@@ -57,6 +77,28 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
+#ifdef INCLUDE_DIPOLAR
+    param.dipolar_energy = 0.0;
+    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
+        double dy = dr * param.gs.lattice;
+        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+
+            v3d mj;
+            grid_site_params gj;
+            apply_pbc_complete(gs, m0, &mj, &gj, gi.pbc, row + dr, col + dc, param.rows, param.cols);
+
+            double interaction = -MU_0 * param.gs.mu * gj.mu / (4.0 * M_PI);
+            interaction *= (3.0 * v3d_dot(param.m, r_ij) - v3d_dot(param.m, mj)) / (r_ij_ * r_ij_ * r_ij_);
+            param.dipolar_energy += interaction;
+        }
+    }
+#endif
+
     information_packed local_info = (information_packed){};
 
     local_info.exchange_energy = exchange_energy(param);
@@ -65,7 +107,7 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     local_info.anisotropy_energy = anisotropy_energy(param);
     local_info.cubic_energy = cubic_anisotropy_energy(param);
 #ifdef INCLUDE_DIPOLAR
-    local_info.dipolar_energy = dipolar_energy(param);
+    local_info.dipolar_energy = param.dipolar_energy;
 #endif
     local_info.energy = 0.5 * local_info.exchange_energy + 0.5 * local_info.dm_energy + local_info.field_energy + local_info.anisotropy_energy + local_info.cubic_energy + 0.5 * local_info.dipolar_energy;
     local_info.charge_finite = charge_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
@@ -171,10 +213,6 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
         return;
 
     parameters param;
-#ifdef INCLUDE_DIPOLAR
-    param.pbc = gi.pbc;
-    param.v = v;
-#endif
     param.rows = gi.rows;
     param.cols = gi.cols;
     param.gs = gs[id];
@@ -184,6 +222,28 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
     param.neigh.up = apply_pbc(v, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(v, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
+
+#ifdef INCLUDE_DIPOLAR
+    param.dipolar_energy = 0.0;
+    for (int dr = -param.rows / 2; dr < param.rows / 2; ++dr) {
+        double dy = dr * param.gs.lattice;
+        for (int dc = -param.cols / 2; dc < param.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+
+            v3d mj;
+            grid_site_params gj;
+            apply_pbc_complete(gs, v, &mj, &gj, gi.pbc, row + dr, col + dc, param.rows, param.cols);
+
+            double interaction = -MU_0 * param.gs.mu * gj.mu / (4.0 * M_PI);
+            interaction *= (3.0 * v3d_dot(param.m, r_ij) - v3d_dot(param.m, mj)) / (r_ij_ * r_ij_ * r_ij_);
+            param.dipolar_energy += interaction;
+        }
+    }
+#endif
 
     out[id] = energy(param);
 }
@@ -240,11 +300,7 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
     if (col >= gi.cols || row >= gi.rows)
         return;
 
-    parameters param1 = (parameters){0};
-#ifdef INCLUDE_DIPOLAR
-    param1.pbc = gi.pbc;
-    param1.v = v1;
-#endif
+    parameters param1 = (parameters){};
     param1.rows = gi.rows;
     param1.cols = gi.cols;
     param1.time = 0.0;
@@ -254,6 +310,28 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
     param1.neigh.down = apply_pbc(v1, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param1.neigh.right = apply_pbc(v1, gi.pbc, row, col + 1, gi.rows, gi.cols);
     param1.neigh.left = apply_pbc(v1, gi.pbc, row, col - 1, gi.rows, gi.cols);
+
+#ifdef INCLUDE_DIPOLAR
+    param1.dipolar_field = v3d_s(0.0);
+    for (int dr = -param1.rows / 2; dr < param1.rows / 2; ++dr) {
+        double dy = dr * param1.gs.lattice;
+        for (int dc = -param1.cols / 2; dc < param1.cols / 2; ++dc) {
+            if (dr == 0 && dc == 0)
+                continue;
+            double dx = dc * param1.gs.lattice;
+            double r_ij_ = sqrt(dx * dx + dy * dy);
+            v3d r_ij = v3d_normalize(v3d_c(dx, dy, 0));
+            v3d mj;
+            grid_site_params gj;
+            apply_pbc_complete(gs, v1, &mj, &gj, gi.pbc, row + dr, col + dc, param1.rows, param1.cols);
+            double factor = -MU_0 * param1.gs.mu * gj.mu / (4.0 * M_PI);
+            v3d interaction = v3d_scalar(r_ij, 3.0 * v3d_dot(mj, r_ij));
+            interaction = v3d_sub(interaction, mj);
+            interaction = v3d_scalar(interaction, factor / (r_ij_ * r_ij_ * r_ij_));
+            param1.dipolar_field = v3d_sum(param1.dipolar_field, interaction);
+        }
+    }
+#endif
 
     v3d v0l = v0[id];
 

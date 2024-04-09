@@ -13,7 +13,7 @@ int main(void) {
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.18 * J;
+    double dm = 0.5 * J;
     double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
@@ -47,7 +47,7 @@ int main(void) {
     string field_func = str_from_fmt("double Hz = -%.15e;\n"\
                                      "return v3d_c(0.0, 0.0, Hz);", 0.5 * dm * dm / (J * SIGN(J)) * 1.0 / mu);
 
-    string temperature_func = str_is_cstr("return 0.0;");
+    string temperature_func = str_is_cstr("return 10.0;");
     string compile = str_is_cstr("-cl-fast-relaxed-math");
 
     srand(time(NULL));
@@ -62,8 +62,9 @@ int main(void) {
     gd_params.damping = 1.0;
     gd_params.restoring = 10.0;
     gd_params.steps = 100000;
-    //grid_renderer_gradient_descent(&g, gd_params, 800, 800 * ratio);
-    gradient_descent(&g, gd_params);
+    steps_per_frame = 1;
+    grid_renderer_gradient_descent(&g, gd_params, 400 / ratio, 400);
+    //gradient_descent(&g, gd_params);
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);
     integrate_params int_params = integrate_params_init();
@@ -72,7 +73,7 @@ int main(void) {
     int_params.field_func = field_func;
     int_params.temperature_func = temperature_func;
     int_params.compile_augment = compile;
-    grid_renderer_integrate(&g, int_params, 800, 800 * ratio);
+    grid_renderer_integrate(&g, int_params, 400 / ratio, 400);
     //integrate(&g, int_params);
 
     str_free(&field_func);

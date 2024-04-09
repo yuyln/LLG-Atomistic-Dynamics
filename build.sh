@@ -1,6 +1,6 @@
 #!/bin/sh
 set -xe
-CFLAGS="-DnPROFILING -Wall -Wextra -pedantic -O3 -ggdb -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS -Wno-overlength-strings -Wno-override-init -fsanitize=undefined"
+CFLAGS="-DnPROFILING -Wall -Wextra -pedantic -O3 -ggdb -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS -Wno-overlength-strings -Wno-override-init"
 LIBS="-lm `pkg-config --static --libs OpenCL x11 xext`"
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_linux_x11.c"
 CC="gcc"
