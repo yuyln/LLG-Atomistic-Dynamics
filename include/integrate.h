@@ -37,7 +37,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 void integrate_context_close(integrate_context *ctx);
 void integrate_context_read_grid(integrate_context *ctx);
 
-integrate_params integrate_params_init();
+integrate_params integrate_params_init(void);
 void integrate(grid *g, integrate_params params);
 
 void integrate_step(integrate_context *ctx);

@@ -58,7 +58,7 @@ gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_params params);
 void gsa_context_close(gsa_context *ctx);
 void gsa_context_read_minimun_grid(gsa_context *ctx);
 
-gsa_params gsa_params_init();
+gsa_params gsa_params_init(void);
 
 void gsa(grid *g, gsa_params params);
 

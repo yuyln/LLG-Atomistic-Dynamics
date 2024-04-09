@@ -35,7 +35,7 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_release_memory(ctx->swap_buffer);
 }
 
-integrate_params integrate_params_init() {
+integrate_params integrate_params_init(void) {
     integrate_params ret = {0};
     ret.dt = 1.0e-15;
     ret.duration = 1.0 * NS;

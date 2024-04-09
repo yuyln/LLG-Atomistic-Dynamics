@@ -341,7 +341,7 @@ defer:
 void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
     for (int64_t y = y0; y < y1; ++y)
         for (int64_t x = x0; x < x1; ++x)
-            if (x > 0 && x < g->gi.cols && y > 0 && y < g->gi.rows)
+            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
                 fun(g, y, x);
 
 }
@@ -353,3 +353,57 @@ void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, v
                 if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1)
                     fun(g, y, x);
 }
+
+static bool triangle_inside(double x, double y, double x0, double y0, double x1, double y1, double x2, double y2) {
+	double alpha = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) /
+				   ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+	double beta = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) /
+				  ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+	double gamma = 1.0 - alpha - beta;
+	return alpha >= 0 && beta >= 0 && gamma >= 0;
+}
+
+static int64_t i64_max(int64_t a, int64_t b) {
+    return a > b? a: b;
+}
+
+static int64_t i64_min(int64_t a, int64_t b) {
+    return a < b? a: b;
+}
+
+void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+    int64_t x_max = i64_max(x0, i64_max(x1, x2));
+    int64_t x_min = i64_min(x0, i64_min(x1, x2));
+
+    int64_t y_max = i64_max(y0, i64_max(y1, y2));
+    int64_t y_min = i64_min(y0, i64_min(y1, y2));
+
+    for (int64_t y = y_min; y < y_max; ++y)
+        for (int64_t x = x_min; x < x_max; ++x)
+            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows &&
+                triangle_inside(x, y, x0, y0, x1, y1, x2, y2))
+                fun(g, y, x);
+}
+
+void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+    if (x0 == x1) {
+        grid_do_in_rect(g, x0 - thickness / 2, y0, x0 + thickness / 2, y1, fun);
+        return;
+    }
+
+    if (y0 == y1) {
+        grid_do_in_rect(g, x0, y0 - thickness / 2, x1, y0 + thickness / 2, fun);
+        return;
+    }
+
+    double dy = y1 - y0;
+    double dx = x1 - x0;
+    double ny = dx;
+    double nx = -dy;
+    double M = sqrt(nx * nx + ny * ny);
+    ny /= M;
+    nx /= M;
+    grid_do_in_triangle(g, x0 - nx * thickness / 2, y0 - ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun);
+    grid_do_in_triangle(g, x1 + nx * thickness / 2, y1 + ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun);
+}
+

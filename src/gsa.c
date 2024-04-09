@@ -167,7 +167,7 @@ void gsa_context_read_minimun_grid(gsa_context *ctx) {
     gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
 }
 
-gsa_params gsa_params_init() {
+gsa_params gsa_params_init(void) {
     gsa_params ret = {0};
     ret.qA = 2.8;
     ret.qV = 2.6;

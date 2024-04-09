@@ -95,7 +95,7 @@ void gradient_descent_read_mininum_grid(gradient_descent_context *ctx) {
     v3d_from_gpu(ctx->g->m, ctx->min_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
 }
 
-gradient_descent_params gradient_descent_params_init() {
+gradient_descent_params gradient_descent_params_init(void) {
     gradient_descent_params ret = {0};
     ret.T = 100.0;
     ret.mass = 1.0;

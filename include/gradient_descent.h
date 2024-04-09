@@ -40,7 +40,7 @@ typedef struct {
 gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gradient_descent_params params);
 void gradient_descent(grid *g, gradient_descent_params params);
 
-gradient_descent_params gradient_descent_params_init();
+gradient_descent_params gradient_descent_params_init(void);
 void gradient_descent_step(gradient_descent_context *ctx);
 void gradient_descent_close(gradient_descent_context *ctx);
 void gradient_descent_exchange(gradient_descent_context *ctx);
