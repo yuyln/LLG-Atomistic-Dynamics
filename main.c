@@ -13,7 +13,7 @@ int main(void) {
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.50 * J;
+    double dm = 0.18 * J;
     double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
@@ -56,12 +56,14 @@ int main(void) {
     gradient_descent_params gd_params = gradient_descent_params_init();
     gd_params.dt = 1.0e-2;
     gd_params.T = 500.0;
-    gd_params.T_factor = 0.999999;
+    gd_params.T_factor = 0.9999;
     gd_params.compile_augment = compile;
     gd_params.field_func = field_func;
     gd_params.damping = 1.0;
     gd_params.restoring = 10.0;
-    grid_renderer_gradient_descent(&g, gd_params, 800, 800 * ratio);
+    gd_params.steps = 100000;
+    //grid_renderer_gradient_descent(&g, gd_params, 800, 800 * ratio);
+    gradient_descent(&g, gd_params);
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);
     integrate_params int_params = integrate_params_init();

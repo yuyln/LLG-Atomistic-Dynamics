@@ -8,6 +8,7 @@ typedef struct {
     double T;
     double mass;
     double dt;
+    uint64_t steps;
     double damping;
     double restoring;
     double T_factor;

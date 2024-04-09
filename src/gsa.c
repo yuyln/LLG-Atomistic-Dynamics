@@ -103,6 +103,9 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
     gpu_cl_enqueue_nd(ctx.gpu, ctx.exchange_id, 1, &ctx.local, &ctx.global, NULL);
 
     gsa_context_read_minimun_grid(&ctx);
+    gsa_context_close(&ctx);
+    grid_release_from_gpu(g);
+    gpu_cl_close(&gpu);
     logging_log(LOG_INFO, "GSA Done. Minimun energy found %.15e eV", ctx.min_energy / QE);
 }
 

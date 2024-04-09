@@ -100,10 +100,30 @@ gradient_descent_params gradient_descent_params_init(void) {
     ret.T = 100.0;
     ret.mass = 1.0;
     ret.dt = 1.0e-3;
+    ret.steps = 1000000;
     ret.damping = 0.0;
     ret.restoring = 0.0;
     ret.T_factor = 0.999999;
     ret.field_func = str_is_cstr("return v3d_s(0);");
     ret.compile_augment = STR_NULL;
     return ret;
+}
+
+void gradient_descent(grid *g, gradient_descent_params params) {
+    gpu_cl gpu = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    grid_to_gpu(g, gpu);
+    gradient_descent_context ctx = gradient_descent_context_init(g, &gpu, params);
+
+    for (uint64_t i = 0; i < params.steps; ++i) {
+        gradient_descent_step(&ctx);
+        gradient_descent_exchange(&ctx);
+        if (i % 100 == 0)
+            logging_log(LOG_INFO, "Gradient Descent %"PRIu64" - Min Energy: %e eV - Temperature %e", i, ctx.min_energy, ctx.params.T);
+    }
+
+    gradient_descent_read_mininum_grid(&ctx);
+    gradient_descent_close(&ctx);
+
+    grid_release_from_gpu(g);
+    gpu_cl_close(&gpu);
 }
