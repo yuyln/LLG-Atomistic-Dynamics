@@ -7,7 +7,6 @@
 #include "grid_types.h"
 #include "grid_render.h"
 #include "integrate.h"
-#include "profiler.h"
 #include "gradient_descent.h"
 #include "render.h"
 #include "string_view.h"
@@ -16,4 +15,6 @@
 #include "kernel_funcs.h"
 #include "gsa.h"
 #include "logging.h"
+
+#include "profiler.h"
 #endif

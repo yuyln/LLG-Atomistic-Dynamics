@@ -1,12 +1,13 @@
 #ifndef __PROFILER_H
 #define __PROFILER_H
 
-#ifdef _WIN32
-#define profiler_start_measure(name)
-#define profiler_end_measure(name)
-#define profiler_print_measures(file)
-#endif
+//#ifdef _WIN32
+//#define profiler_start_measure(name)
+//#define profiler_end_measure(name)
+//#define profiler_print_measures(file)
+//#endif
 
+#include <stdint.h>
 #define PROFILER(x) __PROFILER_##x
 #define __PROFILER_TABLE_MAX 1000
 
@@ -18,9 +19,10 @@
 
 typedef struct PROFILER(elem) {
     char* name;
-    struct timespec T1, T2;
+    double time_start, time_end;
     double interval;
     struct PROFILER(elem)* next;
+    uint64_t count;
 } PROFILER(elem);
 
 PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX] = {0};
@@ -32,8 +34,13 @@ void profiler_print_measures(FILE *file);
 #endif //__PROFILER_H
 
 
-#if defined(__PROFILER_IMPLEMENTATION) && !defined(_WIN32)
+#if defined(__PROFILER_IMPLEMENTATION)
 
+static double get_time_sec() {
+    struct timespec tmp = {0};
+    clock_gettime(CLOCK_MONOTONIC, &tmp);
+    return tmp.tv_sec + tmp.tv_nsec * 1.0e-9;
+}
 
 static uint64_t hash(const char *name) {
     uint64_t r = 0;
@@ -48,8 +55,8 @@ static PROFILER(elem) initelem(const char* name) {
     memcpy(ret.name, name, len);
     ret.name[len] = '\0';
     ret.next = NULL;
-    clock_gettime(CLOCK_REALTIME, &ret.T1);
-    ret.T2 = (struct timespec){0};
+    ret.time_start = get_time_sec();
+    ret.count++;
     return ret;
 }
 
@@ -85,9 +92,8 @@ void profiler_end_measure(const char* name) {
     PROFILER(elem) *head = &PROFILER(table)[index];
     while (head) {
       if (strcmp(head->name, name) == 0) {
-          clock_gettime(CLOCK_REALTIME, &head->T2);
-          head->interval = (double)(head->T2.tv_sec - head->T1.tv_sec) +
-  			           (head->T2.tv_nsec - head->T1.tv_nsec) * 1.0e-9;
+          head->time_end = get_time_sec();
+          head->interval += head->time_end - head->time_start;
           break;
       }
           head = head->next;
@@ -108,7 +114,7 @@ void profiler_print_measures(FILE *file) {
         if (!head->name) continue;
     
         while (head) {
-            fprintf(file, "[ %s ] -> %.9e sec\n", head->name, head->interval);
+            fprintf(file, "[ %s ] -> %.9e sec\n", head->name, head->interval / head->count);
             head = head->next;
         }
     
