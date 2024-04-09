@@ -6,7 +6,6 @@ void set_pin(grid *g, uint64_t row, uint64_t col) {
 }
 
 //@TODO: PROPER ERROR CHECKING URGENT!!!
-//@TODO: tools for generating defects
 int main(void) {
     unsigned int rows = 272 / 2;
     unsigned int cols = 272 * 2;
@@ -14,7 +13,7 @@ int main(void) {
     double lattice = 0.5e-9;
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 0.18 * J;
+    double dm = 0.50 * J;
     double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
@@ -39,12 +38,9 @@ int main(void) {
     string current_func = str_is_cstr("current ret = (current){};\n"\
                                       "time -= 0.5 * NS;\n"\
                                       "ret.type = CUR_STT;\n"\
-                                      "ret.stt.j = v3d_c(2.05e10, 0.0, 0.0);\n"\
+                                      "ret.stt.j = v3d_c(0.0, -2.05e10, 0.0);\n"\
                                       "ret.stt.beta = 0.0;\n"\
                                       "ret.stt.polarization = -1.0;\n"\
-                                      "double omega = 318194630.401;\n"\
-                                      "double ac = 5.0e10 * sin(omega * time);\n"\
-                                      "ret.stt.j = v3d_sum(ret.stt.j, v3d_c(0.0, ac, 0.0));\n"\
                                       "ret.stt.j = v3d_scalar(ret.stt.j, time > 0);\n"\
                                       "return ret;");
 
