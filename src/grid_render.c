@@ -310,14 +310,13 @@ void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, uns
         for (unsigned int i = 0; i < steps_per_frame; ++i) {
             gradient_descent_step(&ctx);
             gradient_descent_exchange(&ctx);
-            if (ctx.step % 1000 == 0)
-                logging_log(LOG_INFO, "%"PRIu64" Gradient Descent %"PRIu64" - Min Energy: %e eV - Temperature %e", ctx.outer_step, ctx.step, ctx.min_energy, ctx.params.T);
         }
         if (print_timer >= print_time) {
-
             logging_log(LOG_INFO, "Gradient Descent FPS: %"PRIu64, (uint64_t)(frames / print_timer));
             logging_log(LOG_INFO, "Gradient Descent Steps per Second: %"PRIu64, (uint64_t)(frames / print_timer * steps_per_frame));
             logging_log(LOG_INFO, "Gradient Descent <dt_real>: %es", print_timer / frames);
+            logging_log(LOG_INFO, "Gradient Descent[Outer=%"PRIu64"][Inner=%"PRIu64"] Minimun Energy: %e eV Temperature: %e",
+                                   ctx.outer_step, ctx.step, ctx.min_energy / QE, ctx.params.T);
             print_timer = 0;
             frames = 0;
         }
