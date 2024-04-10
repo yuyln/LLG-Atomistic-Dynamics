@@ -6,6 +6,7 @@ void set_pin(grid *g, uint64_t row, uint64_t col) {
 }
 
 //@TODO: PROPER ERROR CHECKING URGENT!!!
+//@TODO: check time measuring when compiling it to win
 int main(void) {
     unsigned int rows = 272 / 2;
     unsigned int cols = 272 * 2;
@@ -62,10 +63,7 @@ int main(void) {
     gd_params.damping = 1.0;
     gd_params.restoring = 10.0;
     gd_params.steps = 100000;
-    profiler_start_measure("test");
     grid_renderer_gradient_descent(&g, gd_params, 400 / ratio, 400);
-    profiler_end_measure("test");
-    profiler_print_measures(stdout);
     //gradient_descent(&g, gd_params);
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);

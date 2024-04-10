@@ -1,40 +1,99 @@
 #ifndef __PROFILER_H
 #define __PROFILER_H
 
-//#ifdef _WIN32
-//#define profiler_start_measure(name)
-//#define profiler_end_measure(name)
-//#define profiler_print_measures(file)
-//#endif
-
 #include <stdint.h>
-#define PROFILER(x) __PROFILER_##x
-#define __PROFILER_TABLE_MAX 1000
-
-#include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
-#include <string.h>
 #include <stdbool.h>
 
+#define PROFILER(x) __PROFILER_##x
+#define __PROFILER_TABLE_MAX 10
+
 typedef struct PROFILER(elem) {
-    char* name;
+    char *name;
     double time_start, time_end;
     double interval;
     struct PROFILER(elem)* next;
     uint64_t count;
 } PROFILER(elem);
 
-PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX] = {0};
+static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
 
 bool profiler_start_measure(const char* name);
 void profiler_end_measure(const char* name);
 void profiler_print_measures(FILE *file);
 
+
 #endif //__PROFILER_H
 
 
-#if defined(__PROFILER_IMPLEMENTATION)
+#ifdef __PROFILER_IMPLEMENTATION
+#include <stdlib.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <time.h>
+LARGE_INTEGER getFILETIMEoffset() {
+    SYSTEMTIME s;
+    FILETIME f;
+    LARGE_INTEGER t;
+
+    s.wYear = 1970;
+    s.wMonth = 1;
+    s.wDay = 1;
+    s.wHour = 0;
+    s.wMinute = 0;
+    s.wSecond = 0;
+    s.wMilliseconds = 0;
+    SystemTimeToFileTime(&s, &f);
+    t.QuadPart = f.dwHighDateTime;
+    t.QuadPart <<= 32;
+    t.QuadPart |= f.dwLowDateTime;
+    return (t);
+}
+
+//https://stackoverflow.com/questions/5404277/porting-clock-gettime-to-windows
+int clock_gettime(int X, struct timespec *tv) {
+    LARGE_INTEGER t;
+    FILETIME f;
+    double microseconds;
+    static LARGE_INTEGER offset;
+    static double frequencyToMicroseconds;
+    static int initialized = 0;
+    static BOOL usePerformanceCounter = 0;
+
+    if (!initialized) {
+        LARGE_INTEGER performanceFrequency;
+        initialized = 1;
+        usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
+        if (usePerformanceCounter) {
+            QueryPerformanceCounter(&offset);
+            frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
+        } else {
+            offset = getFILETIMEoffset();
+            frequencyToMicroseconds = 10.;
+        }
+    }
+    if (usePerformanceCounter)
+        QueryPerformanceCounter(&t);
+    else {
+        GetSystemTimeAsFileTime(&f);
+        t.QuadPart = f.dwHighDateTime;
+        t.QuadPart <<= 32;
+        t.QuadPart |= f.dwLowDateTime;
+    }
+
+    t.QuadPart -= offset.QuadPart;
+    microseconds = (double)t.QuadPart / frequencyToMicroseconds;
+    t.QuadPart = microseconds;
+    tv->tv_sec = t.QuadPart / 1000000;
+    tv->tv_nsec = (t.QuadPart % 1000000) * 1000;
+    return 0;
+}
+
+#else
+#include <time.h>
+#endif //_WIN32
 
 static double get_time_sec() {
     struct timespec tmp = {0};
@@ -125,5 +184,4 @@ void profiler_print_measures(FILE *file) {
         memset(head, 0, sizeof(PROFILER(elem)));
     }
 }
-
 #endif //__PROFILER_IMPLEMENTATION
