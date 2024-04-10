@@ -130,7 +130,11 @@ static bool insert(const char* name) {
     PROFILER(elem) *head = &PROFILER(table)[index];
     PROFILER(elem) *last = &PROFILER(table)[index];
     while (head) {
-        if (strcmp(head->name, name) == 0) return false;
+        if (strcmp(head->name, name) == 0) {
+            head->time_start = profiler_get_sec();
+            head->count++;
+            return true;
+        }
         last = head;
         head = head->next;
     }
@@ -172,16 +176,16 @@ void profiler_print_measures(FILE *file) {
     for (uint64_t i = 0; i < __PROFILER_TABLE_MAX; ++i) {
         PROFILER(elem) *head = &PROFILER(table)[i];
         if (!head->name) continue;
-    
+
         while (head) {
             fprintf(file, "[ %s ] -> %.9e sec\n", head->name, head->interval / head->count);
             head = head->next;
         }
-    
+
         head = &PROFILER(table)[i];
         profiler_free_list(head->next);
-	
-	free(head->name);
+
+        free(head->name);
         memset(head, 0, sizeof(PROFILER(elem)));
     }
 }
