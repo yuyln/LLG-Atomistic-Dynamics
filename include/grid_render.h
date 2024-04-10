@@ -31,6 +31,7 @@ typedef struct {
 } grid_renderer;
 
 extern unsigned int steps_per_frame;
+extern double print_time;
 
 grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu);
 void grid_renderer_close(grid_renderer *gr);

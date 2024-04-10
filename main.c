@@ -1,4 +1,3 @@
-#define __PROFILER_IMPLEMENTATION
 #include "atomistic_simulation.h"
 
 void set_pin(grid *g, uint64_t row, uint64_t col) {
@@ -63,6 +62,7 @@ int main(void) {
     gd_params.damping = 1.0;
     gd_params.restoring = 10.0;
     gd_params.steps = 100000;
+    steps_per_frame = 1;
     grid_renderer_gradient_descent(&g, gd_params, 400 / ratio, 400);
     //gradient_descent(&g, gd_params);
 

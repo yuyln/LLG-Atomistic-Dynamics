@@ -5,6 +5,8 @@
 #include "gsa.h"
 #include "integrate.h"
 #include "gradient_descent.h"
+#include "profiler.h"
+
 #include <float.h>
 #include <inttypes.h>
 
@@ -131,6 +133,7 @@ void grid_renderer_charge(grid_renderer *gr) {
 }
 
 unsigned int steps_per_frame = 100;
+double print_time = 1.0;
 
 void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height) {
     gpu_cl gpu_stack = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
@@ -140,6 +143,12 @@ void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned 
 
     grid_renderer gr = grid_renderer_init(g, gpu);
     int state = 'h';
+
+    double print_timer = 0;
+    double dt_fps = 0;
+    double frame_start = profiler_get_sec();
+    uint64_t frames = 0;
+
     while (!window_should_close()) {
         switch (state) {
             case 'q':
@@ -171,8 +180,19 @@ void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned 
             gsa_thermal_step(&ctx);
         }
 
+        if (print_timer >= print_time) {
+            logging_log(LOG_INFO, "GSA FPS: %"PRIu64" <dt real>: %e", frames / print_timer, print_timer / frames);
+            print_timer = 0;
+            frames = 0;
+        }
+
         window_render();
         window_poll();
+        frames++;
+        double end = profiler_get_sec();
+        dt_fps = end - frame_start;
+        print_timer += dt_fps;
+        frame_start = end;
     }
     gsa_context_read_minimun_grid(&ctx);
     gsa_context_close(&ctx);
@@ -187,6 +207,11 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
     integrate_context ctx = integrate_context_init(g, gpu, params);
 
     grid_renderer gr = grid_renderer_init(g, gpu);
+    
+    double print_timer = 0;
+    double dt_fps = 0;
+    double frame_start = profiler_get_sec();
+    uint64_t frames = 0;
 
     int state = 'b';
     while (!window_should_close()) {
@@ -221,8 +246,22 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             ctx.time += params.dt;
         }
 
+        if (print_timer >= print_time) {
+            logging_log(LOG_INFO, "Integrate FPS: %"PRIu64, (uint64_t)(frames / print_timer));
+            logging_log(LOG_INFO, "Integrate Steps per Second: %"PRIu64, (uint64_t)(frames / print_timer * steps_per_frame));
+            logging_log(LOG_INFO, "Integrate <dt_real>: %es", print_timer / frames);
+            print_timer = 0;
+            frames = 0;
+        }
+
         window_render();
         window_poll();
+
+        frames++;
+        double end = profiler_get_sec();
+        dt_fps = end - frame_start;
+        print_timer += dt_fps;
+        frame_start = end;
     }
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
@@ -235,6 +274,12 @@ void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, uns
     window_init("Gradient Descent", width, height);
     gradient_descent_context ctx = gradient_descent_context_init(g, gpu, params);
     grid_renderer gr = grid_renderer_init(g, gpu);
+
+    double print_timer = 0;
+    double dt_fps = 0;
+    double frame_start = profiler_get_sec();
+    uint64_t frames = 0;
+
     int state = 'h';
     while (!window_should_close()) {
         switch (state) {
@@ -268,9 +313,23 @@ void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, uns
             if (ctx.step % 1000 == 0)
                 logging_log(LOG_INFO, "%"PRIu64" Gradient Descent %"PRIu64" - Min Energy: %e eV - Temperature %e", ctx.outer_step, ctx.step, ctx.min_energy, ctx.params.T);
         }
+        if (print_timer >= print_time) {
+
+            logging_log(LOG_INFO, "Gradient Descent FPS: %"PRIu64, (uint64_t)(frames / print_timer));
+            logging_log(LOG_INFO, "Gradient Descent Steps per Second: %"PRIu64, (uint64_t)(frames / print_timer * steps_per_frame));
+            logging_log(LOG_INFO, "Gradient Descent <dt_real>: %es", print_timer / frames);
+            print_timer = 0;
+            frames = 0;
+        }
 
         window_render();
         window_poll();
+
+        frames++;
+        double end = profiler_get_sec();
+        dt_fps = end - frame_start;
+        print_timer += dt_fps;
+        frame_start = end;
     }
     gradient_descent_read_mininum_grid(&ctx);
     gradient_descent_close(&ctx);

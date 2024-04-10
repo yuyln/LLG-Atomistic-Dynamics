@@ -21,6 +21,7 @@ static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
 bool profiler_start_measure(const char* name);
 void profiler_end_measure(const char* name);
 void profiler_print_measures(FILE *file);
+double profiler_get_sec();
 
 
 #endif //__PROFILER_H
@@ -95,7 +96,7 @@ int clock_gettime(int X, struct timespec *tv) {
 #include <time.h>
 #endif //_WIN32
 
-static double get_time_sec() {
+double profiler_get_sec() {
     struct timespec tmp = {0};
     clock_gettime(CLOCK_MONOTONIC, &tmp);
     return tmp.tv_sec + tmp.tv_nsec * 1.0e-9;
@@ -114,7 +115,7 @@ static PROFILER(elem) initelem(const char* name) {
     memcpy(ret.name, name, len);
     ret.name[len] = '\0';
     ret.next = NULL;
-    ret.time_start = get_time_sec();
+    ret.time_start = profiler_get_sec();
     ret.count++;
     return ret;
 }
@@ -151,7 +152,7 @@ void profiler_end_measure(const char* name) {
     PROFILER(elem) *head = &PROFILER(table)[index];
     while (head) {
       if (strcmp(head->name, name) == 0) {
-          head->time_end = get_time_sec();
+          head->time_end = profiler_get_sec();
           head->interval += head->time_end - head->time_start;
           break;
       }
