@@ -25,8 +25,8 @@ int main(void) {
     grid_do_in_rect(&g, 0, 0, cols, 10, set_pin);
     grid_do_in_rect(&g, 0, rows - 10, cols, rows, set_pin);
 
-    for (uint64_t i = 0; i < 10; ++i)
-        grid_do_in_line(&g, cols * i / 10.0, i % 2? 0: rows, cols * (i + 1) / 10.0, rows / 2, 4, set_pin);
+    for (unsigned int i = 0; i < 10; ++i)
+        grid_do_in_line(&g, cols * i / 10.0, i % 2 == 0? 0: rows, cols * (i + 1) / 10.0, rows / 2, 4, set_pin);
 
     dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(-dm, 0.0, 0.0),
                                                  .dmv_up = v3d_c(dm, 0.0, 0.0),
