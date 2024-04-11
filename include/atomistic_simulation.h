@@ -15,7 +15,5 @@
 #include "kernel_funcs.h"
 #include "gsa.h"
 #include "logging.h"
-
-#define __PROFILER_IMPLEMENTATION
 #include "profiler.h"
 #endif

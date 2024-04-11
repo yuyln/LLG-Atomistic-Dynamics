@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #define PROFILER(x) __PROFILER_##x
-#define __PROFILER_TABLE_MAX 10
+#define __PROFILER_TABLE_MAX 100
 
 typedef struct PROFILER(elem) {
     char *name;
@@ -16,18 +16,16 @@ typedef struct PROFILER(elem) {
     uint64_t count;
 } PROFILER(elem);
 
-static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
-
 bool profiler_start_measure(const char* name);
 void profiler_end_measure(const char* name);
 void profiler_print_measures(FILE *file);
 double profiler_get_sec();
-
-
 #endif //__PROFILER_H
 
 
 #ifdef __PROFILER_IMPLEMENTATION
+
+static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
 #include <stdlib.h>
 #include <string.h>
 

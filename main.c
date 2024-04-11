@@ -50,7 +50,6 @@ int main(void) {
     string temperature_func = str_is_cstr("return 0.0;");
     string compile = str_is_cstr("-cl-fast-relaxed-math");
 
-    srand(time(NULL));
     double ratio = (double)rows / cols;
 
     gradient_descent_params gd_params = gradient_descent_params_init();
