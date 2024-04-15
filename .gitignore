@@ -11,3 +11,4 @@ create_kernel
 paper_funcs.c
 *test*
 run_atomistic
+*.data
