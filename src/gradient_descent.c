@@ -65,7 +65,7 @@ void gradient_descent_step(gradient_descent_context *ctx) {
     ctx->params.T *= ctx->params.T_factor;
 
     ctx->step++;
-    if (ctx->step % ctx->params.steps == 0) {
+    if (ctx->step >= ctx->params.steps) {
         srand(time(NULL));
         ctx->outer_step++;
         ctx->step = 0;
@@ -126,12 +126,10 @@ void gradient_descent(grid *g, gradient_descent_params params) {
     gradient_descent_context ctx = gradient_descent_context_init(g, &gpu, params);
 
     while (ctx.outer_step < params.outer_steps) {
-        while (ctx.step < params.steps) {
-            gradient_descent_step(&ctx);
-            gradient_descent_exchange(&ctx);
-            if (ctx.step % 100 == 0)
-                logging_log(LOG_INFO, "%"PRIu64" Gradient Descent %"PRIu64" - Min Energy: %e eV - Temperature %e", ctx.outer_step, ctx.step, ctx.min_energy, ctx.params.T);
-        }
+        gradient_descent_step(&ctx);
+        gradient_descent_exchange(&ctx);
+        if (ctx.step % 1000 == 0)
+            logging_log(LOG_INFO, "%"PRIu64"  %"PRIu64" Gradient Descent %"PRIu64" - Min Energy: %e eV - Temperature %e", params.outer_steps, ctx.outer_step, ctx.step, ctx.min_energy, ctx.params.T);
     }
 
     gradient_descent_read_mininum_grid(&ctx);
