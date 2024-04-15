@@ -20,6 +20,7 @@ typedef struct {
 
     uint64_t grid_hsl_id;
     uint64_t grid_bwr_id;
+    uint64_t pinning_id;
     uint64_t energy_id;
     uint64_t charge_id;
     uint64_t calc_energy_id;
@@ -37,6 +38,7 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu);
 void grid_renderer_close(grid_renderer *gr);
 void grid_renderer_hsl(grid_renderer *gr);
 void grid_renderer_bwr(grid_renderer *gr);
+void grid_renderer_pinning(grid_renderer *gr);
 void grid_renderer_energy(grid_renderer *gr, double time);
 void grid_renderer_charge(grid_renderer *gr);
 void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height);

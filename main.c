@@ -14,7 +14,7 @@ int main(void) {
     double alpha = 0.3;
     double J = 1.0e-3 * QE;
     double dm = 0.18 * J;
-    double ani = 0.00 * J;
+    double ani = 0.02 * J;
 
     grid g = grid_init(rows, cols);
     grid_set_lattice(&g, lattice);
@@ -53,15 +53,16 @@ int main(void) {
     double ratio = (double)rows / cols;
 
     gradient_descent_params gd_params = gradient_descent_params_init();
-    gd_params.dt = 1.0e-2;
-    gd_params.T = 5000.0;
-    gd_params.T_factor = 0.99985;
+    gd_params.dt = 5.0e-3;
+    //gd_params.T = 5000.0;
+    gd_params.T = 500;
+    gd_params.T_factor = 0.99998918028024917967;
     gd_params.compile_augment = compile;
     gd_params.field_func = field_func;
-    gd_params.damping = 1.0;
-    gd_params.restoring = 10.0;
-    gd_params.steps = 100000;
-    steps_per_frame = 100;
+    //gd_params.damping = 1.0;
+    //gd_params.restoring = 10.0;
+    //gd_params.steps = 100000;
+    //steps_per_frame = 100;
     grid_renderer_gradient_descent(&g, gd_params, 400 / ratio, 400);
     //gradient_descent(&g, gd_params);
 

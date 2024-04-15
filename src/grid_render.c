@@ -26,6 +26,7 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
 
     ret.grid_hsl_id = gpu_cl_append_kernel(ret.gpu, "render_grid_hsl");
     ret.grid_bwr_id = gpu_cl_append_kernel(ret.gpu, "render_grid_bwr");
+    ret.pinning_id = gpu_cl_append_kernel(ret.gpu, "render_pinning");
     ret.energy_id = gpu_cl_append_kernel(ret.gpu, "render_energy");
     ret.charge_id = gpu_cl_append_kernel(ret.gpu, "render_charge");
     ret.calc_charge_id = gpu_cl_append_kernel(ret.gpu, "calculate_charge_to_render");
@@ -34,6 +35,8 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     gpu_cl_fill_kernel_args(ret.gpu, ret.grid_hsl_id, 0, 5, &ret.g->m_buffer, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
 
     gpu_cl_fill_kernel_args(ret.gpu, ret.grid_bwr_id, 0, 5, &ret.g->m_buffer, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
+
+    gpu_cl_fill_kernel_args(ret.gpu, ret.pinning_id, 0, 6, &ret.g->gp_buffer, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
 
     gpu_cl_fill_kernel_args(ret.gpu, ret.calc_charge_id, 0, 3, &ret.g->m_buffer, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.buffer_gpu, sizeof(cl_mem));
 
@@ -62,6 +65,14 @@ void grid_renderer_hsl(grid_renderer *gr) {
     size_t global = gr->width * gr->height;
     size_t local = gpu_cl_gcd(global, 32);
     gpu_cl_enqueue_nd(gr->gpu, gr->grid_hsl_id, 1, &local, &global, NULL);
+    gpu_cl_read_buffer(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
+    window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
+}
+
+void grid_renderer_pinning(grid_renderer *gr) {
+    size_t global = gr->width * gr->height;
+    size_t local = gpu_cl_gcd(global, 32);
+    gpu_cl_enqueue_nd(gr->gpu, gr->pinning_id, 1, &local, &global, NULL);
     gpu_cl_read_buffer(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
@@ -231,6 +242,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             default:
                 grid_renderer_hsl(&gr);
         }
+        grid_renderer_pinning(&gr);
         if (window_key_pressed('q'))
             state = 'q';
         else if (window_key_pressed('e'))
@@ -250,6 +262,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             logging_log(LOG_INFO, "Integrate FPS: %"PRIu64, (uint64_t)(frames / print_timer));
             logging_log(LOG_INFO, "Integrate Steps per Second: %"PRIu64, (uint64_t)(frames / print_timer * steps_per_frame));
             logging_log(LOG_INFO, "Integrate <dt_real>: %es", print_timer / frames);
+            logging_log(LOG_INFO, "Integrate time: %ens", ctx.time / NS);
             print_timer = 0;
             frames = 0;
         }

@@ -266,17 +266,17 @@ bool grid_dump(FILE *f, grid *g) {
 }
 
 bool grid_from_file(string path, grid *g) {
-    string p_ = {0};
-    str_cat_str(&p_, path);
-    FILE *f = fopen(str_as_cstr(&p_), "rb");
-    char *data = NULL;
-    bool ret = true;
-
     if (!g)
         logging_log(LOG_FATAL, "NULL pointer to grid provided");
 
     if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows)
         logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
+
+    string p_ = str_from_cstr("");
+    str_cat_str(&p_, path);
+    FILE *f = fopen(str_as_cstr(&p_), "rb");
+    char *data = NULL;
+    bool ret = true;
 
     if (!f) {
         logging_log(LOG_WARNING, "Could not open file %.*s: %s. Using defaults", (int)path.len, path.str, strerror(errno));

@@ -7,4 +7,7 @@ create_kernel
 *.a
 *.csv
 *.dat
+*.bin
 paper_funcs.c
+*test*
+run_atomistic

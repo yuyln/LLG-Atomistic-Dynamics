@@ -1,0 +1,102 @@
+[ INFO ] Initialized 1 platforms
+[ INFO ] Platform[0] name: AMD Accelerated Parallel Processing
+[ INFO ] Initialized 1 devices
+[ INFO ] Device[0] on Platform AMD Accelerated Parallel Processing
+[ INFO ] Device[0] Vendor: Advanced Micro Devices, Inc.
+[ INFO ] Device[0] Version: OpenCL 2.0 
+[ INFO ] Device[0] Driver Version: 3602.0 (HSA1.1,LC)
+[ INFO ] Device[0] Name: gfx1031
+[ INFO ] Device[0] Available: 1
+[ INFO ] Device[0] Global Memory: 12868.1247 MB
+[ INFO ] Device[0] Allocatable Memory: 10937.9060 MB
+[ INFO ] Device[0] Compute Units: 20
+[ INFO ] Device[0] Max Work Group Size: 256
+[ INFO ] Device[0] Max Dimension: 3
+[ INFO ] Device[0] Max Work Items Per Dimension: {1024, 1024, 1024]
+[ INFO ] Created context on GPU
+[ INFO ] Created command queue on GPU
+[ INFO ] Compile OpenCL program with: -DOPENCL_COMPILATION -cl-fast-relaxed-math
+[ INFO ] Build Log: 
+/tmp/comgr-8e2264/input/CompileSource:1132:1: warning: non-void function does not return a value [-Wreturn-type]
+}
+^
+/tmp/comgr-8e2264/input/CompileSource:1147:1: warning: non-void function does not return a value [-Wreturn-type]
+}
+^
+2 warnings generated.
+
+[ INFO ] XDBE version 1.0
+[ INFO ] draw ID: 50331650
+[ INFO ] On file ./src/grid_funcs.c line 230: Created buffer with size 15980544 bytes
+[ INFO ] On file ./src/grid_funcs.c line 231: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/gradient_descent.c line 25: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/gradient_descent.c line 26: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/gradient_descent.c line 27: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/gradient_descent.c line 28: Created buffer with size 591872 bytes
+[ INFO ] On file ./src/grid_render.c line 22: Created buffer with size 2560000 bytes
+[ INFO ] On file ./src/grid_render.c line 25: Created buffer with size 5120000 bytes
+[ INFO ] Gradient Descent FPS: 18
+[ INFO ] Gradient Descent Steps per Second: 1898
+[ INFO ] Gradient Descent <dt_real>: 5.267878e-02s
+[ INFO ] Gradient Descent[Outer=0][Inner=2000] Minimun Energy: -9.990055e+01 eV Temperature: 4.892964e+02
+[ INFO ] Gradient Descent FPS: 19
+[ INFO ] Gradient Descent Steps per Second: 1916
+[ INFO ] Gradient Descent <dt_real>: 5.216886e-02s
+[ INFO ] Gradient Descent[Outer=0][Inner=4000] Minimun Energy: -1.049813e+02 eV Temperature: 4.788220e+02
+[ INFO ] Gradient Descent FPS: 19
+[ INFO ] Gradient Descent Steps per Second: 1944
+[ INFO ] Gradient Descent <dt_real>: 5.142065e-02s
+[ INFO ] Gradient Descent[Outer=0][Inner=6000] Minimun Energy: -1.068758e+02 eV Temperature: 4.685718e+02
+[ INFO ] Gradient Descent FPS: 18
+[ INFO ] Gradient Descent Steps per Second: 1881
+[ INFO ] Gradient Descent <dt_real>: 5.314558e-02s
+[ INFO ] Gradient Descent[Outer=0][Inner=7900] Minimun Energy: -1.080968e+02 eV Temperature: 4.590375e+02
+[ INFO ] On file ./src/gradient_descent.c line 78: released memory buffer "ctx->before_gpu" from GPU
+[ INFO ] On file ./src/gradient_descent.c line 79: released memory buffer "ctx->after_gpu" from GPU
+[ INFO ] On file ./src/gradient_descent.c line 80: released memory buffer "ctx->min_gpu" from GPU
+[ INFO ] On file ./src/gradient_descent.c line 81: released memory buffer "ctx->energy_gpu" from GPU
+[ INFO ] On file ./src/grid_render.c line 59: released memory buffer "gr->rgba_gpu" from GPU
+[ INFO ] On file ./src/grid_render.c line 60: released memory buffer "gr->buffer_gpu" from GPU
+[ INFO ] On file ./src/grid_funcs.c line 215: released memory buffer "g->gp_buffer" from GPU
+[ INFO ] On file ./src/grid_funcs.c line 216: released memory buffer "g->m_buffer" from GPU
+[ INFO ] Integration dt: 6.582120e-15
+[ INFO ] Initialized 1 platforms
+[ INFO ] Platform[0] name: AMD Accelerated Parallel Processing
+[ INFO ] Initialized 1 devices
+[ INFO ] Device[0] on Platform AMD Accelerated Parallel Processing
+[ INFO ] Device[0] Vendor: Advanced Micro Devices, Inc.
+[ INFO ] Device[0] Version: OpenCL 2.0 
+[ INFO ] Device[0] Driver Version: 3602.0 (HSA1.1,LC)
+[ INFO ] Device[0] Name: gfx1031
+[ INFO ] Device[0] Available: 1
+[ INFO ] Device[0] Global Memory: 12868.1247 MB
+[ INFO ] Device[0] Allocatable Memory: 10937.9060 MB
+[ INFO ] Device[0] Compute Units: 20
+[ INFO ] Device[0] Max Work Group Size: 256
+[ INFO ] Device[0] Max Dimension: 3
+[ INFO ] Device[0] Max Work Items Per Dimension: {1024, 1024, 1024]
+[ INFO ] Created context on GPU
+[ INFO ] Created command queue on GPU
+[ INFO ] Compile OpenCL program with: -DOPENCL_COMPILATION -cl-fast-relaxed-math
+[ INFO ] Build Log: 
+
+[ INFO ] XDBE version 1.0
+[ INFO ] draw ID: 50331650
+[ INFO ] On file ./src/grid_funcs.c line 230: Created buffer with size 15980544 bytes
+[ INFO ] On file ./src/grid_funcs.c line 231: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/integrate.c line 15: Created buffer with size 1775616 bytes
+[ INFO ] On file ./src/grid_render.c line 22: Created buffer with size 2560000 bytes
+[ INFO ] On file ./src/grid_render.c line 25: Created buffer with size 5120000 bytes
+[ INFO ] Integrate FPS: 88
+[ INFO ] Integrate Steps per Second: 8880
+[ INFO ] Integrate <dt_real>: 1.126030e-02s
+[ INFO ] Integrate time: 5.923908e-02ns
+[ INFO ] Integrate FPS: 88
+[ INFO ] Integrate Steps per Second: 8891
+[ INFO ] Integrate <dt_real>: 1.124662e-02s
+[ INFO ] Integrate time: 1.178199e-01ns
+[ INFO ] On file ./src/integrate.c line 35: released memory buffer "ctx->swap_buffer" from GPU
+[ INFO ] On file ./src/grid_render.c line 59: released memory buffer "gr->rgba_gpu" from GPU
+[ INFO ] On file ./src/grid_render.c line 60: released memory buffer "gr->buffer_gpu" from GPU
+[ INFO ] On file ./src/grid_funcs.c line 215: released memory buffer "g->gp_buffer" from GPU
+[ INFO ] On file ./src/grid_funcs.c line 216: released memory buffer "g->m_buffer" from GPU

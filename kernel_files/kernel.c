@@ -204,6 +204,23 @@ kernel void render_charge(GLOBAL double *input, unsigned int rows, unsigned int 
     rgba[id] = linear_mapping(clamp(charge, 0.0, 1.0), start, middle, end);
 }
 
+kernel void render_pinning(GLOBAL grid_site_params *input, unsigned int rows, unsigned int cols,
+                          GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
+    size_t id = get_global_id(0);
+    int icol = id % width;
+    int irow = (id - icol) / width;
+    int vcol = (float)icol / width * cols;
+    int vrow = (float)irow / height * rows;
+
+    //rendering inverts the grid, need to invert back
+    vrow = rows - 1 - vrow;
+
+    if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
+        return;
+    if (input[vrow * cols + vcol].pin.pinned)
+        rgba[id] = (RGBA32){.a = 0xff, .b = 0, .g = 0xff, .r = 0xff};
+}
+
 kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
     size_t id = get_global_id(0);
     int col = id % gi.cols;
