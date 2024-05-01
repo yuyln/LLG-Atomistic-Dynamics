@@ -72,6 +72,13 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                      &ctx.time, sizeof(double),
                                                      &grid->gi, sizeof(grid_info));
 
+
+    uint64_t expected_steps = params.duration / params.dt + 1;
+    if (ctx.params.interval_for_information == 0)
+        ctx.params.interval_for_information = expected_steps;
+
+    if (ctx.params.interval_for_writing_grid == 0)
+        ctx.params.interval_for_writing_grid = expected_steps;
     return ctx;
 }
 
