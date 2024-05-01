@@ -335,8 +335,8 @@ gpu_cl gpu_cl_init(string current_function, string field_func, string temperatur
     string compile = fill_compilation_params(cmp, compile_augment);
     gpu_cl_compile_source(&ret, kernel, compile);
 
-    str_mfree(&kernel);
-    str_mfree(&compile);
+    str_free(&kernel);
+    str_free(&compile);
 
     return ret;
 }

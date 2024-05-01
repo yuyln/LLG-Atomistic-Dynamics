@@ -18,7 +18,7 @@ typedef struct {
 void str_cat_str(string *s, string s2);
 void str_cat_cstr(string *s, const char *s2);
 void str_cat_fmt(string *s, const char *fmt, ...);
-void str_mfree(string *s);
+void str_free(string *s);
 string str_from_cstr(const char *s);
 string str_from_fmt(const char *fmt, ...);
 const char *str_as_cstr(string *s);

@@ -256,7 +256,6 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
         for (unsigned int i = 0; i < steps_per_frame; ++i) {
             integrate_step(&ctx);
             integrate_exchange_grids(&ctx);
-            ctx.time += params.dt;
         }
 
         if (print_timer >= print_time) {
@@ -279,7 +278,6 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
     }
     integrate_context_close(&ctx);
     grid_renderer_close(&gr);
-    gpu_cl_close(gpu);
 }
 
 void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, unsigned int width, unsigned int height) {

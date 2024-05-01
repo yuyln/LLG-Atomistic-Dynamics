@@ -75,7 +75,7 @@ err:
     mfree(tmp);
 }
 
-void str_mfree(string *s) {
+void str_free(string *s) {
     if (s->can_manipulate) {
         mfree(s->str);
         memset(s, 0, sizeof(*s));

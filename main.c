@@ -11,9 +11,9 @@ int main(void) {
     unsigned int cols = 64;
 
     double lattice = 0.5e-9;
-    double alpha = 0.04;
+    double alpha = 0.3;
     double J = 1.0e-3 * QE;
-    double dm = 1.0 * J;
+    double dm = 0.5 * J;
     double ani = 0.05 * J;
 
     grid g = grid_init(rows, cols);
@@ -29,35 +29,35 @@ int main(void) {
 
     for (unsigned int i = 0; i < rows * cols; ++i)
         g.m[i] = v3d_c(0, 0, -1);
-    v3d_create_skyrmion(g.m, rows, cols, 7, rows / 2, 4 * cols / 5, 1, -1, M_PI / 2);
+    v3d_create_skyrmion(g.m, rows, cols, 10, rows / 2, 2.3 * cols / 5, 1, -1, M_PI / 2);
 
     //for (unsigned int i = 0; i < rows; ++i)
     //    g.gp[i * cols + (cols - 1)].pin = (pinning){.dir = v3d_c(0, 0, -1), .pinned = 1};
     int a = 8;
-    //grid_do_in_ellipse(&g, cols / 2 + 15, a, a, a, set_pin);
+    grid_do_in_ellipse(&g, cols / 2 + 10, a, a, a, set_pin);
     //grid_do_in_rect(&g, cols / 2, 2 * a, cols / 2 + a, 3 * a, set_pin);
-    grid_do_in_line(&g, 0, 0, cols, rows, 5, set_pin);
+    //grid_do_in_line(&g, 0, 0, cols, rows, 5, set_pin);
 
     grid_set_dm(&g, default_dm);
     double dt = 0.01 * HBAR / (J * SIGN(J));
     string current_func = str_is_cstr("current ret = (current){};\n"\
                                       "time -= 0.5 * NS;\n"\
                                       "ret.type = CUR_STT;\n"\
-                                      "ret.stt.j = v3d_c(0.0, -5.0e10, 0.0);\n"\
+                                      "ret.stt.j = v3d_c(0.0, -20.0e10, 0.0);\n"\
                                       "ret.stt.beta = 0.0;\n"\
                                       "ret.stt.polarization = -1.0;\n"\
                                       "ret.stt.j = v3d_scalar(ret.stt.j, (time > 0));\n"\
                                       "return ret;");
 
     //string current_func = str_is_cstr("current ret = (current){};\n"\
-                                      "time -= 0.5 * NS;\n"\
-                                      "ret.type = CUR_SHE;\n"\
-                                      "ret.she.p = v3d_c(-2.5e10, 0.0, 0.0);\n"\
-                                      "ret.she.beta = 0.0;\n"\
-                                      "ret.she.theta_sh = -1.0;\n"\
-                                      "ret.she.thickness = 0.5 * NANO;\n"\
-                                      "ret.she.p = v3d_scalar(ret.she.p, (time > 0));\n"\
-                                      "return ret;");
+    //                                  "time -= 0.5 * NS;\n"\
+    //                                  "ret.type = CUR_SHE;\n"\
+    //                                  "ret.she.p = v3d_c(-2.5e10, 0.0, 0.0);\n"\
+    //                                  "ret.she.beta = 0.0;\n"\
+    //                                  "ret.she.theta_sh = -1.0;\n"\
+    //                                  "ret.she.thickness = 0.5 * NANO;\n"\
+    //                                  "ret.she.p = v3d_scalar(ret.she.p, (time > 0));\n"\
+    //                                  "return ret;");
 
     string field_func = str_from_fmt("double Hz = -%.15e;\n"\
                                      "return v3d_c(0.0, 0.0, Hz);", 0.5 * dm * dm / (J * SIGN(J)) * 1.0 / mu);
@@ -68,6 +68,7 @@ int main(void) {
     double ratio = (double)rows / cols;
 
     gradient_descent_params gd_params = gradient_descent_params_init();
+    UNUSED(gd_params);
     gd_params.dt = 5.0e-3;
     //gd_params.T = 5000.0;
     gd_params.T = 500;
@@ -92,7 +93,7 @@ int main(void) {
     grid_renderer_integrate(&g, int_params, 800 / ratio, 800);
     //integrate(&g, int_params);
 
-    str_mfree(&field_func);
-    grid_mfree(&g);
+    str_free(&field_func);
+    grid_free(&g);
     return 0;
 }

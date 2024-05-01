@@ -199,7 +199,7 @@ void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radiu
     }
 }
 
-bool grid_mfree(grid *g) {
+bool grid_free(grid *g) {
     bool ret = true;
     mfree(g->gp);
     mfree(g->m);
@@ -282,7 +282,7 @@ bool grid_from_file(string path, grid *g) {
         *g = grid_init(272, 272);
         return false;
     }
-    str_mfree(&p_);
+    str_free(&p_);
 
     if (fseek(f, 0, SEEK_END) < 0) {
         logging_log(LOG_ERROR, "Moving cursor to the end of %.*s failed: %s", (int)path.len, path.str, strerror(errno));
