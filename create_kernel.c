@@ -1,3 +1,7 @@
+#define __ALLOCATOR_C
+#include "allocator.h"
+#include "./src/logging.c"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,8 +26,8 @@ char *read_file(const char *path) {
     fseek(f, 0, SEEK_END);
     uint64_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    char *tmp = calloc(size + 1, 1);
-    char *tmp2 = calloc(size + 1, 1);
+    char *tmp = mmalloc(size + 1);
+    char *tmp2 = mmalloc(size + 1);
     fread(tmp, size, 1, f);
 
     char *ptr = tmp;
@@ -38,11 +42,11 @@ char *read_file(const char *path) {
         *ptr2++ = *ptr;
         ptr++;
     }
-    char *ret = calloc(strlen(tmp2) + 1, 1);
+    char *ret = mmalloc(strlen(tmp2) + 1);
     memcpy(ret, tmp2, strlen(tmp2));
 
-    free(tmp);
-    free(tmp2);
+    mfree(tmp);
+    mfree(tmp2);
     fclose(f);
     return ret;
 }
@@ -61,7 +65,7 @@ int main(int argc, const char **argv) {
         char *ptr = data;
         while (*ptr)
             fprintf(f, " \"\\x%02x\" ", *ptr++);
-        free(data);
+        mfree(data);
     }
     fprintf(f, ";");
     fclose(f);

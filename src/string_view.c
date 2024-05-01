@@ -6,6 +6,7 @@
 
 #include "string_view.h"
 #include "logging.h"
+#include "allocator.h"
 
 uint64_t vfmt_get_size(const char *fmt, va_list args) {
     return vsnprintf(NULL, 0, fmt, args);
@@ -23,15 +24,9 @@ void str_cat_str(string *s, string s2) {
 
     uint64_t old_len = s->len;
     s->len += s2.len;
-    char *old_ptr = s->str;
-    s->str = realloc(s->str, s->len + 1);
-    if (!s->str) {
-        logging_log(LOG_ERROR, "Could not realloc pointer of str \"%.*s\" to cat with \"%.*s\": %s", (int)old_len, old_ptr, (int)s2.len, s2.str, strerror(errno));
-        s->str = old_ptr;
-    } else {
-        memmove(&s->str[old_len], s2.str, s2.len);
-        s->str[s->len] = '\0';
-    }
+    s->str = mrealloc(s->str, s->len + 1);
+    memmove(&s->str[old_len], s2.str, s2.len);
+    s->str[s->len] = '\0';
 }
 
 void str_cat_cstr(string *s, const char *s2) {
@@ -43,13 +38,8 @@ void str_cat_cstr(string *s, const char *s2) {
     uint64_t old_len = s->len;
     uint64_t s2_len = strlen(s2);
     s->len += s2_len;
-    char *old_ptr = s->str;
-    s->str = realloc(s->str, s->len + 1);
-    if (!s->str) {
-        logging_log(LOG_ERROR, "Could not realloc pointer of str \"%.*s\" to cat with \"%s\": %s", (int)old_len, old_ptr, s2, strerror(errno));
-        s->str = old_ptr;
-    } else
-        memmove(&s->str[old_len], s2, s2_len + 1);
+    s->str = mrealloc(s->str, s->len + 1);
+    memmove(&s->str[old_len], s2, s2_len + 1);
 }
 
 void str_cat_fmt(string *s, const char *fmt, ...) {
@@ -69,11 +59,7 @@ void str_cat_fmt(string *s, const char *fmt, ...) {
     uint64_t s2_len = vsnprintf(NULL, 0, fmt, arg_list) + 1;
     va_end(arg_list);
 
-    tmp = calloc(s2_len, 1);
-    if (!tmp) {
-        logging_log(LOG_ERROR, "Could not alloc %"PRIu64" bytes for tmp: %s", s2_len, strerror(errno));
-        goto err;
-    }
+    tmp = mmalloc(s2_len);
 
     va_start(arg_list, fmt);
     vsnprintf(tmp, s2_len, fmt, arg_list);
@@ -83,20 +69,15 @@ void str_cat_fmt(string *s, const char *fmt, ...) {
 
     uint64_t old_len = s->len;
     s->len += s2_len;
-    char *old_ptr = s->str;
-    s->str = realloc(s->str, s->len + 1);
-    if (!s->str) {
-        logging_log(LOG_ERROR, "Could not realloc pointer of str \"%.*s\" to cat with \"%s\": %s", (int)old_len, old_ptr, tmp, strerror(errno));
-        s->str = old_ptr;
-    } else
-        memmove(&s->str[old_len], tmp, s2_len + 1);
+    s->str = mrealloc(s->str, s->len + 1);
+    memmove(&s->str[old_len], tmp, s2_len + 1);
 err: 
-    free(tmp);
+    mfree(tmp);
 }
 
-void str_free(string *s) {
+void str_mfree(string *s) {
     if (s->can_manipulate) {
-        free(s->str);
+        mfree(s->str);
         memset(s, 0, sizeof(*s));
     }
 }
@@ -122,11 +103,7 @@ string str_from_fmt(const char *fmt, ...) {
     uint64_t tmp_len = vsnprintf(NULL, 0, fmt, arg_list) + 1;
     va_end(arg_list);
 
-    char *tmp = calloc(tmp_len, 1);
-    if (!tmp) {
-        logging_log(LOG_ERROR, "Could not alloc %"PRIu64" bytes for tmp: %s", tmp_len, strerror(errno));
-        goto err;
-    }
+    char *tmp = mmalloc(tmp_len);
 
     va_start(arg_list, fmt);
     vsnprintf(tmp, tmp_len, fmt, arg_list);
@@ -134,14 +111,8 @@ string str_from_fmt(const char *fmt, ...) {
 
     tmp_len = strlen(tmp);
     ret.len = tmp_len;
-    ret.str = calloc(ret.len + 1, 1);
-    if (!ret.str) {
-        logging_log(LOG_ERROR, "Could not alloc pointer for str [%"PRIu64" bytes], returning null string: %s", (int)ret.len, strerror(errno));
-        memset(&ret, 0, sizeof(ret));
-    }
-    else
-        memmove(ret.str, tmp, tmp_len + 1);
-err: 
-    free(tmp);
+    ret.str = mmalloc(ret.len + 1);
+    memmove(ret.str, tmp, tmp_len + 1);
+    mfree(tmp);
     return ret;
 }

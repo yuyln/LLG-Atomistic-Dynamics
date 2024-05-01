@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "render.h"
+#include "allocator.h"
 
 struct render_window {
     unsigned int width;
@@ -22,7 +23,7 @@ struct render_window {
 static render_window w[1] = {0};
 
 static void window_close(void) {
-    free(w->buffer);
+    mfree(w->buffer);
 }
 
 LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparams, LPARAM lparams) {
@@ -77,7 +78,7 @@ LRESULT windows_call_back(HWND window, UINT msg, WPARAM wparams, LPARAM lparams)
 void window_init(const char *name, unsigned int width, unsigned int height) {
     w->width = width;
     w->height = height;
-    w->buffer = calloc(width * height, sizeof(*w->buffer));
+    w->buffer = mmalloc(width * height * sizeof(*w->buffer));
 
     w->instance = GetModuleHandle(NULL);
 

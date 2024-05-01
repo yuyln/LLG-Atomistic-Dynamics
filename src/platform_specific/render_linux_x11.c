@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "render.h"
+#include "allocator.h"
 
 struct render_window {
     Display *display;
@@ -34,7 +35,7 @@ static render_window w[1] = {0};
 void window_init(const char *name, unsigned int width, unsigned int height) {
     w->width = width;
     w->height = height;
-    w->buffer = calloc(width * height, sizeof(*w->buffer));
+    w->buffer = mmalloc(width * height * sizeof(*w->buffer));
     w->should_close = false;
 
     w->display = XOpenDisplay(NULL);
@@ -105,7 +106,7 @@ static void window_close(void) {
     XFreeGC(w->display, w->gc);
 
     XDestroyImage(w->image);
-    //free(w->buffer); //X frees this pointer
+    //mfree(w->buffer); //X mfrees this pointer
 
     if (w->xdbe)
         XdbeDeallocateBackBufferName(w->display, w->draw);

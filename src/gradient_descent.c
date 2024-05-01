@@ -1,4 +1,5 @@
 #include "gradient_descent.h"
+#include "allocator.h"
 #include <inttypes.h>
 #include <time.h>
 
@@ -27,10 +28,7 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     ret.after_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
     ret.energy_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*ret.energy_cpu) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
 
-    ret.energy_cpu = calloc(g->gi.rows * g->gi.cols, sizeof(*ret.energy_cpu));
-    if (!ret.energy_cpu)
-        logging_log(LOG_FATAL, "Could not allocate[%"PRIu64" bytes] memory for energy on cpu %s", g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), strerror(errno));
-
+    ret.energy_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu));
 
     ret.step_id = gpu_cl_append_kernel(ret.gpu, "gradient_descent_step");
     ret.exchange_id = gpu_cl_append_kernel(ret.gpu, "exchange_grid");
@@ -74,7 +72,7 @@ void gradient_descent_step(gradient_descent_context *ctx) {
 }
 
 void gradient_descent_close(gradient_descent_context *ctx) {
-    free(ctx->energy_cpu);
+    mfree(ctx->energy_cpu);
     gpu_cl_release_memory(ctx->before_gpu)
     gpu_cl_release_memory(ctx->after_gpu)
     gpu_cl_release_memory(ctx->min_gpu)

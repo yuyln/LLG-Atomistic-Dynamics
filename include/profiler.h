@@ -28,6 +28,7 @@ double profiler_get_sec();
 static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
 #include <stdlib.h>
 #include <string.h>
+#include "allocator.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -109,7 +110,7 @@ static uint64_t hash(const char *name) {
 static PROFILER(elem) initelem(const char* name) {
     PROFILER(elem) ret = {0};
     uint64_t len = strlen(name);
-    ret.name = (char*)calloc(len + 1, 1);
+    ret.name = (char*)mmalloc(len + 1);
     memcpy(ret.name, name, len);
     ret.name[len] = '\0';
     ret.next = NULL;
@@ -137,7 +138,7 @@ static bool insert(const char* name) {
         head = head->next;
     }
   
-    last->next = calloc(1, sizeof(PROFILER(elem)));  
+    last->next = mmalloc(1 * sizeof(*last->next));  
     last = last->next;
     if (!last) return false;
     *last = initelem(name);
@@ -162,12 +163,12 @@ void profiler_end_measure(const char* name) {
     }
 }
 
-static void profiler_free_list(PROFILER(elem) *head) {
+static void profiler_mfree_list(PROFILER(elem) *head) {
     if (!head) return;
     
-    profiler_free_list(head->next);
-    if (head->name) free(head->name);
-    free(head);
+    profiler_mfree_list(head->next);
+    if (head->name) mfree(head->name);
+    mfree(head);
 }
 
 void profiler_print_measures(FILE *file) {
@@ -181,9 +182,9 @@ void profiler_print_measures(FILE *file) {
         }
 
         head = &PROFILER(table)[i];
-        profiler_free_list(head->next);
+        profiler_mfree_list(head->next);
 
-        free(head->name);
+        mfree(head->name);
         memset(head, 0, sizeof(PROFILER(elem)));
     }
 }

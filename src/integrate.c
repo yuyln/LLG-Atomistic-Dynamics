@@ -1,6 +1,7 @@
 #include "integrate.h"
 #include "kernel_funcs.h"
 #include "logging.h"
+#include "allocator.h"
 
 #include <inttypes.h>
 
@@ -56,9 +57,7 @@ void integrate(grid *g, integrate_params params) {
 
     uint64_t info_id = gpu_cl_append_kernel(&gpu, "extract_info");
 
-    information_packed *info = calloc(g->gi.rows * g->gi.cols, sizeof(information_packed));
-    if (!info)
-        logging_log(LOG_FATAL, "Could not allocate for information[%"PRIu64" bytes]", g->gi.rows * g->gi.cols * sizeof(*info));
+    information_packed *info = mmalloc(g->gi.rows * g->gi.cols * sizeof(*info));
 
     cl_mem info_buffer = gpu_cl_create_buffer(&gpu, g->gi.rows * g->gi.cols * sizeof(*info), CL_MEM_READ_WRITE);
 
@@ -81,7 +80,7 @@ void integrate(grid *g, integrate_params params) {
     if (!output_info)
         logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
 
-    str_free(&output_info_path);
+    str_mfree(&output_info_path);
 
     fprintf(output_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
     fprintf(output_info, "charge_finite,charge_lattice,");
@@ -99,7 +98,7 @@ void integrate(grid *g, integrate_params params) {
     if (!output_info)
         logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
 
-    str_free(&output_grid_path);
+    str_mfree(&output_grid_path);
     grid_dump(grid_evolution, g);
 
     uint64_t expected_steps = params.duration / params.dt + 1;
@@ -159,7 +158,7 @@ void integrate(grid *g, integrate_params params) {
     gpu_cl_release_memory(info_buffer);
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
-    free(info);
+    mfree(info);
 }
 
 void integrate_step(integrate_context *ctx) {

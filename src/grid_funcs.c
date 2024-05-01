@@ -10,6 +10,7 @@
 #include "constants.h"
 #include "string_view.h"
 #include "logging.h"
+#include "allocator.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
@@ -27,12 +28,10 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     ret.gi.rows = rows;
     ret.gi.cols = cols;
     ret.gi.pbc = (pbc_rules){.pbc_x = true, .pbc_y = true, .m = {0}};
-    ret.gp = calloc(sizeof(*ret.gp) * rows * cols, 1);
-    ret.m = calloc(sizeof(*ret.m) * rows * cols, 1);
+    ret.gp = mmalloc(sizeof(*ret.gp) * rows * cols);
+    ret.m = mmalloc(sizeof(*ret.m) * rows * cols);
     ret.on_gpu = false;
 
-    if (!ret.gp || !ret.m)
-        logging_log(LOG_FATAL, "Could not allocate grid. Buy more ram lol");
     double dm = 0.18 * QE * 1.0e-3;
 
     dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(dm, 0, 0),
@@ -200,10 +199,10 @@ void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radiu
     }
 }
 
-bool grid_free(grid *g) {
+bool grid_mfree(grid *g) {
     bool ret = true;
-    free(g->gp);
-    free(g->m);
+    mfree(g->gp);
+    mfree(g->m);
     if (g->on_gpu)
         ret = grid_release_from_gpu(g);
     memset(g, 0, sizeof(*g));
@@ -283,7 +282,7 @@ bool grid_from_file(string path, grid *g) {
         *g = grid_init(272, 272);
         return false;
     }
-    str_free(&p_);
+    str_mfree(&p_);
 
     if (fseek(f, 0, SEEK_END) < 0) {
         logging_log(LOG_ERROR, "Moving cursor to the end of %.*s failed: %s", (int)path.len, path.str, strerror(errno));
@@ -304,11 +303,7 @@ bool grid_from_file(string path, grid *g) {
         goto defer;
     }
 
-    if (!(data = calloc(sz + 1, 1))) {
-        logging_log(LOG_ERROR, "Callocing data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
-        ret = false;
-        goto defer;
-    }
+    data = mmalloc(sz + 1);
 
     char *ptr = data;
     if (fread(data, 1, sz, f) != (uint64_t)sz) {
@@ -320,11 +315,8 @@ bool grid_from_file(string path, grid *g) {
     g->gi = *((grid_info*)data);
     ptr += sizeof(grid_info);
 
-    if (!(g->gp = calloc(sizeof(*g->gp) * g->gi.rows * g->gi.cols , 1)))
-        logging_log(LOG_FATAL, "Callocing Grid Parameters data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
-
-    if (!(g->m = calloc(sizeof(*g->m) * g->gi.rows * g->gi.cols, 1)))
-        logging_log(LOG_FATAL, "Callocing Grid Vectors data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+    g->gp = mmalloc(sizeof(*g->gp) * g->gi.rows * g->gi.cols);
+    g->m = mmalloc(sizeof(*g->m) * g->gi.rows * g->gi.cols);
 
     g->on_gpu = false;
 
@@ -334,7 +326,7 @@ bool grid_from_file(string path, grid *g) {
     memcpy(g->m, ptr, sizeof(*g->m) * g->gi.rows * g->gi.cols);
 defer:
     fclose(f);
-    free(data);
+    mfree(data);
     return ret;
 }
 

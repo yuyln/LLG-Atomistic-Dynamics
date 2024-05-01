@@ -7,7 +7,7 @@ COMMON_CFLAGS="-DnPROFILING -O3 -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_linux_x11.c"
 CC="gcc"
 
-if [ $1 = "install" ]; then
+if [ "$1" = "install" ]; then
     CFLAGS="$COMMON_CFLAGS"
 
     $CC $CFLAGS create_kernel.c -o create_kernel

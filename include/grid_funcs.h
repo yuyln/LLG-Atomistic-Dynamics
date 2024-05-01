@@ -40,7 +40,7 @@ void grid_set_anisotropy(grid *g, anisotropy ani);
 void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
 void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
 
-bool grid_free(grid *g);
+bool grid_mfree(grid *g);
 bool grid_release_from_gpu(grid *g);
 
 void grid_to_gpu(grid *g, gpu_cl gpu);

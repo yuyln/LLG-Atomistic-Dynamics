@@ -6,6 +6,7 @@
 #include "integrate.h"
 #include "gradient_descent.h"
 #include "profiler.h"
+#include "allocator.h"
 
 #include <float.h>
 #include <inttypes.h>
@@ -18,10 +19,10 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     ret.gpu = gpu;
     grid_to_gpu(g, *ret.gpu);
 
-    ret.rgba_cpu = calloc(ret.width * ret.height, sizeof(*ret.rgba_cpu));
+    ret.rgba_cpu = mmalloc(ret.width * ret.height * sizeof(*ret.rgba_cpu));
     ret.rgba_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*ret.rgba_cpu) * ret.width * ret.height, CL_MEM_READ_WRITE);
 
-    ret.buffer_cpu = calloc(ret.width * ret.height, sizeof(*ret.buffer_cpu));
+    ret.buffer_cpu = mmalloc(ret.width * ret.height * sizeof(*ret.buffer_cpu));
     ret.buffer_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*ret.buffer_cpu) * ret.width * ret.height, CL_MEM_READ_WRITE);
 
     ret.grid_hsl_id = gpu_cl_append_kernel(ret.gpu, "render_grid_hsl");
@@ -54,8 +55,8 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
 }
 
 void grid_renderer_close(grid_renderer *gr) {
-    free(gr->rgba_cpu);
-    free(gr->buffer_cpu);
+    mfree(gr->rgba_cpu);
+    mfree(gr->buffer_cpu);
     gpu_cl_release_memory(gr->rgba_gpu);
     gpu_cl_release_memory(gr->buffer_gpu);
     grid_release_from_gpu(gr->g);

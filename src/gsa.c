@@ -3,6 +3,8 @@
 #include "grid_funcs.h"
 #include "kernel_funcs.h"
 #include "logging.h"
+#include "allocator.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
@@ -23,10 +25,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.g = g;
     ret.gpu = gpu;
 
-    ret.energy_cpu = calloc(g->gi.rows * g->gi.cols, sizeof(*ret.energy_cpu));
-    if (!ret.energy_cpu)
-        logging_log(LOG_FATAL, "Could not allocate[%"PRIu64" bytes] memory for energy on cpu %s", g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), strerror(errno));
-
+    ret.energy_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu));
     ret.outer_step = 0;
     ret.inner_step = 0;
     ret.step = 0;
@@ -159,7 +158,7 @@ void gsa_metropolis_step(gsa_context *ctx) {
 
 void gsa_context_close(gsa_context *ctx) {
     gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
-    free(ctx->energy_cpu);
+    mfree(ctx->energy_cpu);
     gpu_cl_release_memory(ctx->swap_gpu);
     gpu_cl_release_memory(ctx->min_gpu);
     gpu_cl_release_memory(ctx->energy_gpu);
