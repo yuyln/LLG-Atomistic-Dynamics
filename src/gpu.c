@@ -427,22 +427,22 @@ cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags,
     cl_int err;
     cl_mem ret = clCreateBuffer(gpu->ctx, flags, size, NULL, &err);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "On file %s line %d: Could not create buffer with size %"PRIu64" bytes %d: %s", file, line, size, err, gpu_cl_get_str_error(err));
+        logging_log(LOG_FATAL, "%s:%d Could not create buffer with size %"PRIu64" bytes %d: %s", file, line, size, err, gpu_cl_get_str_error(err));
 
-    logging_log(LOG_INFO, "On file %s line %d: Created buffer with size %"PRIu64" bytes", file, line, size);
+    logging_log(LOG_INFO, "%s:%d Created buffer with size %"PRIu64" bytes", file, line, size);
     return ret;
 }
 
 void gpu_cl_write_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueWriteBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "On file %s line %d: Could not write to GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
+        logging_log(LOG_FATAL, "%s:%d Could not write to GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
 }
 
 void gpu_cl_read_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueReadBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "On file %s line %d: Could not read from GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
+        logging_log(LOG_FATAL, "%s:%d Could not read from GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
 }
 
 void gpu_cl_set_kernel_arg(gpu_cl *gpu, uint64_t kernel, uint64_t index, uint64_t size, void *data) {
@@ -461,6 +461,6 @@ uint64_t gpu_cl_gcd(uint64_t a, uint64_t b) {
 void gpu_cl_release_memory_base(cl_mem mem, const char *name, const char *file, int line) {
     cl_int err = clReleaseMemObject(mem);
     if (err != CL_SUCCESS)
-        logging_log(LOG_FATAL, "On file %s line %d: could not release memory buffer \"%s\" from GPU %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
-    logging_log(LOG_INFO, "On file %s line %d: released memory buffer \"%s\" from GPU", file, line, name);
+        logging_log(LOG_FATAL, "%s:%d Could not release memory buffer \"%s\" from GPU %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
+    logging_log(LOG_INFO, "%s:%d Released memory buffer \"%s\" from GPU", file, line, name);
 }

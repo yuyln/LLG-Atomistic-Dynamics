@@ -4,7 +4,7 @@
 
    Before #including,
 
-       #define STB_IMAGE_WRITE_IMPLEMENTATION
+       #define STB_IMAGE_WRITE_C
 
    in the file that you want to have the implementation.
 
@@ -196,7 +196,7 @@ STBIWDEF void stbi_flip_vertically_on_write(int flip_boolean);
 
 #endif//INCLUDE_STB_IMAGE_WRITE_H
 
-#ifdef STB_IMAGE_WRITE_IMPLEMENTATION
+#ifdef STB_IMAGE_WRITE_C
 
 #ifdef _WIN32
    #ifndef _CRT_SECURE_NO_WARNINGS
@@ -301,7 +301,7 @@ STBIWDEF int stbiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const w
 }
 #endif
 
-static FILE *stbiw__fopen(char const *filename, char const *mode)
+static FILE *stbiw__mfopen(char const *filename, char const *mode)
 {
    FILE *f;
 #if defined(_WIN32) && defined(STBIW_WINDOWS_UTF8)
@@ -314,31 +314,31 @@ static FILE *stbiw__fopen(char const *filename, char const *mode)
       return 0;
 
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-   if (0 != _wfopen_s(&f, wFilename, wMode))
+   if (0 != _wmfopen_s(&f, wFilename, wMode))
       f = 0;
 #else
-   f = _wfopen(wFilename, wMode);
+   f = _wmfopen(wFilename, wMode);
 #endif
 
 #elif defined(_MSC_VER) && _MSC_VER >= 1400
-   if (0 != fopen_s(&f, filename, mode))
+   if (0 != mfopen_s(&f, filename, mode))
       f=0;
 #else
-   f = fopen(filename, mode);
+   f = mfopen(filename, mode);
 #endif
    return f;
 }
 
 static int stbi__start_write_file(stbi__write_context *s, const char *filename)
 {
-   FILE *f = stbiw__fopen(filename, "wb");
+   FILE *f = stbiw__mfopen(filename, "wb");
    stbi__start_write_callbacks(s, stbi__stdio_write, (void *) f);
    return f != NULL;
 }
 
 static void stbi__end_write_file(stbi__write_context *s)
 {
-   fclose((FILE *)s->context);
+   mfclose((FILE *)s->context);
 }
 
 #endif // !STBI_WRITE_NO_STDIO
@@ -1219,10 +1219,10 @@ STBIWDEF int stbi_write_png(char const *filename, int x, int y, int comp, const 
    unsigned char *png = stbi_write_png_to_mem((const unsigned char *) data, stride_bytes, x, y, comp, &len);
    if (png == NULL) return 0;
 
-   f = stbiw__fopen(filename, "wb");
+   f = stbiw__mfopen(filename, "wb");
    if (!f) { STBIW_FREE(png); return 0; }
    fwrite(png, 1, len, f);
-   fclose(f);
+   mfclose(f);
    STBIW_FREE(png);
    return 1;
 }
@@ -1625,7 +1625,7 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
 }
 #endif
 
-#endif // STB_IMAGE_WRITE_IMPLEMENTATION
+#endif // STB_IMAGE_WRITE_C
 
 /* Revision history
       1.16  (2021-07-11)

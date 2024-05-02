@@ -211,8 +211,11 @@ bool grid_free(grid *g) {
 
 bool grid_release_from_gpu(grid *g) {
     bool ret = true;
-    gpu_cl_release_memory(g->gp_buffer);
-    gpu_cl_release_memory(g->m_buffer);
+    if (g->on_gpu) {
+        gpu_cl_release_memory(g->gp_buffer);
+        gpu_cl_release_memory(g->m_buffer);
+    } else
+        logging_log(LOG_WARNING, "Trying to release a grid that was already freed from the gpu");
     g->on_gpu = false;
     return ret;
 }
@@ -273,15 +276,10 @@ bool grid_from_file(string path, grid *g) {
 
     string p_ = str_from_cstr("");
     str_cat_str(&p_, path);
-    FILE *f = fopen(str_as_cstr(&p_), "rb");
+    FILE *f = mfopen(str_as_cstr(&p_), "rb");
     char *data = NULL;
     bool ret = true;
 
-    if (!f) {
-        logging_log(LOG_WARNING, "Could not open file %.*s: %s. Using defaults", (int)path.len, path.str, strerror(errno));
-        *g = grid_init(272, 272);
-        return false;
-    }
     str_free(&p_);
 
     if (fseek(f, 0, SEEK_END) < 0) {
@@ -325,7 +323,7 @@ bool grid_from_file(string path, grid *g) {
 
     memcpy(g->m, ptr, sizeof(*g->m) * g->gi.rows * g->gi.cols);
 defer:
-    fclose(f);
+    mfclose(f);
     mfree(data);
     return ret;
 }

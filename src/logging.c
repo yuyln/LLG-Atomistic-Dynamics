@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 void logging_log(logging_level level, const char *fmt, ...) {
     va_list args;
@@ -34,4 +36,17 @@ void logging_log(logging_level level, const char *fmt, ...) {
     va_end(args);
     if (terminate)
         exit(1);
+}
+
+FILE *mfopen_loc(const char *path, const char *mode, const char *file, int line) {
+    FILE *ret = fopen(path, mode);
+    if (!ret)
+        logging_log(LOG_FATAL, "Could not open file \"%s\": %s", path, strerror(errno));
+    logging_log(LOG_INFO, "%s:%d Opened file \"%s\" with mode \"%s\". File ptr: 0x%016X", file, line, path, mode, (void*)ret);
+    return ret;
+}
+
+void mfclose_loc(FILE *f, const char *file, int line) {
+    logging_log(LOG_INFO, "%s:%d Closed file with ptr 0x%016X", file, line, (void*)f);
+    fclose(f);
 }

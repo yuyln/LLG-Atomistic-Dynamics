@@ -23,7 +23,7 @@ double profiler_get_sec();
 #endif //__PROFILER_H
 
 
-#ifdef __PROFILER_IMPLEMENTATION
+#ifdef __PROFILER_C
 
 static PROFILER(elem) PROFILER(table)[__PROFILER_TABLE_MAX];
 #include <stdlib.h>
@@ -188,4 +188,4 @@ void profiler_print_measures(FILE *file) {
         memset(head, 0, sizeof(PROFILER(elem)));
     }
 }
-#endif //__PROFILER_IMPLEMENTATION
+#endif //__PROFILER_C

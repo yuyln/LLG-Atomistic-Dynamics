@@ -18,11 +18,7 @@ char *shift_args(int *argc, const char ***argv) {
 }
 
 char *read_file(const char *path) {
-    FILE *f = fopen(path, "rb");
-    if (!f) {
-        fprintf(stderr, "[ WARNING ] Could not read file %s: %s\n", path, strerror(errno));
-        return NULL;
-    }
+    FILE *f = mfopen(path, "rb");
     fseek(f, 0, SEEK_END);
     uint64_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -47,7 +43,7 @@ char *read_file(const char *path) {
 
     mfree(tmp);
     mfree(tmp2);
-    fclose(f);
+    mfclose(f);
     return ret;
 }
 
@@ -58,7 +54,7 @@ int main(int argc, const char **argv) {
         return 1;
     }
 
-    FILE *f = fopen("./src/complete_kernel.c", "wb");
+    FILE *f = mfopen("./src/complete_kernel.c", "wb");
     fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = ");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));
@@ -68,7 +64,7 @@ int main(int argc, const char **argv) {
         mfree(data);
     }
     fprintf(f, ";");
-    fclose(f);
+    mfclose(f);
 
     return 0;
 }

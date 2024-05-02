@@ -1,2 +1,2 @@
-#define __PROFILER_IMPLEMENTATION
+#define __PROFILER_C
 #include "profiler.h"

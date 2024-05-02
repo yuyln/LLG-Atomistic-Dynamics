@@ -33,9 +33,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     str_cat_str(&output_info_path, params.output_path);
     str_cat_cstr(&output_info_path, "/integrate_info.dat");
 
-    ctx.integrate_info = fopen(str_as_cstr(&output_info_path), "w");
-    if (!ctx.integrate_info)
-        logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_info_path.len, output_info_path.str, strerror(errno));
+    ctx.integrate_info = mfopen(str_as_cstr(&output_info_path), "w");
 
     str_free(&output_info_path);
 
@@ -51,9 +49,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     str_cat_str(&output_grid_path, params.output_path);
     str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
-    ctx.integrate_evolution = fopen(str_as_cstr(&output_grid_path), "w");
-    if (!ctx.integrate_evolution)
-        logging_log(LOG_FATAL, "Could not open file %.*s: %s", (int)output_grid_path.len, output_grid_path.str, strerror(errno));
+    ctx.integrate_evolution = mfopen(str_as_cstr(&output_grid_path), "w");
 
     str_free(&output_grid_path);
     grid_dump(ctx.integrate_evolution, grid);
@@ -85,8 +81,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
     gpu_cl_release_memory(ctx->swap_buffer);
-    fclose(ctx->integrate_info);
-    fclose(ctx->integrate_evolution);
+    mfclose(ctx->integrate_info);
+    mfclose(ctx->integrate_evolution);
     gpu_cl_release_memory(ctx->info_buffer);
     mfree(ctx->info);
 
