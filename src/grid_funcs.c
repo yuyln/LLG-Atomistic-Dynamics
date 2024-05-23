@@ -328,9 +328,23 @@ defer:
     return ret;
 }
 
+static int64_t i64_max(int64_t a, int64_t b) {
+    return a > b? a: b;
+}
+
+static int64_t i64_min(int64_t a, int64_t b) {
+    return a < b? a: b;
+}
+
 void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
-    for (int64_t y = y0; y < y1; ++y)
-        for (int64_t x = x0; x < x1; ++x)
+    int64_t x_max = i64_max(x0, x1);
+    int64_t x_min = i64_min(x0, x1);
+
+    int64_t y_max = i64_max(y0, y1);
+    int64_t y_min = i64_min(y0, y1);
+
+    for (int64_t y = y_min; y < y_max; ++y)
+        for (int64_t x = x_min; x < x_max; ++x)
             if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
                 fun(g, y, x);
 
@@ -353,13 +367,6 @@ static bool triangle_inside(double x, double y, double x0, double y0, double x1,
 	return alpha >= 0 && beta >= 0 && gamma >= 0;
 }
 
-static int64_t i64_max(int64_t a, int64_t b) {
-    return a > b? a: b;
-}
-
-static int64_t i64_min(int64_t a, int64_t b) {
-    return a < b? a: b;
-}
 
 void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
     int64_t x_max = i64_max(x0, i64_max(x1, x2));
