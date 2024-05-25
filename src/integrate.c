@@ -3,7 +3,10 @@
 #include "logging.h"
 #include "allocator.h"
 
+#include "stb_image_write.h"
+
 #include <inttypes.h>
+#include <stdio.h>
 
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_params params) {
@@ -50,14 +53,10 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
     ctx.integrate_evolution = mfopen(str_as_cstr(&output_grid_path), "w");
-
     str_free(&output_grid_path);
-    grid_dump(ctx.integrate_evolution, grid);
-
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");
     ctx.info = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.info));
-
     ctx.info_buffer = gpu_cl_create_buffer(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.info), CL_MEM_READ_WRITE);
 
     gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_buffer, sizeof(cl_mem),
@@ -68,13 +67,42 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                      &ctx.time, sizeof(double),
                                                      &grid->gi, sizeof(grid_info));
 
+    ctx.render_id = gpu_cl_append_kernel(gpu, "render_grid_hsl");
+    ctx.rgb = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb));
+    ctx.rgb_buffer = gpu_cl_create_buffer(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb), CL_MEM_READ_WRITE);
+
+    gpu_cl_fill_kernel_args(gpu, ctx.render_id, 0, 5, &grid->m_buffer, sizeof(cl_mem), &grid->gi, sizeof(grid->gi), &ctx.rgb_buffer, sizeof(cl_mem), &grid->gi.cols, sizeof(grid->gi.cols), &grid->gi.rows, sizeof(grid->gi.rows));
 
     uint64_t expected_steps = params.duration / params.dt + 1;
     if (ctx.params.interval_for_information == 0)
         ctx.params.interval_for_information = expected_steps;
 
-    if (ctx.params.interval_for_writing_grid == 0)
-        ctx.params.interval_for_writing_grid = expected_steps;
+    if (ctx.params.interval_for_raw_grid == 0)
+        ctx.params.interval_for_raw_grid = expected_steps;
+
+    if (ctx.params.interval_for_rgb_grid == 0)
+        ctx.params.interval_for_rgb_grid = expected_steps;
+
+    uint64_t number_raw = 1;
+    uint64_t number_rgb = 1;
+    for (uint64_t t = 0; t < expected_steps; ++t) {
+        if (t % ctx.params.interval_for_raw_grid == 0)
+            number_raw += 1;
+
+        if (t % ctx.params.interval_for_rgb_grid == 0)
+            number_rgb += 1;
+    }
+    number_raw += 1;
+    number_rgb += 1;
+    logging_log(LOG_INFO, "Expected raw frames written %"PRIu64, number_raw);
+    logging_log(LOG_INFO, "Expected rgb frames written %"PRIu64, number_rgb);
+
+    fwrite(&number_raw, sizeof(number_raw), 1, ctx.integrate_evolution);
+    grid_dump(ctx.integrate_evolution, grid);
+
+    uint64_t dump_size = grid->gi.rows * grid->gi.cols * (sizeof(*grid->gp) + number_raw * sizeof(*grid->m)) + sizeof(number_raw);
+    logging_log(LOG_INFO, "Expected raw grid dump %.2f MB", dump_size / 1.0e6);
+    logging_log(LOG_INFO, "Expected rgb grid dump %.2f MB", sizeof(*ctx.rgb) * grid->gi.rows * grid->gi.cols * number_rgb / 1.0e6);
     return ctx;
 }
 
@@ -86,6 +114,9 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_release_memory(ctx->info_buffer);
     mfree(ctx->info);
 
+    gpu_cl_release_memory(ctx->rgb_buffer);
+    mfree(ctx->rgb);
+
     grid_release_from_gpu(ctx->g);
     gpu_cl_close(ctx->gpu);
 }
@@ -94,8 +125,9 @@ integrate_params integrate_params_init(void) {
     integrate_params ret = {0};
     ret.dt = 1.0e-15;
     ret.duration = 1.0 * NS;
-    ret.interval_for_information = 100;
-    ret.interval_for_writing_grid = 1000;
+    ret.interval_for_information = 1000;
+    ret.interval_for_raw_grid = 10000;
+    ret.interval_for_rgb_grid = 10000;
 
     ret.current_func = str_is_cstr("return (current){0};");
     ret.field_func = str_is_cstr("return v3d_s(0);");
@@ -112,7 +144,7 @@ void integrate(grid *g, integrate_params params) {
     uint64_t expected_steps = params.duration / params.dt + 1;
     logging_log(LOG_INFO, "Expected integrate steps: %"PRIu64, expected_steps);
 
-    while (ctx.time <= params.duration) {
+    for (unsigned int t = 0; t < expected_steps; ++t) {
         integrate_step(&ctx);
 
         if (ctx.integrate_step % (expected_steps / 100) == 0)
@@ -124,6 +156,12 @@ void integrate(grid *g, integrate_params params) {
 
     v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
     v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols);
+
+    gpu_cl_enqueue_nd(ctx.gpu, ctx.render_id, 1, &ctx.local, &ctx.global, NULL);
+    gpu_cl_read_buffer(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_buffer);
+    char buffer[1024];
+    snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx.params.output_path.str, ctx.integrate_step);
+    stbi_write_jpg(buffer, ctx.g->gi.cols, ctx.g->gi.rows, 4, ctx.rgb, 0);
 
     integrate_context_close(&ctx);
 }
@@ -143,9 +181,17 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e\n", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
     }
 
-    if (ctx->integrate_step % ctx->params.interval_for_writing_grid == 0) {
+    if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
         v3d_from_gpu(ctx->g->m, ctx->g->m_buffer, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
         v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
+    }
+
+    if (ctx->integrate_step % ctx->params.interval_for_rgb_grid == 0) {
+        gpu_cl_enqueue_nd(ctx->gpu, ctx->render_id, 1, &ctx->local, &ctx->global, NULL);
+        gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_buffer);
+        char buffer[1024];
+        snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx->params.output_path.str, ctx->integrate_step);
+        stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
     }
     ctx->integrate_step += 1;
     ctx->time += ctx->params.dt;

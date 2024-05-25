@@ -12,6 +12,8 @@ if test -f ./libatomistic.a; then
 fi
 
 if [ "$1" = "install" ]; then
+    rm -r ~/.local/lib/atomistic
+    mkdir --parents ~/.local/lib/atomistic
     CFLAGS="$COMMON_CFLAGS"
 
     $CC $CFLAGS create_kernel.c -o create_kernel

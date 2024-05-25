@@ -2,18 +2,21 @@
 #define __INTEGRATE_H
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "gpu.h"
 #include "grid_funcs.h"
 #include "string_view.h"
 #include "constants.h"
 #include "complete_kernel.h"
+#include "colors.h"
 
 typedef struct {
     double dt;
     double duration;
     unsigned int interval_for_information;
-    unsigned int interval_for_writing_grid;
+    unsigned int interval_for_raw_grid;
+    unsigned int interval_for_rgb_grid;
     string current_func;
     string field_func;
     string temperature_func;
@@ -41,6 +44,10 @@ typedef struct {
     information_packed *info;
     cl_mem info_buffer;
     uint64_t info_id;
+
+    RGBA32 *rgb;
+    cl_mem rgb_buffer;
+    uint64_t render_id;
 } integrate_context;
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_params dt);

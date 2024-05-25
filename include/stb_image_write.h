@@ -4,7 +4,7 @@
 
    Before #including,
 
-       #define STB_IMAGE_WRITE_C
+       #define STB_IMAGE_WRITE_IMPLEMENTATION
 
    in the file that you want to have the implementation.
 
@@ -24,12 +24,12 @@ BUILDING:
 
    You can #define STBIW_ASSERT(x) before the #include to avoid using assert.h.
    You can #define STBIW_MALLOC(), STBIW_REALLOC(), and STBIW_FREE() to replace
-   malloc,mrealloc,mfree.
+   malloc,realloc,free.
    You can #define STBIW_MEMMOVE() to replace memmove()
    You can #define STBIW_ZLIB_COMPRESS to use a custom zlib-style compress function
    for PNG compression (instead of the builtin one), it must have the following signature:
    unsigned char * my_compress(unsigned char *data, int data_len, int *out_len, int quality);
-   The returned data will be mfreed with STBIW_FREE() (mfree() by default),
+   The returned data will be freed with STBIW_FREE() (free() by default),
    so it must be heap allocated with STBIW_MALLOC() (malloc() by default),
 
 UNICODE:
@@ -196,7 +196,7 @@ STBIWDEF void stbi_flip_vertically_on_write(int flip_boolean);
 
 #endif//INCLUDE_STB_IMAGE_WRITE_H
 
-#ifdef STB_IMAGE_WRITE_C
+#ifdef STB_IMAGE_WRITE_IMPLEMENTATION
 
 #ifdef _WIN32
    #ifndef _CRT_SECURE_NO_WARNINGS
@@ -226,8 +226,8 @@ STBIWDEF void stbi_flip_vertically_on_write(int flip_boolean);
 
 #ifndef STBIW_MALLOC
 #define STBIW_MALLOC(sz)        malloc(sz)
-#define STBIW_REALLOC(p,newsz)  mrealloc(p,newsz)
-#define STBIW_FREE(p)           mfree(p)
+#define STBIW_REALLOC(p,newsz)  realloc(p,newsz)
+#define STBIW_FREE(p)           free(p)
 #endif
 
 #ifndef STBIW_REALLOC_SIZED
@@ -301,7 +301,7 @@ STBIWDEF int stbiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const w
 }
 #endif
 
-static FILE *stbiw__mfopen(char const *filename, char const *mode)
+static FILE *stbiw__fopen(char const *filename, char const *mode)
 {
    FILE *f;
 #if defined(_WIN32) && defined(STBIW_WINDOWS_UTF8)
@@ -314,31 +314,31 @@ static FILE *stbiw__mfopen(char const *filename, char const *mode)
       return 0;
 
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-   if (0 != _wmfopen_s(&f, wFilename, wMode))
+   if (0 != _wfopen_s(&f, wFilename, wMode))
       f = 0;
 #else
-   f = _wmfopen(wFilename, wMode);
+   f = _wfopen(wFilename, wMode);
 #endif
 
 #elif defined(_MSC_VER) && _MSC_VER >= 1400
-   if (0 != mfopen_s(&f, filename, mode))
+   if (0 != fopen_s(&f, filename, mode))
       f=0;
 #else
-   f = mfopen(filename, mode);
+   f = fopen(filename, mode);
 #endif
    return f;
 }
 
 static int stbi__start_write_file(stbi__write_context *s, const char *filename)
 {
-   FILE *f = stbiw__mfopen(filename, "wb");
+   FILE *f = stbiw__fopen(filename, "wb");
    stbi__start_write_callbacks(s, stbi__stdio_write, (void *) f);
    return f != NULL;
 }
 
 static void stbi__end_write_file(stbi__write_context *s)
 {
-   mfclose((FILE *)s->context);
+   fclose((FILE *)s->context);
 }
 
 #endif // !STBI_WRITE_NO_STDIO
@@ -821,7 +821,7 @@ STBIWDEF int stbi_write_hdr(char const *filename, int x, int y, int comp, const 
 
 #define stbiw__sbpush(a, v)      (stbiw__sbmaybegrow(a,1), (a)[stbiw__sbn(a)++] = (v))
 #define stbiw__sbcount(a)        ((a) ? stbiw__sbn(a) : 0)
-#define stbiw__sbmfree(a)         ((a) ? STBIW_FREE(stbiw__sbraw(a)),0 : 0)
+#define stbiw__sbfree(a)         ((a) ? STBIW_FREE(stbiw__sbraw(a)),0 : 0)
 
 static void *stbiw__sbgrowf(void **arr, int increment, int itemsize)
 {
@@ -978,7 +978,7 @@ STBIWDEF unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, i
       stbiw__zlib_add(0,1);
 
    for (i=0; i < stbiw__ZHASH; ++i)
-      (void) stbiw__sbmfree(hash_table[i]);
+      (void) stbiw__sbfree(hash_table[i]);
    STBIW_FREE(hash_table);
 
    // store uncompressed instead if compression was worse
@@ -1015,7 +1015,7 @@ STBIWDEF unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, i
       stbiw__sbpush(out, STBIW_UCHAR(s1));
    }
    *out_len = stbiw__sbn(out);
-   // make returned pointer mfreeable
+   // make returned pointer freeable
    STBIW_MEMMOVE(stbiw__sbraw(out), out, *out_len);
    return (unsigned char *) stbiw__sbraw(out);
 #endif // STBIW_ZLIB_COMPRESS
@@ -1219,10 +1219,10 @@ STBIWDEF int stbi_write_png(char const *filename, int x, int y, int comp, const 
    unsigned char *png = stbi_write_png_to_mem((const unsigned char *) data, stride_bytes, x, y, comp, &len);
    if (png == NULL) return 0;
 
-   f = stbiw__mfopen(filename, "wb");
+   f = stbiw__fopen(filename, "wb");
    if (!f) { STBIW_FREE(png); return 0; }
    fwrite(png, 1, len, f);
-   mfclose(f);
+   fclose(f);
    STBIW_FREE(png);
    return 1;
 }
@@ -1625,7 +1625,7 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
 }
 #endif
 
-#endif // STB_IMAGE_WRITE_C
+#endif // STB_IMAGE_WRITE_IMPLEMENTATION
 
 /* Revision history
       1.16  (2021-07-11)
@@ -1654,7 +1654,7 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
       1.02 (2016-04-02)
              avoid allocating large structures on the stack
       1.01 (2016-01-16)
-             STBIW_REALLOC_SIZED: support allocators with no mrealloc support
+             STBIW_REALLOC_SIZED: support allocators with no realloc support
              avoid race-condition in crc initialization
              minor compile issues
       1.00 (2015-09-14)
@@ -1687,7 +1687,7 @@ This software is available under 2 licenses -- choose whichever you prefer.
 ------------------------------------------------------------------------------
 ALTERNATIVE A - MIT License
 Copyright (c) 2017 Sean Barrett
-Permission is hereby granted, mfree of charge, to any person obtaining a copy of
+Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
 use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
@@ -1704,8 +1704,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ------------------------------------------------------------------------------
 ALTERNATIVE B - Public Domain (www.unlicense.org)
-This is mfree and unencumbered software released into the public domain.
-Anyone is mfree to copy, modify, publish, use, compile, sell, or distribute this
+This is free and unencumbered software released into the public domain.
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
 software, either in source code form or as a compiled binary, for any purpose,
 commercial or non-commercial, and by any means.
 In jurisdictions that recognize copyright laws, the author or authors of this
