@@ -12,7 +12,9 @@ if test -f ./libatomistic.a; then
 fi
 
 if [ "$1" = "install" ]; then
-    rm -r ~/.local/lib/atomistic
+    if test -f ~/.local/lib/atomistic; then
+        rm -r ~/.local/lib/atomistic
+    fi
     mkdir --parents ~/.local/lib/atomistic
     CFLAGS="$COMMON_CFLAGS"
 

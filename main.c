@@ -17,6 +17,7 @@ int main(void) {
     double ani = 0.05 * J;
 
     grid g = grid_init(rows, cols);
+    g.gp[0].pin = (pinning){.pinned = 1, .dir = v3d_c(1, 0, 0)};
     grid_set_lattice(&g, lattice);
     grid_set_alpha(&g, alpha);
     grid_set_exchange(&g, J);
@@ -90,7 +91,8 @@ int main(void) {
     int_params.temperature_func = temperature_func;
     int_params.compile_augment = compile;
     int_params.duration = 20 * NS;
-    grid_renderer_integrate(&g, int_params, 800 / ratio, 800);
+    int_params.interval_for_raw_grid = 1000;
+    grid_renderer_integrate(&g, int_params, 400 / ratio, 400);
     //integrate(&g, int_params);
 
     str_free(&field_func);
