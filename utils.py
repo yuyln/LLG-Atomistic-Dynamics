@@ -20,7 +20,12 @@ KB = 1.380649e-23 # J/K
 NANO = 1.0e-9
 BYTEORDER = sys.byteorder
 UBO = ">"
+EPS = 1.0e-12
 if BYTEORDER == "little": UBO = "<"
+
+def CLOSE_ENOUGH(a: float, b: float, eps: float = EPS) -> bool:
+    return (a-b) ** 2.0 < eps ** 2.0
+
 
 colors = ["#037fff", "white", "#f40501"]
 cmap = LinearSegmentedColormap.from_list("mcmp", colors)
@@ -29,6 +34,8 @@ class v3d(ct.Structure):
     _fields_ = [('x', ct.c_double), ('y', ct.c_double), ('z', ct.c_double)]
     def __str__(self):
         return f"({getattr(self, 'x')} {getattr(self, 'y')} {getattr(self, 'z')})"
+    def __eq__(self, other):
+        return CLOSE_ENOUGH(self.x, other.x) and CLOSE_ENOUGH(self.y, other.y) and CLOSE_ENOUGH(self.z, other.z)
 
 class pbc_rules(ct.Structure):
     _fields_ = [('m', v3d), ('pbc_x', ct.c_int), ('pbc_y', ct.c_int)]
@@ -38,6 +45,8 @@ class pbc_rules(ct.Structure):
             s += f"{n}: {getattr(self, n)} "
         s += ")"
         return s
+    def __eq__(self, other):
+        return self.pbc_x == other.pbc.x and self.pbc.y == other.pbc_y and self.m == other.m
 
 class grid_info(ct.Structure):
     _fields_ = [('rows', ct.c_uint), ('cols', ct.c_uint), ('pbc', pbc_rules)]
@@ -47,6 +56,8 @@ class grid_info(ct.Structure):
             s += f"{n}: {getattr(self, n)} "
         s += ")"
         return s
+    def __eq__(self, other):
+            return self.rows == other.rows and self.cols == other.cols and self.pbc == other.pbc
 
 class anisotropy(ct.Structure):
     _fields_ = [('dir', v3d), ('ani', ct.c_double)]
@@ -56,6 +67,8 @@ class anisotropy(ct.Structure):
             s += f"{n}: {getattr(self, n)} "
         s += ")"
         return s
+    def __eq__(self, other):
+        return CLOSE_ENOUGH(self.ani, other.ani) and self.dir == other.dir
 
 class pinning(ct.Structure):
     _fields_ = [('dir', v3d), ('pinned', ct.c_char)]
@@ -65,6 +78,8 @@ class pinning(ct.Structure):
             s += f"{n}: {getattr(self, n)} "
         s += ")"
         return s
+    def __eq__(self, other):
+        return self.pinned == other.pinned and self.dir == other.dir
 
 class dm_interaction(ct.Structure):
     _fields_ = [('dmv_left', v3d), ('dmv_right', v3d), ('dmv_up', v3d), ('dmv_down', v3d)]
@@ -74,6 +89,11 @@ class dm_interaction(ct.Structure):
             s += f"{n}: {getattr(self, n)}\n"
         s += ")"
         return s
+    def __eq__(self, other):
+        ret = True
+        for n, t in self._fields_:
+            ret = ret and getattr(self, n) == getattr(other, n)
+        return ret
 
 class grid_site_params(ct.Structure):
     _fields_ = [('row', ct.c_int), ('col', ct.c_int),
@@ -86,6 +106,16 @@ class grid_site_params(ct.Structure):
             s += f"{n}: {getattr(self, n)}\n"
         s += ")"
         return s
+    def __eq__(self, other):
+        ret = True
+        for n, t in self._fields_:
+            if n == "row" or n == "col":
+                continue
+            if t == ct.c_double:
+                ret = ret and CLOSE_ENOUGH(getattr(self, n), getattr(other, n))
+            else:
+                ret = ret and getattr(self, n) == getattr(other, n)
+        return ret
 
 class CMDArgs:
     def __init__(self, inp, out):
@@ -138,7 +168,6 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     frames = dummy()
     file.readinto(frames)
     skip = ct.sizeof(frames)
-    print(ct.sizeof(dummy))
 
     gi = grid_info()
     file.readinto(gi)
@@ -295,7 +324,6 @@ def CreateAnimation(output:str, cmd: CMDArgs, frames: int, gi: grid_info, gp: li
 
     fig, ax = plt.subplots()
     mx, my, mz = GetFrameFromBinary(frames, gi, raw, 3)
-    print(cmd.INVERT)
 
     img = None
     max_x, min_x = (gi.cols - 1) * gp[0].lattice + gp[0].lattice / 2.0, -gp[0].lattice / 2.0
@@ -309,6 +337,19 @@ def CreateAnimation(output:str, cmd: CMDArgs, frames: int, gi: grid_info, gp: li
         img = ax.imshow(rgb, origin="lower", extent=[min_x, max_x, min_y, max_y], interpolation=cmd.INTERPOLATION)
     else:
         img = ax.imshow(mz.reshape((gi.rows, gi.cols)), origin="lower", extent=[min_x, max_x, min_y, max_y], interpolation=cmd.INTERPOLATION, vmin=-1, vmax=1, cmap=cmap)
+
+    if cmd.PLOT_DEF:
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import Rectangle
+        colors = ["#00000000", "#DB850050", "#00610050", "#0000DB50", "#DBDB0050", "#00000050"]
+        defects = ClusterDefects(gp)
+        for y in range(gi.rows):
+            for x in range(gi.cols):
+                l = gp[y * gi.cols + x].lattice
+                index = defects.index(gp[y * gi.cols + x])
+                rect = plt.Rectangle((x * l - l / 2.0, y * l - l / 2.0), l, l,
+                                     facecolor=colors[index % len(colors)])
+                ax.add_patch(rect)
 
     vecs = None
     if cmd.PLOT_ARROWS:
@@ -362,6 +403,41 @@ def CreateAnimationFromFrames(base_dir: str, output: str, cmd: CMDArgs, gi: grid
         print(i)
     ani = animation.FuncAnimation(fig, animate, frames=len(frames))
     ani.save(output, fps=cmd.FPS)
+
+def ClusterDefects(gp: list[grid_site_params]) -> list[grid_site_params]:
+    class defecttype:
+        def __init__(self):
+            self.counter = 0
+            self.gp = None
+        def __eq__(self, other):
+            return self.gp == other.gp
+        def __str__(self):
+            return f"counter: {self.counter}"
+
+    data = []
+
+    for g in gp:
+        df = defecttype()
+        df.gp = g
+        if df in data:
+            data[data.index(df)].counter += 1
+        else:
+            df.counter = 1
+            data.append(df)
+
+    data.sort(key= lambda x: x.counter, reverse=True)
+
+    sites = [[] for _ in data]
+    for g in gp:
+        df = defecttype()
+        df.gp = g
+        i = data.index(df)
+        if len(sites[i]) > 0:
+            continue
+        sites[i].append(g)
+
+    return [sites[i][0] for i in range(len(sites))]
+
 
 def FixPlot(lx: float, ly: float):
     from matplotlib import rcParams, cycler
