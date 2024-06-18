@@ -20,7 +20,7 @@ KB = 1.380649e-23 # J/K
 NANO = 1.0e-9
 BYTEORDER = sys.byteorder
 UBO = ">"
-EPS = 1.0e-12
+EPS = 1.0e-30
 if BYTEORDER == "little": UBO = "<"
 
 def CLOSE_ENOUGH(a: float, b: float, eps: float = EPS) -> bool:
@@ -361,6 +361,7 @@ def CreateAnimation(output:str, cmd: CMDArgs, frames: int, gi: grid_info, gp: li
     ax.set_ylabel("y(nm)")
     ax.set_xticklabels((f"{i / 1.0e-9:.1f}" for i in ax.get_xticks()))
     ax.set_yticklabels((f"{i / 1.0e-9:.1f}" for i in ax.get_yticks()))
+    plt.show()
     def use_for_animate(i):
         print(f"{i / frames * 100.0:.2f}%")
         mx, my, mz = GetFrameFromBinary(frames, gi, raw, i)
@@ -426,6 +427,8 @@ def ClusterDefects(gp: list[grid_site_params]) -> list[grid_site_params]:
             data.append(df)
 
     data.sort(key= lambda x: x.counter, reverse=True)
+    for i in data:
+        print(i)
 
     sites = [[] for _ in data]
     for g in gp:
