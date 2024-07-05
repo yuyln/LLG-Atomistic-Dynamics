@@ -2,10 +2,15 @@
 
 set -xe
 
-LIBS="-lm `pkg-config --static --libs OpenCL x11 xext`"
 COMMON_CFLAGS="-DnPROFILING -O3 -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_linux_x11.c"
 CC="gcc"
+LIBS="-lm `pkg-config --static --libs OpenCL x11`"
+
+if [ "`pkg-config --libs xext`" > /dev/null ]; then
+    LIBS="$LIBS `pkg-config --static --libs xext`"
+    COMMON_CFLAGS="$COMMON_CFLAGS -DUSE_XEXT"
+fi
 
 if test -f ./libatomistic.a; then
     rm ./libatomistic.a

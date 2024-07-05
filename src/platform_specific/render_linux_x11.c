@@ -3,12 +3,17 @@
 #include <string.h>
 #define XK_LATIN1
 #include <X11/keysymdef.h>
+
+#ifdef USE_XEXT
 #include <X11/extensions/Xdbe.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "render.h"
 #include "allocator.h"
+#include "logging.h"
 
 struct render_window {
     Display *display;
@@ -39,17 +44,18 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
     w->should_close = false;
 
     w->display = XOpenDisplay(NULL);
-    if (w->display == NULL) {
-        fprintf(stderr, "[ FATAL ] Could not open the default display\n");
-        exit(1);
-    }
+    if (w->display == NULL)
+        logging_log(LOG_FATAL, "Could not open the default display");
 
+#ifdef USE_XEXT
     int major_version_windowurn, minor_version_windowurn;
     w->xdbe = true;
     if(XdbeQueryExtension(w->display, &major_version_windowurn, &minor_version_windowurn)) {
-        printf("[ INFO ] XDBE version %d.%d\n", major_version_windowurn, minor_version_windowurn);
-    } else {
-        fprintf(stderr, "[ FATAL ] XDBE is not supported, using window\n");
+        logging_log(LOG_INFO, "XDBE version %d.%d\n", major_version_windowurn, minor_version_windowurn);
+    } else
+#endif
+    {
+        logging_log(LOG_WARNING, "XDBE is not supported, using default window system");
         w->xdbe = false;
     }
 
@@ -65,12 +71,13 @@ void window_init(const char *name, unsigned int width, unsigned int height) {
     max_size_hint.max_height = height;
     XSetWMNormalHints(w->display, w->window, &max_size_hint);
 
-
-
+#ifdef USE_XEXT
     if (w->xdbe) {
         w->draw = XdbeAllocateBackBufferName(w->display, w->window, 0);
-        printf("[ INFO ] draw ID: %lu\n", w->draw);
-    } else {
+        logging_log(LOG_INFO, "Draw ID: %lu", w->draw);
+    } else
+#endif
+    {
         w->draw = w->window;
     }
 
@@ -108,8 +115,10 @@ static void window_close(void) {
     XDestroyImage(w->image);
     //mfree(w->buffer); //X mfrees this pointer
 
+#ifdef USE_XEXT
     if (w->xdbe)
         XdbeDeallocateBackBufferName(w->display, w->draw);
+#endif
 
     XDestroyWindow(w->display, w->window);
 
@@ -152,11 +161,12 @@ bool window_key_pressed(char k) {
 void window_render(void) {
     XPutImage(w->display, w->draw, w->gc, w->image, 0, 0, 0, 0, w->width, w->height);
 
+#ifdef USE_XEXT
     if (w->xdbe) {
         XdbeSwapInfo swap_info = (XdbeSwapInfo){.swap_window = w->window, .swap_action = 0};
         XdbeSwapBuffers(w->display, &swap_info, 1);
     }
-    //memset(w->buffer, 0, sizeof(*w->buffer) * w->width * w->height);
+#endif
 }
 
 void window_draw_from_bytes(RGBA32 *bytes, int x0, int y0, int width, int height) {
