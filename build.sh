@@ -22,7 +22,7 @@ if [ "$1" = "install" ]; then
     ./create_kernel ./kernel_files/tyche_i.c ./include/constants.h ./include/v3d.h ./include/grid_types.h ./kernel_files/random.h ./kernel_files/simulation_funcs.h ./include/colors.h ./src/v3d.c ./kernel_files/random.c ./kernel_files/simulation_funcs.c ./src/colors.c ./kernel_files/kernel.c
     rm ./create_kernel
 
-    $CC $CFLAGS -c $FILES $LIBS
+    $CC -fPIC $CFLAGS -c $FILES $LIBS
 
     FILES_OBJ="`find -type f -name "*.o"`"
     ar cr libatomistic.a $FILES_OBJ

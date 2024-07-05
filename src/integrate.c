@@ -75,25 +75,16 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 
     uint64_t expected_steps = params.duration / params.dt + 1;
     if (ctx.params.interval_for_information == 0)
-        ctx.params.interval_for_information = expected_steps;
+        ctx.params.interval_for_information = expected_steps + 1;
 
     if (ctx.params.interval_for_raw_grid == 0)
-        ctx.params.interval_for_raw_grid = expected_steps;
+        ctx.params.interval_for_raw_grid = expected_steps + 1;
 
     if (ctx.params.interval_for_rgb_grid == 0)
-        ctx.params.interval_for_rgb_grid = expected_steps;
+        ctx.params.interval_for_rgb_grid = expected_steps + 1;
 
-    uint64_t number_raw = 1;
-    uint64_t number_rgb = 1;
-    for (uint64_t t = 0; t < expected_steps; ++t) {
-        if (t % ctx.params.interval_for_raw_grid == 0)
-            number_raw += 1;
-
-        if (t % ctx.params.interval_for_rgb_grid == 0)
-            number_rgb += 1;
-    }
-    number_raw += 1;
-    number_rgb += 1;
+    uint64_t number_raw = 3 + expected_steps / ctx.params.interval_for_raw_grid;
+    uint64_t number_rgb = 3 + expected_steps / ctx.params.interval_for_rgb_grid;
     logging_log(LOG_INFO, "Expected raw frames written %"PRIu64, number_raw);
     logging_log(LOG_INFO, "Expected rgb frames written %"PRIu64, number_rgb);
 

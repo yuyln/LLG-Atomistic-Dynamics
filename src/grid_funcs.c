@@ -336,7 +336,7 @@ static int64_t i64_min(int64_t a, int64_t b) {
     return a < b? a: b;
 }
 
-void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     int64_t x_max = i64_max(x0, x1);
     int64_t x_min = i64_min(x0, x1);
 
@@ -346,16 +346,16 @@ void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, vo
     for (int64_t y = y_min; y < y_max; ++y)
         for (int64_t x = x_min; x < x_max; ++x)
             if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
-                fun(g, y, x);
+                fun(g, y, x, user_data);
 
 }
 
-void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     for (int64_t y = y0 - b; y < y0 + b; ++y)
         for (int64_t x = x0 - a; x < x0 + a; ++x)
             if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
                 if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1)
-                    fun(g, y, x);
+                    fun(g, y, x, user_data);
 }
 
 static bool triangle_inside(double x, double y, double x0, double y0, double x1, double y1, double x2, double y2) {
@@ -368,7 +368,7 @@ static bool triangle_inside(double x, double y, double x0, double y0, double x1,
 }
 
 
-void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     int64_t x_max = i64_max(x0, i64_max(x1, x2));
     int64_t x_min = i64_min(x0, i64_min(x1, x2));
 
@@ -379,17 +379,17 @@ void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1
         for (int64_t x = x_min; x < x_max; ++x)
             if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows &&
                 triangle_inside(x, y, x0, y0, x1, y1, x2, y2))
-                fun(g, y, x);
+                fun(g, y, x, user_data);
 }
 
-void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid *g, uint64_t row, uint64_t col)) {
+void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     if (x0 == x1) {
-        grid_do_in_rect(g, x0 - thickness / 2, y0, x0 + thickness / 2, y1, fun);
+        grid_do_in_rect(g, x0 - thickness / 2, y0, x0 + thickness / 2, y1, fun, user_data);
         return;
     }
 
     if (y0 == y1) {
-        grid_do_in_rect(g, x0, y0 - thickness / 2, x1, y0 + thickness / 2, fun);
+        grid_do_in_rect(g, x0, y0 - thickness / 2, x1, y0 + thickness / 2, fun, user_data);
         return;
     }
 
@@ -400,7 +400,7 @@ void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, in
     double M = sqrt(nx * nx + ny * ny);
     ny /= M;
     nx /= M;
-    grid_do_in_triangle(g, x0 - nx * thickness / 2, y0 - ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun);
-    grid_do_in_triangle(g, x1 + nx * thickness / 2, y1 + ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun);
+    grid_do_in_triangle(g, x0 - nx * thickness / 2, y0 - ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun, user_data);
+    grid_do_in_triangle(g, x1 + nx * thickness / 2, y1 + ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun, user_data);
 }
 
