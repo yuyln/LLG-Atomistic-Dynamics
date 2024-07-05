@@ -12,7 +12,7 @@
 
 static double energy_from_gsa_context(gsa_context *ctx) {
     gpu_cl_enqueue_nd(ctx->gpu, ctx->energy_id, 1, &ctx->local, &ctx->global, NULL);
-    gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
     double ret = 0.0;
     for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
         ret += ctx->energy_cpu[i];
@@ -41,9 +41,9 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.local = gpu_cl_gcd(ret.global, 32);
     grid_to_gpu(g, *gpu);
 
-    ret.energy_gpu = gpu_cl_create_buffer(gpu, g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), CL_MEM_READ_WRITE);
-    ret.swap_gpu = gpu_cl_create_buffer(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
-    ret.min_gpu = gpu_cl_create_buffer(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
+    ret.energy_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), CL_MEM_READ_WRITE);
+    ret.swap_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
+    ret.min_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
 
     ret.thermal_id = gpu_cl_append_kernel(gpu, "thermal_step_gsa");
     ret.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
@@ -58,15 +58,15 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.Tqt = T0 * (pow(2.0, ret.qT1) - 1.0);
     ret.gamma = tgamma(1.0 / (qV - 1.0)) / tgamma(1.0 / (qV - 1.0) - 1.0 / 2.0);
 
-    gpu_cl_fill_kernel_args(gpu, ret.thermal_id, 0, 7, &g->gp_buffer, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.parameters.qV, sizeof(double), &ret.gamma, sizeof(double), &ret.T, sizeof(double));
+    gpu_cl_fill_kernel_args(gpu, ret.thermal_id, 0, 7, &g->gp_gpu, sizeof(cl_mem), &g->m_gpu, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.parameters.qV, sizeof(double), &ret.gamma, sizeof(double), &ret.T, sizeof(double));
 
     double t = 0.0;
-    gpu_cl_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_buffer, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(double));
+    gpu_cl_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_gpu, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(double));
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.swap_gpu, sizeof(cl_mem), &ret.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.swap_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
     gpu_cl_set_kernel_arg(gpu, ret.exchange_id, 1, sizeof(cl_mem), &ret.swap_gpu);
@@ -93,12 +93,12 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
         }
     }
 
-    gpu_cl_set_kernel_arg(&gpu, ctx.exchange_id, 0, sizeof(cl_mem), &ctx.g->m_buffer);
+    gpu_cl_set_kernel_arg(&gpu, ctx.exchange_id, 0, sizeof(cl_mem), &ctx.g->m_gpu);
     gpu_cl_set_kernel_arg(&gpu, ctx.exchange_id, 1, sizeof(cl_mem), &ctx.min_gpu);
 
     gpu_cl_enqueue_nd(ctx.gpu, ctx.exchange_id, 1, &ctx.local, &ctx.global, NULL);
 
-    gpu_cl_fill_kernel_args(ctx.gpu, ctx.exchange_id, 0, 2, &ctx.min_gpu, sizeof(cl_mem), &ctx.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(ctx.gpu, ctx.exchange_id, 0, 2, &ctx.min_gpu, sizeof(cl_mem), &ctx.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(ctx.gpu, ctx.exchange_id, 1, &ctx.local, &ctx.global, NULL);
 
     gsa_context_read_minimun_grid(&ctx);
@@ -140,14 +140,14 @@ void gsa_metropolis_step(gsa_context *ctx) {
 
     if (new_energy <= ctx->last_energy) {
         ctx->last_energy = new_energy;
-        gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_buffer);
+        gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_gpu);
         gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
     } else {
         double df = (new_energy - ctx->last_energy) / (ctx->g->gi.rows * ctx->g->gi.cols);// / fabs(ctx->g->gp->exchange);
         double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (KB * ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;
-            gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_buffer);
+            gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_gpu);
             gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
         }
     }
@@ -157,7 +157,7 @@ void gsa_metropolis_step(gsa_context *ctx) {
 }
 
 void gsa_context_close(gsa_context *ctx) {
-    gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
     mfree(ctx->energy_cpu);
     gpu_cl_release_memory(ctx->swap_gpu);
     gpu_cl_release_memory(ctx->min_gpu);
@@ -166,7 +166,7 @@ void gsa_context_close(gsa_context *ctx) {
 }
 
 void gsa_context_read_minimun_grid(gsa_context *ctx) {
-    gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
 }
 
 gsa_params gsa_params_init(void) {

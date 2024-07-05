@@ -1,4 +1,5 @@
 #include "kernel_funcs.h"
+#include "complete_kernel.h"
 
 string fill_functions_on_kernel(string current_augment, string field_augment, string temperature_augment, string kernel_augment) {
     string ret = str_from_cstr("");

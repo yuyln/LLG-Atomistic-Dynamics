@@ -32,7 +32,7 @@ typedef struct {
     double time;
     uint64_t integrate_step;
 
-    cl_mem swap_buffer;
+    cl_mem swap_gpu;
     uint64_t step_id;
     uint64_t exchange_id;
     uint64_t global;
@@ -42,11 +42,11 @@ typedef struct {
     FILE *integrate_evolution;
 
     information_packed *info;
-    cl_mem info_buffer;
+    cl_mem info_gpu;
     uint64_t info_id;
 
     RGBA32 *rgb;
-    cl_mem rgb_buffer;
+    cl_mem rgb_gpu;
     uint64_t render_id;
 } integrate_context;
 

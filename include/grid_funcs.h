@@ -9,8 +9,8 @@ typedef struct {
     grid_site_params *gp;
     v3d *m;
 
-    cl_mem gp_buffer;
-    cl_mem m_buffer;
+    cl_mem gp_gpu;
+    cl_mem m_gpu;
 
     bool on_gpu;
 } grid;

@@ -1,6 +1,5 @@
 #ifndef __KERNEL_FUNCS_H
 #define __KERNEL_FUNCS_H
-#include "complete_kernel.h"
 #include "string_view.h"
 
 string fill_functions_on_kernel(string current_augment, string field_augment, string temperature_augment, string kernel_augment);

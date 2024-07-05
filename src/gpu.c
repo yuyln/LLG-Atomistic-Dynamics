@@ -423,7 +423,7 @@ void gpu_cl_enqueue_nd_no_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim
         logging_log(LOG_FATAL, "Could not enqueue kernel \"%s\" %d: %s", gpu->kernels[kernel].name, err, gpu_cl_get_str_error(err));
 }
 
-cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line) {
+cl_mem gpu_cl_create_gpu_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line) {
     cl_int err;
     cl_mem ret = clCreateBuffer(gpu->ctx, flags, size, NULL, &err);
     if (err != CL_SUCCESS)
@@ -433,13 +433,13 @@ cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags,
     return ret;
 }
 
-void gpu_cl_write_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
+void gpu_cl_write_gpu_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueWriteBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "%s:%d Could not write to GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));
 }
 
-void gpu_cl_read_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
+void gpu_cl_read_gpu_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line) {
     cl_int err = clEnqueueReadBuffer(gpu->queue, device, CL_TRUE, offset, size, host, 0, NULL, NULL);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "%s:%d Could not read from GPU buffer \"%s\" %d: %s", file, line, name, err, gpu_cl_get_str_error(err));

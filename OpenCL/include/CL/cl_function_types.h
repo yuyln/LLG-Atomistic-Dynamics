@@ -405,8 +405,8 @@ clEnqueueWriteBuffer_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clEnqueueCopyBuffer_t(
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     size_t src_offset,
     size_t dst_offset,
     size_t size,
@@ -466,7 +466,7 @@ clEnqueueCopyImage_fn CL_API_SUFFIX__VERSION_1_0;
 typedef cl_int CL_API_CALL clEnqueueCopyImageToBuffer_t(
     cl_command_queue command_queue,
     cl_mem src_image,
-    cl_mem dst_buffer,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* region,
     size_t dst_offset,
@@ -479,7 +479,7 @@ clEnqueueCopyImageToBuffer_fn CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int CL_API_CALL clEnqueueCopyBufferToImage_t(
     cl_command_queue command_queue,
-    cl_mem src_buffer,
+    cl_mem src_gpu,
     cl_mem dst_image,
     size_t src_offset,
     const size_t* dst_origin,
@@ -667,7 +667,7 @@ clEnqueueTask_fn CL_API_SUFFIX__VERSION_1_2_DEPRECATED;
 typedef cl_mem CL_API_CALL clCreateSubBuffer_t(
     cl_mem buffer,
     cl_mem_flags flags,
-    cl_buffer_create_type buffer_create_type,
+    cl_gpu_create_type buffer_create_type,
     const void* buffer_create_info,
     cl_int* errcode_ret);
 
@@ -745,8 +745,8 @@ clEnqueueWriteBufferRect_fn CL_API_SUFFIX__VERSION_1_1;
 
 typedef cl_int CL_API_CALL clEnqueueCopyBufferRect_t(
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* dst_origin,
     const size_t* region,

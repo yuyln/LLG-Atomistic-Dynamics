@@ -16,18 +16,18 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     grid_to_gpu(grid, *gpu);
     ctx.params = params;
     ctx.time = 0.0;
-    ctx.swap_buffer = gpu_cl_create_buffer(gpu, sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, CL_MEM_READ_WRITE);
+    ctx.swap_gpu = gpu_cl_create_gpu(gpu, sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, CL_MEM_READ_WRITE);
     ctx.step_id = gpu_cl_append_kernel(gpu, "gpu_step");
     ctx.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
 
-    gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_buffer, sizeof(cl_mem),
-                                                 &grid->m_buffer, sizeof(cl_mem),
-                                                 &ctx.swap_buffer, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_gpu, sizeof(cl_mem),
+                                                 &grid->m_gpu, sizeof(cl_mem),
+                                                 &ctx.swap_gpu, sizeof(cl_mem),
                                                  &params.dt, sizeof(double),
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
-    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_buffer, sizeof(cl_mem), &ctx.swap_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem));
     ctx.global = grid->gi.cols * grid->gi.rows;
     ctx.local = gpu_cl_gcd(ctx.global, 32);
 
@@ -52,26 +52,26 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     str_cat_str(&output_grid_path, params.output_path);
     str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
-    ctx.integrate_evolution = mfopen(str_as_cstr(&output_grid_path), "w");
+    ctx.integrate_evolution = mfopen(str_as_cstr(&output_grid_path), "wb");
     str_free(&output_grid_path);
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");
     ctx.info = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.info));
-    ctx.info_buffer = gpu_cl_create_buffer(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.info), CL_MEM_READ_WRITE);
+    ctx.info_gpu = gpu_cl_create_gpu(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.info), CL_MEM_READ_WRITE);
 
-    gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_buffer, sizeof(cl_mem),
-                                                     &grid->m_buffer, sizeof(cl_mem),
-                                                     &ctx.swap_buffer, sizeof(cl_mem),
-                                                     &ctx.info_buffer, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_gpu, sizeof(cl_mem),
+                                                     &grid->m_gpu, sizeof(cl_mem),
+                                                     &ctx.swap_gpu, sizeof(cl_mem),
+                                                     &ctx.info_gpu, sizeof(cl_mem),
                                                      &ctx.params.dt, sizeof(double),
                                                      &ctx.time, sizeof(double),
                                                      &grid->gi, sizeof(grid_info));
 
     ctx.render_id = gpu_cl_append_kernel(gpu, "render_grid_hsl");
     ctx.rgb = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb));
-    ctx.rgb_buffer = gpu_cl_create_buffer(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb), CL_MEM_READ_WRITE);
+    ctx.rgb_gpu = gpu_cl_create_gpu(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb), CL_MEM_READ_WRITE);
 
-    gpu_cl_fill_kernel_args(gpu, ctx.render_id, 0, 5, &grid->m_buffer, sizeof(cl_mem), &grid->gi, sizeof(grid->gi), &ctx.rgb_buffer, sizeof(cl_mem), &grid->gi.cols, sizeof(grid->gi.cols), &grid->gi.rows, sizeof(grid->gi.rows));
+    gpu_cl_fill_kernel_args(gpu, ctx.render_id, 0, 5, &grid->m_gpu, sizeof(cl_mem), &grid->gi, sizeof(grid->gi), &ctx.rgb_gpu, sizeof(cl_mem), &grid->gi.cols, sizeof(grid->gi.cols), &grid->gi.rows, sizeof(grid->gi.rows));
 
     uint64_t expected_steps = params.duration / params.dt + 1;
     if (ctx.params.interval_for_information == 0)
@@ -99,13 +99,13 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
-    gpu_cl_release_memory(ctx->swap_buffer);
+    gpu_cl_release_memory(ctx->swap_gpu);
     mfclose(ctx->integrate_info);
     mfclose(ctx->integrate_evolution);
-    gpu_cl_release_memory(ctx->info_buffer);
+    gpu_cl_release_memory(ctx->info_gpu);
     mfree(ctx->info);
 
-    gpu_cl_release_memory(ctx->rgb_buffer);
+    gpu_cl_release_memory(ctx->rgb_gpu);
     mfree(ctx->rgb);
 
     grid_release_from_gpu(ctx->g);
@@ -145,11 +145,11 @@ void integrate(grid *g, integrate_params params) {
     }
     logging_log(LOG_INFO, "Steps: %d", ctx.integrate_step);
 
-    v3d_from_gpu(g->m, g->m_buffer, g->gi.rows, g->gi.cols, gpu);
+    v3d_from_gpu(g->m, g->m_gpu, g->gi.rows, g->gi.cols, gpu);
     v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols);
 
     gpu_cl_enqueue_nd(ctx.gpu, ctx.render_id, 1, &ctx.local, &ctx.global, NULL);
-    gpu_cl_read_buffer(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_buffer);
+    gpu_cl_read_gpu(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_gpu);
     char buffer[1024];
     snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx.params.output_path.str, ctx.integrate_step);
     stbi_write_jpg(buffer, ctx.g->gi.cols, ctx.g->gi.rows, 4, ctx.rgb, 0);
@@ -173,13 +173,13 @@ void integrate_step(integrate_context *ctx) {
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
-        v3d_from_gpu(ctx->g->m, ctx->g->m_buffer, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+        v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
         v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_rgb_grid == 0) {
         gpu_cl_enqueue_nd(ctx->gpu, ctx->render_id, 1, &ctx->local, &ctx->global, NULL);
-        gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_buffer);
+        gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_gpu);
         char buffer[1024];
         snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx->params.output_path.str, ctx->integrate_step);
         stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
@@ -192,7 +192,7 @@ information_packed integrate_get_info(integrate_context *ctx) {
     gpu_cl_set_kernel_arg(ctx->gpu, ctx->info_id, 5, sizeof(double), &ctx->time);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->info_id, 1, &ctx->local, &ctx->global, NULL);
 
-    gpu_cl_read_buffer(ctx->gpu, sizeof(*ctx->info) * ctx->g->gi.rows * ctx->g->gi.cols, 0, ctx->info, ctx->info_buffer);
+    gpu_cl_read_gpu(ctx->gpu, sizeof(*ctx->info) * ctx->g->gi.rows * ctx->g->gi.cols, 0, ctx->info, ctx->info_gpu);
 
     information_packed info_local = {0};
     for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i) {
@@ -220,5 +220,5 @@ void integrate_exchange_grids(integrate_context *ctx) {
 }
 
 void integrate_context_read_grid(integrate_context *ctx) {
-    v3d_from_gpu(ctx->g->m, ctx->g->m_buffer, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+    v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
 }

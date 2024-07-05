@@ -45,19 +45,19 @@ extern "C" {
 #endif
 
 /***************************************************************
-* cl_khr_command_buffer
+* cl_khr_command_gpu
 ***************************************************************/
-#define cl_khr_command_buffer 1
+#define cl_khr_command_gpu 1
 #define CL_KHR_COMMAND_BUFFER_EXTENSION_NAME \
-    "cl_khr_command_buffer"
+    "cl_khr_command_gpu"
 
-typedef cl_bitfield         cl_device_command_buffer_capabilities_khr;
-typedef struct _cl_command_buffer_khr* cl_command_buffer_khr;
+typedef cl_bitfield         cl_device_command_gpu_capabilities_khr;
+typedef struct _cl_command_gpu_khr* cl_command_gpu_khr;
 typedef cl_uint             cl_sync_point_khr;
-typedef cl_uint             cl_command_buffer_info_khr;
-typedef cl_uint             cl_command_buffer_state_khr;
-typedef cl_properties       cl_command_buffer_properties_khr;
-typedef cl_bitfield         cl_command_buffer_flags_khr;
+typedef cl_uint             cl_command_gpu_info_khr;
+typedef cl_uint             cl_command_gpu_state_khr;
+typedef cl_properties       cl_command_gpu_properties_khr;
+typedef cl_bitfield         cl_command_gpu_flags_khr;
 typedef cl_properties       cl_ndrange_kernel_command_properties_khr;
 typedef struct _cl_mutable_command_khr* cl_mutable_command_khr;
 
@@ -65,16 +65,16 @@ typedef struct _cl_mutable_command_khr* cl_mutable_command_khr;
 #define CL_DEVICE_COMMAND_BUFFER_CAPABILITIES_KHR           0x12A9
 #define CL_DEVICE_COMMAND_BUFFER_REQUIRED_QUEUE_PROPERTIES_KHR 0x12AA
 
-/* cl_device_command_buffer_capabilities_khr - bitfield */
+/* cl_device_command_gpu_capabilities_khr - bitfield */
 #define CL_COMMAND_BUFFER_CAPABILITY_KERNEL_PRINTF_KHR      (1 << 0)
 #define CL_COMMAND_BUFFER_CAPABILITY_DEVICE_SIDE_ENQUEUE_KHR (1 << 1)
 #define CL_COMMAND_BUFFER_CAPABILITY_SIMULTANEOUS_USE_KHR   (1 << 2)
 #define CL_COMMAND_BUFFER_CAPABILITY_OUT_OF_ORDER_KHR       (1 << 3)
 
-/* cl_command_buffer_properties_khr */
+/* cl_command_gpu_properties_khr */
 #define CL_COMMAND_BUFFER_FLAGS_KHR                         0x1293
 
-/* cl_command_buffer_flags_khr - bitfield */
+/* cl_command_gpu_flags_khr - bitfield */
 #define CL_COMMAND_BUFFER_SIMULTANEOUS_USE_KHR              (1 << 0)
 
 /* Error codes */
@@ -82,7 +82,7 @@ typedef struct _cl_mutable_command_khr* cl_mutable_command_khr;
 #define CL_INVALID_SYNC_POINT_WAIT_LIST_KHR                 -1139
 #define CL_INCOMPATIBLE_COMMAND_QUEUE_KHR                   -1140
 
-/* cl_command_buffer_info_khr */
+/* cl_command_gpu_info_khr */
 #define CL_COMMAND_BUFFER_QUEUES_KHR                        0x1294
 #define CL_COMMAND_BUFFER_NUM_QUEUES_KHR                    0x1295
 #define CL_COMMAND_BUFFER_REFERENCE_COUNT_KHR               0x1296
@@ -90,7 +90,7 @@ typedef struct _cl_mutable_command_khr* cl_mutable_command_khr;
 #define CL_COMMAND_BUFFER_PROPERTIES_ARRAY_KHR              0x1298
 #define CL_COMMAND_BUFFER_CONTEXT_KHR                       0x1299
 
-/* cl_command_buffer_state_khr */
+/* cl_command_gpu_state_khr */
 #define CL_COMMAND_BUFFER_STATE_RECORDING_KHR               0
 #define CL_COMMAND_BUFFER_STATE_EXECUTABLE_KHR              1
 #define CL_COMMAND_BUFFER_STATE_PENDING_KHR                 2
@@ -99,11 +99,11 @@ typedef struct _cl_mutable_command_khr* cl_mutable_command_khr;
 #define CL_COMMAND_COMMAND_BUFFER_KHR                       0x12A8
 
 
-typedef cl_command_buffer_khr CL_API_CALL
+typedef cl_command_gpu_khr CL_API_CALL
 clCreateCommandBufferKHR_t(
     cl_uint num_queues,
     const cl_command_queue* queues,
-    const cl_command_buffer_properties_khr* properties,
+    const cl_command_gpu_properties_khr* properties,
     cl_int* errcode_ret);
 
 typedef clCreateCommandBufferKHR_t *
@@ -111,21 +111,21 @@ clCreateCommandBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clFinalizeCommandBufferKHR_t(
-    cl_command_buffer_khr command_buffer);
+    cl_command_gpu_khr command_gpu);
 
 typedef clFinalizeCommandBufferKHR_t *
 clFinalizeCommandBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clRetainCommandBufferKHR_t(
-    cl_command_buffer_khr command_buffer);
+    cl_command_gpu_khr command_gpu);
 
 typedef clRetainCommandBufferKHR_t *
 clRetainCommandBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clReleaseCommandBufferKHR_t(
-    cl_command_buffer_khr command_buffer);
+    cl_command_gpu_khr command_gpu);
 
 typedef clReleaseCommandBufferKHR_t *
 clReleaseCommandBufferKHR_fn ;
@@ -134,7 +134,7 @@ typedef cl_int CL_API_CALL
 clEnqueueCommandBufferKHR_t(
     cl_uint num_queues,
     cl_command_queue* queues,
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
     cl_event* event);
@@ -144,7 +144,7 @@ clEnqueueCommandBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandBarrierWithWaitListKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_uint num_sync_points_in_wait_list,
     const cl_sync_point_khr* sync_point_wait_list,
@@ -156,10 +156,10 @@ clCommandBarrierWithWaitListKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandCopyBufferKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     size_t src_offset,
     size_t dst_offset,
     size_t size,
@@ -173,10 +173,10 @@ clCommandCopyBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandCopyBufferRectKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* dst_origin,
     const size_t* region,
@@ -194,9 +194,9 @@ clCommandCopyBufferRectKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandCopyBufferToImageKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
+    cl_mem src_gpu,
     cl_mem dst_image,
     size_t src_offset,
     const size_t* dst_origin,
@@ -211,7 +211,7 @@ clCommandCopyBufferToImageKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandCopyImageKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem src_image,
     cl_mem dst_image,
@@ -228,10 +228,10 @@ clCommandCopyImageKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandCopyImageToBufferKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem src_image,
-    cl_mem dst_buffer,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* region,
     size_t dst_offset,
@@ -245,7 +245,7 @@ clCommandCopyImageToBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandFillBufferKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem buffer,
     const void* pattern,
@@ -262,7 +262,7 @@ clCommandFillBufferKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandFillImageKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem image,
     const void* fill_color,
@@ -278,7 +278,7 @@ clCommandFillImageKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandNDRangeKernelKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     const cl_ndrange_kernel_command_properties_khr* properties,
     cl_kernel kernel,
@@ -296,7 +296,7 @@ clCommandNDRangeKernelKHR_fn ;
 
 typedef cl_int CL_API_CALL
 clCommandSVMMemcpyKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     void* dst_ptr,
     const void* src_ptr,
@@ -311,7 +311,7 @@ clCommandSVMMemcpyKHR_fn CL_API_SUFFIX__VERSION_2_0;
 
 typedef cl_int CL_API_CALL
 clCommandSVMMemFillKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     void* svm_ptr,
     const void* pattern,
@@ -327,8 +327,8 @@ clCommandSVMMemFillKHR_fn CL_API_SUFFIX__VERSION_2_0;
 
 typedef cl_int CL_API_CALL
 clGetCommandBufferInfoKHR_t(
-    cl_command_buffer_khr command_buffer,
-    cl_command_buffer_info_khr params_name,
+    cl_command_gpu_khr command_gpu,
+    cl_command_gpu_info_khr params_name,
     size_t params_value_size,
     void* params_value,
     size_t* params_value_size_ret);
@@ -338,37 +338,37 @@ clGetCommandBufferInfoKHR_fn ;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
-extern CL_API_ENTRY cl_command_buffer_khr CL_API_CALL
+extern CL_API_ENTRY cl_command_gpu_khr CL_API_CALL
 clCreateCommandBufferKHR(
     cl_uint num_queues,
     const cl_command_queue* queues,
-    const cl_command_buffer_properties_khr* properties,
+    const cl_command_gpu_properties_khr* properties,
     cl_int* errcode_ret) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clFinalizeCommandBufferKHR(
-    cl_command_buffer_khr command_buffer) ;
+    cl_command_gpu_khr command_gpu) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainCommandBufferKHR(
-    cl_command_buffer_khr command_buffer) ;
+    cl_command_gpu_khr command_gpu) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clReleaseCommandBufferKHR(
-    cl_command_buffer_khr command_buffer) ;
+    cl_command_gpu_khr command_gpu) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCommandBufferKHR(
     cl_uint num_queues,
     cl_command_queue* queues,
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
     cl_event* event) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandBarrierWithWaitListKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_uint num_sync_points_in_wait_list,
     const cl_sync_point_khr* sync_point_wait_list,
@@ -377,10 +377,10 @@ clCommandBarrierWithWaitListKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandCopyBufferKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     size_t src_offset,
     size_t dst_offset,
     size_t size,
@@ -391,10 +391,10 @@ clCommandCopyBufferKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandCopyBufferRectKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
-    cl_mem dst_buffer,
+    cl_mem src_gpu,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* dst_origin,
     const size_t* region,
@@ -409,9 +409,9 @@ clCommandCopyBufferRectKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandCopyBufferToImageKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
-    cl_mem src_buffer,
+    cl_mem src_gpu,
     cl_mem dst_image,
     size_t src_offset,
     const size_t* dst_origin,
@@ -423,7 +423,7 @@ clCommandCopyBufferToImageKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandCopyImageKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem src_image,
     cl_mem dst_image,
@@ -437,10 +437,10 @@ clCommandCopyImageKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandCopyImageToBufferKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem src_image,
-    cl_mem dst_buffer,
+    cl_mem dst_gpu,
     const size_t* src_origin,
     const size_t* region,
     size_t dst_offset,
@@ -451,7 +451,7 @@ clCommandCopyImageToBufferKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandFillBufferKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem buffer,
     const void* pattern,
@@ -465,7 +465,7 @@ clCommandFillBufferKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandFillImageKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     cl_mem image,
     const void* fill_color,
@@ -478,7 +478,7 @@ clCommandFillImageKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandNDRangeKernelKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     const cl_ndrange_kernel_command_properties_khr* properties,
     cl_kernel kernel,
@@ -493,7 +493,7 @@ clCommandNDRangeKernelKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandSVMMemcpyKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     void* dst_ptr,
     const void* src_ptr,
@@ -505,7 +505,7 @@ clCommandSVMMemcpyKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCommandSVMMemFillKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_command_queue command_queue,
     void* svm_ptr,
     const void* pattern,
@@ -518,8 +518,8 @@ clCommandSVMMemFillKHR(
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetCommandBufferInfoKHR(
-    cl_command_buffer_khr command_buffer,
-    cl_command_buffer_info_khr params_name,
+    cl_command_gpu_khr command_gpu,
+    cl_command_gpu_info_khr params_name,
     size_t params_value_size,
     void* params_value,
     size_t* params_value_size_ret) ;
@@ -527,18 +527,18 @@ clGetCommandBufferInfoKHR(
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
 /***************************************************************
-* cl_khr_command_buffer_multi_device
+* cl_khr_command_gpu_multi_device
 ***************************************************************/
-#define cl_khr_command_buffer_multi_device 1
+#define cl_khr_command_gpu_multi_device 1
 #define CL_KHR_COMMAND_BUFFER_MULTI_DEVICE_EXTENSION_NAME \
-    "cl_khr_command_buffer_multi_device"
+    "cl_khr_command_gpu_multi_device"
 
-typedef cl_bitfield         cl_platform_command_buffer_capabilities_khr;
+typedef cl_bitfield         cl_platform_command_gpu_capabilities_khr;
 
 /* cl_platform_info */
 #define CL_PLATFORM_COMMAND_BUFFER_CAPABILITIES_KHR         0x0908
 
-/* cl_platform_command_buffer_capabilities_khr - bitfield */
+/* cl_platform_command_gpu_capabilities_khr - bitfield */
 #define CL_COMMAND_BUFFER_PLATFORM_UNIVERSAL_SYNC_KHR       (1 << 0)
 #define CL_COMMAND_BUFFER_PLATFORM_REMAP_QUEUES_KHR         (1 << 1)
 #define CL_COMMAND_BUFFER_PLATFORM_AUTOMATIC_REMAP_KHR      (1 << 2)
@@ -547,16 +547,16 @@ typedef cl_bitfield         cl_platform_command_buffer_capabilities_khr;
 #define CL_DEVICE_COMMAND_BUFFER_NUM_SYNC_DEVICES_KHR       0x12AB
 #define CL_DEVICE_COMMAND_BUFFER_SYNC_DEVICES_KHR           0x12AC
 
-/* cl_device_command_buffer_capabilities_khr - bitfield */
+/* cl_device_command_gpu_capabilities_khr - bitfield */
 #define CL_COMMAND_BUFFER_CAPABILITY_MULTIPLE_QUEUE_KHR     (1 << 4)
 
-/* cl_command_buffer_flags_khr - bitfield */
+/* cl_command_gpu_flags_khr - bitfield */
 #define CL_COMMAND_BUFFER_DEVICE_SIDE_SYNC_KHR              (1 << 2)
 
 
-typedef cl_command_buffer_khr CL_API_CALL
+typedef cl_command_gpu_khr CL_API_CALL
 clRemapCommandBufferKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_bool automatic,
     cl_uint num_queues,
     const cl_command_queue* queues,
@@ -570,9 +570,9 @@ clRemapCommandBufferKHR_fn ;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
-extern CL_API_ENTRY cl_command_buffer_khr CL_API_CALL
+extern CL_API_ENTRY cl_command_gpu_khr CL_API_CALL
 clRemapCommandBufferKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     cl_bool automatic,
     cl_uint num_queues,
     const cl_command_queue* queues,
@@ -584,13 +584,13 @@ clRemapCommandBufferKHR(
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
 /***************************************************************
-* cl_khr_command_buffer_mutable_dispatch
+* cl_khr_command_gpu_mutable_dispatch
 ***************************************************************/
-#define cl_khr_command_buffer_mutable_dispatch 1
+#define cl_khr_command_gpu_mutable_dispatch 1
 #define CL_KHR_COMMAND_BUFFER_MUTABLE_DISPATCH_EXTENSION_NAME \
-    "cl_khr_command_buffer_mutable_dispatch"
+    "cl_khr_command_gpu_mutable_dispatch"
 
-typedef cl_uint             cl_command_buffer_structure_type_khr;
+typedef cl_uint             cl_command_gpu_structure_type_khr;
 typedef cl_bitfield         cl_mutable_dispatch_fields_khr;
 typedef cl_uint             cl_mutable_command_info_khr;
 typedef struct _cl_mutable_dispatch_arg_khr {
@@ -604,7 +604,7 @@ typedef struct _cl_mutable_dispatch_exec_info_khr {
     const void* params_value;
 } cl_mutable_dispatch_exec_info_khr;
 typedef struct _cl_mutable_dispatch_config_khr {
-    cl_command_buffer_structure_type_khr type;
+    cl_command_gpu_structure_type_khr type;
     const void* next;
     cl_mutable_command_khr command;
     cl_uint num_args;
@@ -619,13 +619,13 @@ typedef struct _cl_mutable_dispatch_config_khr {
     const size_t* local_work_size;
 } cl_mutable_dispatch_config_khr;
 typedef struct _cl_mutable_base_config_khr {
-    cl_command_buffer_structure_type_khr type;
+    cl_command_gpu_structure_type_khr type;
     const void* next;
     cl_uint num_mutable_dispatch;
     const cl_mutable_dispatch_config_khr* mutable_dispatch_list;
 } cl_mutable_base_config_khr;
 
-/* cl_command_buffer_flags_khr - bitfield */
+/* cl_command_gpu_flags_khr - bitfield */
 #define CL_COMMAND_BUFFER_MUTABLE_KHR                       (1 << 1)
 
 /* Error codes */
@@ -655,14 +655,14 @@ typedef struct _cl_mutable_base_config_khr {
 #define CL_MUTABLE_DISPATCH_GLOBAL_WORK_SIZE_KHR            0x12A6
 #define CL_MUTABLE_DISPATCH_LOCAL_WORK_SIZE_KHR             0x12A7
 
-/* cl_command_buffer_structure_type_khr */
+/* cl_command_gpu_structure_type_khr */
 #define CL_STRUCTURE_TYPE_MUTABLE_BASE_CONFIG_KHR           0
 #define CL_STRUCTURE_TYPE_MUTABLE_DISPATCH_CONFIG_KHR       1
 
 
 typedef cl_int CL_API_CALL
 clUpdateMutableCommandsKHR_t(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     const cl_mutable_base_config_khr* mutable_config);
 
 typedef clUpdateMutableCommandsKHR_t *
@@ -683,7 +683,7 @@ clGetMutableCommandInfoKHR_fn ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clUpdateMutableCommandsKHR(
-    cl_command_buffer_khr command_buffer,
+    cl_command_gpu_khr command_gpu,
     const cl_mutable_base_config_khr* mutable_config) ;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -878,11 +878,11 @@ clCreateProgramWithILKHR(
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
 /***************************************************************
-* cl_khr_image2d_from_buffer
+* cl_khr_image2d_from_gpu
 ***************************************************************/
-#define cl_khr_image2d_from_buffer 1
+#define cl_khr_image2d_from_gpu 1
 #define CL_KHR_IMAGE2D_FROM_BUFFER_EXTENSION_NAME \
-    "cl_khr_image2d_from_buffer"
+    "cl_khr_image2d_from_gpu"
 
 /* cl_device_info */
 #define CL_DEVICE_IMAGE_PITCH_ALIGNMENT_KHR                 0x104A
@@ -1269,17 +1269,17 @@ typedef struct _cl_mem_ion_host_ptr {
 #define CL_MEM_ION_HOST_PTR_QCOM                            0x40A8
 
 /***************************************************************
-* cl_qcom_android_native_buffer_host_ptr
+* cl_qcom_android_native_gpu_host_ptr
 ***************************************************************/
-#define cl_qcom_android_native_buffer_host_ptr 1
+#define cl_qcom_android_native_gpu_host_ptr 1
 #define CL_QCOM_ANDROID_NATIVE_BUFFER_HOST_PTR_EXTENSION_NAME \
-    "cl_qcom_android_native_buffer_host_ptr"
+    "cl_qcom_android_native_gpu_host_ptr"
 
 /* type cl_mem_ext_host_ptr */
-typedef struct _cl_mem_android_native_buffer_host_ptr {
+typedef struct _cl_mem_android_native_gpu_host_ptr {
     cl_mem_ext_host_ptr ext_host_ptr;
     void* anb_ptr;
-} cl_mem_android_native_buffer_host_ptr;
+} cl_mem_android_native_gpu_host_ptr;
 
 /* cl_uint allocation_type */
 #define CL_MEM_ANDROID_NATIVE_BUFFER_HOST_PTR_QCOM          0x40C6
@@ -3210,11 +3210,11 @@ clEnqueueMemsetINTEL(
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
 /***************************************************************
-* cl_intel_mem_alloc_buffer_location
+* cl_intel_mem_alloc_gpu_location
 ***************************************************************/
-#define cl_intel_mem_alloc_buffer_location 1
+#define cl_intel_mem_alloc_gpu_location 1
 #define CL_INTEL_MEM_ALLOC_BUFFER_LOCATION_EXTENSION_NAME \
-    "cl_intel_mem_alloc_buffer_location"
+    "cl_intel_mem_alloc_gpu_location"
 
 /* cl_mem_properties_intel */
 #define CL_MEM_ALLOC_BUFFER_LOCATION_INTEL                  0x419E
@@ -3223,11 +3223,11 @@ clEnqueueMemsetINTEL(
 /* enum CL_MEM_ALLOC_BUFFER_LOCATION_INTEL */
 
 /***************************************************************
-* cl_intel_create_buffer_with_properties
+* cl_intel_create_gpu_with_properties
 ***************************************************************/
-#define cl_intel_create_buffer_with_properties 1
+#define cl_intel_create_gpu_with_properties 1
 #define CL_INTEL_CREATE_BUFFER_WITH_PROPERTIES_EXTENSION_NAME \
-    "cl_intel_create_buffer_with_properties"
+    "cl_intel_create_gpu_with_properties"
 
 /* type cl_mem_properties_intel */
 
@@ -3469,13 +3469,13 @@ clGetImageRequirementsInfoEXT(
 #endif /* defined(CL_VERSION_3_0) */
 
 /***************************************************************
-* cl_ext_image_from_buffer
+* cl_ext_image_from_gpu
 ***************************************************************/
 #if defined(CL_VERSION_3_0)
 
-#define cl_ext_image_from_buffer 1
+#define cl_ext_image_from_gpu 1
 #define CL_EXT_IMAGE_FROM_BUFFER_EXTENSION_NAME \
-    "cl_ext_image_from_buffer"
+    "cl_ext_image_from_gpu"
 
 /* cl_image_requirements_info_ext */
 #define CL_IMAGE_REQUIREMENTS_SLICE_PITCH_ALIGNMENT_EXT     0x1291
@@ -3576,7 +3576,7 @@ typedef cl_bitfield         cl_device_fp_atomic_capabilities_ext;
 typedef cl_int CL_API_CALL
 clSetContentSizeBufferPoCL_t(
     cl_mem buffer,
-    cl_mem content_size_buffer);
+    cl_mem content_size_gpu);
 
 typedef clSetContentSizeBufferPoCL_t *
 clSetContentSizeBufferPoCL_fn CL_API_SUFFIX__VERSION_1_0;
@@ -3586,7 +3586,7 @@ clSetContentSizeBufferPoCL_fn CL_API_SUFFIX__VERSION_1_0;
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetContentSizeBufferPoCL(
     cl_mem buffer,
-    cl_mem content_size_buffer) CL_API_SUFFIX__VERSION_1_0;
+    cl_mem content_size_gpu) CL_API_SUFFIX__VERSION_1_0;
 
 #endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 

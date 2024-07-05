@@ -5,7 +5,7 @@
 
 static double energy_from_gradient_descent_context(gradient_descent_context *ctx) {
     gpu_cl_enqueue_nd(ctx->gpu, ctx->energy_id, 1, &ctx->local, &ctx->global, NULL);
-    gpu_cl_read_buffer(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
     double ret = 0.0;
     for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
         ret += ctx->energy_cpu[i];
@@ -23,10 +23,10 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     ret.params = params;
     ret.T0 = params.T;
 
-    ret.before_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.min_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.after_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.energy_gpu = gpu_cl_create_buffer(ret.gpu, sizeof(*ret.energy_cpu) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
+    ret.before_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
+    ret.min_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
+    ret.after_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
+    ret.energy_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.energy_cpu) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
 
     ret.energy_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu));
 
@@ -34,21 +34,21 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     ret.exchange_id = gpu_cl_append_kernel(ret.gpu, "exchange_grid");
     ret.energy_id = gpu_cl_append_kernel(ret.gpu, "calculate_energy");
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_buffer, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
 
     double t = 0.0;
-    gpu_cl_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_buffer, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &g->gi, sizeof(g->gi), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(t));
+    gpu_cl_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_gpu, sizeof(cl_mem), &g->m_gpu, sizeof(cl_mem), &g->gi, sizeof(g->gi), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(t));
 
     int seed = rand();
-    gpu_cl_fill_kernel_args(gpu, ret.step_id, 0, 11, &g->gp_buffer, sizeof(cl_mem), &ret.before_gpu, sizeof(cl_mem), &g->m_buffer, sizeof(cl_mem), &ret.after_gpu, sizeof(cl_mem), &g->gi, sizeof(g->gi), &ret.params.mass, sizeof(ret.params.mass), &ret.params.T, sizeof(ret.params.T), &ret.params.damping, sizeof(ret.params.damping), &ret.params.restoring, sizeof(ret.params.restoring), &ret.params.dt, sizeof(ret.params.dt), &seed, sizeof(seed));
+    gpu_cl_fill_kernel_args(gpu, ret.step_id, 0, 11, &g->gp_gpu, sizeof(cl_mem), &ret.before_gpu, sizeof(cl_mem), &g->m_gpu, sizeof(cl_mem), &ret.after_gpu, sizeof(cl_mem), &g->gi, sizeof(g->gi), &ret.params.mass, sizeof(ret.params.mass), &ret.params.T, sizeof(ret.params.T), &ret.params.damping, sizeof(ret.params.damping), &ret.params.restoring, sizeof(ret.params.restoring), &ret.params.dt, sizeof(ret.params.dt), &seed, sizeof(seed));
 
     ret.min_energy = energy_from_gradient_descent_context(&ret);
 
@@ -81,19 +81,19 @@ void gradient_descent_close(gradient_descent_context *ctx) {
 }
 
 void gradient_descent_exchange(gradient_descent_context *ctx) {
-    gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 1, sizeof(cl_mem), &ctx->g->m_buffer);
+    gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 1, sizeof(cl_mem), &ctx->g->m_gpu);
     gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->before_gpu);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
 
     gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 1, sizeof(cl_mem), &ctx->after_gpu);
-    gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_buffer);
+    gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_gpu);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
 
     double new_energy = energy_from_gradient_descent_context(ctx);
     if (new_energy <= ctx->min_energy) {
         ctx->min_energy = new_energy;
 
-        gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 1, sizeof(cl_mem), &ctx->g->m_buffer);
+        gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 1, sizeof(cl_mem), &ctx->g->m_gpu);
         gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->min_gpu);
         gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
     }

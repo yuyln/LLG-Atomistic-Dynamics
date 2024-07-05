@@ -212,8 +212,8 @@ bool grid_free(grid *g) {
 bool grid_release_from_gpu(grid *g) {
     bool ret = true;
     if (g->on_gpu) {
-        gpu_cl_release_memory(g->gp_buffer);
-        gpu_cl_release_memory(g->m_buffer);
+        gpu_cl_release_memory(g->gp_gpu);
+        gpu_cl_release_memory(g->m_gpu);
     } else
         logging_log(LOG_WARNING, "Trying to release a grid that was already freed from the gpu");
     g->on_gpu = false;
@@ -229,13 +229,13 @@ void grid_to_gpu(grid *g, gpu_cl gpu) {
         goto writing;
     }
 
-    g->gp_buffer = gpu_cl_create_buffer(&gpu, gp_size_bytes, CL_MEM_READ_WRITE);
-    g->m_buffer = gpu_cl_create_buffer(&gpu, m_size_bytes, CL_MEM_READ_WRITE);
+    g->gp_gpu = gpu_cl_create_gpu(&gpu, gp_size_bytes, CL_MEM_READ_WRITE);
+    g->m_gpu = gpu_cl_create_gpu(&gpu, m_size_bytes, CL_MEM_READ_WRITE);
     g->on_gpu = true;
     
 writing:
-    gpu_cl_write_buffer(&gpu, gp_size_bytes, 0, g->gp, g->gp_buffer);
-    gpu_cl_write_buffer(&gpu, m_size_bytes, 0, g->m, g->m_buffer);
+    gpu_cl_write_gpu(&gpu, gp_size_bytes, 0, g->gp, g->gp_gpu);
+    gpu_cl_write_gpu(&gpu, m_size_bytes, 0, g->m, g->m_gpu);
 }
 
 void grid_from_gpu(grid *g, gpu_cl gpu) {
@@ -247,13 +247,13 @@ void grid_from_gpu(grid *g, gpu_cl gpu) {
     int gp_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->gp);
     int m_size_bytes = g->gi.rows * g->gi.cols * sizeof(*g->m);
 
-    gpu_cl_read_buffer(&gpu, gp_size_bytes, 0, g->gp, g->gp_buffer);
-    gpu_cl_read_buffer(&gpu, m_size_bytes, 0, g->m, g->m_buffer);
+    gpu_cl_read_gpu(&gpu, gp_size_bytes, 0, g->gp, g->gp_gpu);
+    gpu_cl_read_gpu(&gpu, m_size_bytes, 0, g->m, g->m_gpu);
 }
 
 void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, gpu_cl gpu) {
     int m_size_bytes = rows * cols * sizeof(*g);
-    gpu_cl_read_buffer(&gpu, m_size_bytes, 0, g, buffer);
+    gpu_cl_read_gpu(&gpu, m_size_bytes, 0, g, buffer);
 }
 
 bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols) {

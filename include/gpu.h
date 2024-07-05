@@ -18,11 +18,11 @@
 #define gpu_cl_enqueue_nd(gpu, kernel, n_dim, local, global, offset) gpu_cl_enqueue_nd_no_profiling(gpu, kernel, n_dim, local, global, offset)
 #endif
 
-#define gpu_cl_create_buffer(gpu, size, flags) gpu_cl_create_buffer_base(gpu, size, flags, __FILE__, __LINE__)
+#define gpu_cl_create_gpu(gpu, size, flags) gpu_cl_create_gpu_base(gpu, size, flags, __FILE__, __LINE__)
 #define gpu_cl_release_memory(mem) gpu_cl_release_memory_base(mem, #mem, __FILE__, __LINE__);
 
-#define gpu_cl_read_buffer(gpu, size, offset, host, device) gpu_cl_read_buffer_base(gpu, size, offset, host, device, #device " -> " #host, __FILE__, __LINE__)
-#define gpu_cl_write_buffer(gpu, size, offset, host, device) gpu_cl_write_buffer_base(gpu, size, offset, host, device, #device " <- " #host, __FILE__, __LINE__)
+#define gpu_cl_read_gpu(gpu, size, offset, host, device) gpu_cl_read_gpu_base(gpu, size, offset, host, device, #device " -> " #host, __FILE__, __LINE__)
+#define gpu_cl_write_gpu(gpu, size, offset, host, device) gpu_cl_write_gpu_base(gpu, size, offset, host, device, #device " <- " #host, __FILE__, __LINE__)
 
 
 extern uint64_t p_id;
@@ -56,10 +56,10 @@ void gpu_cl_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint
 void gpu_cl_enqueue_nd_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset);
 void gpu_cl_enqueue_nd_no_profiling(gpu_cl *gpu, uint64_t kernel, uint64_t n_dim, uint64_t *local, uint64_t *global, uint64_t *offset);
 const char *gpu_cl_get_string_error(cl_int err);
-cl_mem gpu_cl_create_buffer_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line);
+cl_mem gpu_cl_create_gpu_base(gpu_cl *gpu, uint64_t size, cl_mem_flags flags, const char *file, int line);
 
-void gpu_cl_write_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line);
-void gpu_cl_read_buffer_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line);
+void gpu_cl_write_gpu_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line);
+void gpu_cl_read_gpu_base(gpu_cl *gpu, uint64_t size, uint64_t offset, void *host, cl_mem device, const char *name, const char *file, int line);
 
 void gpu_cl_set_kernel_arg(gpu_cl *gpu, uint64_t kernel, uint64_t index, uint64_t size, void *data);
 void gpu_cl_release_memory_base(cl_mem mem, const char *name, const char *file, int line);
