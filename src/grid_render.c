@@ -73,7 +73,9 @@ void grid_renderer_hsl(grid_renderer *gr) {
 void grid_renderer_pinning(grid_renderer *gr) {
     size_t global = gr->width * gr->height;
     size_t local = gpu_cl_gcd(global, 32);
+
     gpu_cl_enqueue_nd(gr->gpu, gr->pinning_id, 1, &local, &global, NULL);
+
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
@@ -242,6 +244,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
                 break;
             default:
                 grid_renderer_hsl(&gr);
+                break;
         }
         grid_renderer_pinning(&gr);
         if (window_key_pressed('q'))
