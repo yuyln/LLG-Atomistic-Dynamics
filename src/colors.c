@@ -12,9 +12,14 @@ RGBA32 linear_mapping(double t, v3d start, v3d middle, v3d end) {
 }
 
 RGBA32 m_bwr_mapping(v3d m) {
-    v3d start = v3d_c(0x03 / 255.0, 0x7f / 255.0, 0xff / 255.0);
+    //v3d start = v3d_c(0x03 / 255.0, 0x7f / 255.0, 0xff / 255.0);
+    //v3d middle = v3d_c(1, 1, 1);
+    //v3d end = v3d_c(0xf4 / 255.0, 0x05 / 255.0, 0x01 / 255.0);
+
+    v3d start = v3d_c(0, 0, 0xff / 255.0);
     v3d middle = v3d_c(1, 1, 1);
-    v3d end = v3d_c(0xf4 / 255.0, 0x05 / 255.0, 0x01 / 255.0);
+    v3d end = v3d_c(0xff / 255.0, 0, 0);
+
     double mz = m.z;
     return linear_mapping(0.5 * mz + 0.5, start, middle, end);
 }
