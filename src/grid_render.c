@@ -227,7 +227,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
     double frame_start = profiler_get_sec();
     uint64_t frames = 0;
 
-    int state = 'b';
+    int state = 'h';
     while (!window_should_close()) {
         switch (state) {
             case 'q':
