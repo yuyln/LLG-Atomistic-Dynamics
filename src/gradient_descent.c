@@ -114,7 +114,8 @@ gradient_descent_params gradient_descent_params_init(void) {
     ret.restoring = 0.0;
     ret.T_factor = 0.999999;
     ret.field_func = str_is_cstr("return v3d_s(0);");
-    ret.compile_augment = STR_NULL;
+    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
+;
     return ret;
 }
 

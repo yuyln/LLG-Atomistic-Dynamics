@@ -179,6 +179,6 @@ gsa_params gsa_params_init(void) {
     ret.outer_steps = 15;
     ret.print_factor = 10;
     ret.field_func = str_is_cstr("return v3d_s(0);");
-    ret.compile_augment = STR_NULL;
+    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
     return ret;
 }

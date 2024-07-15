@@ -115,15 +115,15 @@ void integrate_context_close(integrate_context *ctx) {
 integrate_params integrate_params_init(void) {
     integrate_params ret = {0};
     ret.dt = 1.0e-15;
-    ret.duration = 1.0 * NS;
+    ret.duration = 200.0 * NS;
     ret.interval_for_information = 1000;
     ret.interval_for_raw_grid = 10000;
-    ret.interval_for_rgb_grid = 10000;
+    ret.interval_for_rgb_grid = 50000;
 
     ret.current_func = str_is_cstr("return (current){0};");
     ret.field_func = str_is_cstr("return v3d_s(0);");
     ret.temperature_func = str_is_cstr("return 0;");
-    ret.compile_augment = STR_NULL;
+    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
     ret.output_path = str_is_cstr("./");
     return ret;
 }

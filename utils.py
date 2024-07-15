@@ -125,12 +125,10 @@ class CMDArgs:
         parser.add_argument("-factor", default=1, nargs="?", type=int)
         parser.add_argument("-fps", default=60, nargs="?", type=int)
         parser.add_argument("-plot-defects", action="store_true")
-        parser.add_argument("-defects-color", default="black", nargs="?", type=str)
         parser.add_argument("-interpolation", default="nearest", nargs="?", type=str)
         parser.add_argument("-latex", action="store_true")
         parser.add_argument("-width", default=8, nargs="?", type=float)
         parser.add_argument("-height", default=8, nargs="?", type=float)
-        parser.add_argument("-batch-size", default=50, nargs="?", type=int)
         parser.add_argument("-HSL", action="store_true")
         parser.add_argument("-invert", action="store_true")
         parser.add_argument("-bar-size", default=0.02, type=float)
@@ -144,12 +142,10 @@ class CMDArgs:
         self.REDUCE_FACTOR = self.args["factor"]
         self.FPS           = self.args["fps"]
         self.PLOT_DEF      = self.args["plot_defects"]
-        self.COLOR_DEF     = self.args["defects_color"]
         self.INTERPOLATION = self.args["interpolation"]
         self.USE_LATEX     = self.args["latex"]
         self.WIDTH         = self.args["width"]
         self.HEIGHT        = self.args["height"]
-        self.BATCH_S       = self.args["batch_size"]
         self.HSL           = self.args["HSL"]
         self.BARSIZE       = self.args["bar_size"]
         self.BARPAD        = self.args["bar_pad"]
@@ -184,9 +180,10 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     file = open(path, "rb")
 
     raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)[skip:]
+    frames = len(raw_data) / (gi.rows * gi.cols * VEC_SIZE)
     
     file.close()
-    return int(frames.frames), gi, gps, raw_data
+    return int(frames), gi, gps, raw_data
 
 def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], list[v3d]]:
     file = open(path, "rb")
@@ -361,7 +358,6 @@ def CreateAnimation(output:str, cmd: CMDArgs, frames: int, gi: grid_info, gp: li
     ax.set_ylabel("y(nm)")
     ax.set_xticklabels((f"{i / 1.0e-9:.1f}" for i in ax.get_xticks()))
     ax.set_yticklabels((f"{i / 1.0e-9:.1f}" for i in ax.get_yticks()))
-    plt.show()
     def use_for_animate(i):
         print(f"{i / frames * 100.0:.2f}%")
         mx, my, mz = GetFrameFromBinary(frames, gi, raw, i)
