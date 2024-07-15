@@ -17,10 +17,11 @@ if test -f ./libatomistic.a; then
 fi
 
 if [ "$1" = "install" ]; then
-    if test -f ~/.local/lib/atomistic; then
-        rm -r ~/.local/lib/atomistic
+    if test -f $HOME/.local/lib/atomistic; then
+        rm -r $HOME/.local/lib/atomistic
     fi
-    mkdir --parents ~/.local/lib/atomistic
+    mkdir --parents $HOME/.local/lib/atomistic
+    mkdir --parents $HOME/.local/bin
     CFLAGS="$COMMON_CFLAGS"
 
     $CC $CFLAGS create_kernel.c -o create_kernel
@@ -33,8 +34,9 @@ if [ "$1" = "install" ]; then
     ar cr libatomistic.a $FILES_OBJ
 
     rm *.o
-    cp ./libatomistic.a ~/.local/lib/atomistic/
-    cp -r ./include ~/.local/lib/atomistic/include
+    cp ./libatomistic.a $HOME/.local/lib/atomistic/
+    cp -r ./include $HOME/.local/lib/atomistic/include
+    cp ./run_atomistic $HOME/.local/bin/run_atomistic
 else
     set -xe
     CFLAGS="$COMMON_CFLAGS -Wall -Wextra -pedantic -ggdb -g3 -Wno-overlength-strings -Wno-override-init"
