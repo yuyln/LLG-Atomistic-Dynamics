@@ -10,7 +10,6 @@ create_kernel
 *.bin
 paper_funcs.c
 *test*
-run_atomistic
 *.data
 *.mp4
 *.jpg

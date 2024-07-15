@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -xe
+
+LIBS="-l:libatomistic.a -lm `pkg-config --static --libs OpenCL x11`"
+CFLAGS="-DnPROFILING -O3 -I $HOME/.local/lib/atomistic/include -L $HOME/.local/lib/atomistic -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
+CC="gcc"
+NAME=$1
+
+if [ "`pkg-config --libs xext`" > /dev/null ]; then
+    LIBS="$LIBS `pkg-config --static --libs xext`"
+    CFLAGS="$CFLAGS -DUSE_XEXT"
+fi
+
+$CC $CFLAGS -x c $NAME -o $NAME.out $LIBS
+shift
+./$NAME.out "$@" &
+rm ./$NAME.out
