@@ -37,8 +37,14 @@ void grid_set_mu(grid *g, double mu);
 void grid_set_alpha(grid *g, double alpha);
 void grid_set_gamma(grid *g, double gamma);
 void grid_set_anisotropy(grid *g, anisotropy ani);
+
 void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
-void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
+void v3d_create_skyrmion_at_old(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
+void v3d_create_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
+
+void grid_fill_with_random(grid *g);
+void grid_create_skyrmion_at_old(grid *g, int radius, int row, int col, double Q, double P, double theta);
+void grid_create_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
 
 bool grid_free(grid *g);
 bool grid_release_from_gpu(grid *g);

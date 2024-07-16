@@ -30,7 +30,8 @@ int Stosic(void) {
         g.m[i] = v3d_c(0, 0, -1);
 
 
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2, cols / 2, 1, 1, M_PI / 2.0);
+    //v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 10, rows / 2, cols / 2, 1, 1, M_PI / 2.0);
+    grid_create_skyrmion_at(&g, 10, 5, cols / 2, rows / 2, 1, 1, 0);
     g.gi.pbc = (pbc_rules){.pbc_x = 0, .pbc_y = 0, .m = v3d_c(0, 0, -1)};
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
@@ -129,8 +130,8 @@ int test(void) {
             //v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, Rx / 2, yc, xc, 1, 1, M_PI / 2.0);
         }
     }
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, 3 * Rx, rows / 2, 2.5 * cols / 5, 1, 1, M_PI / 2.0);
-    v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, Rx, rows / 2, 2.5 * cols / 5, -1, -1, M_PI / 2.0);
+    grid_create_skyrmion_at(&g, 3 * Rx, Rx / 2.0, cols / 2.0, rows / 2.0, 1, 1, M_PI);
+    grid_create_skyrmion_at(&g, Rx, Rx / 2.0, cols / 2.0, rows / 2.0, -1, 1, 0);
 
 
     int a = cols / 4;
@@ -154,9 +155,11 @@ int test(void) {
     //string temperature_func = str_is_cstr("return 0.0;");
     //string compile = str_is_cstr("-cl-fast-relaxed-math");
 
+
     double ratio = (double)rows / cols;
 
     logging_log(LOG_INFO, "Integration dt: %e", dt);
+
     integrate_params int_params = integrate_params_init();
     //int_params.current_func = create_current_she_ac(20e10, v3d_c(1, 1, 0), 20.0 / NS, 0);
     //int_params.current_func = create_current_stt_dc(20e10, 0, 0);
@@ -164,11 +167,12 @@ int test(void) {
     int_params.field_func = create_field_D2_over_J(v3d_c(0, 0, -0.5), J, dm, mu);
     int_params.duration = 200.2 * NS;
     int_params.interval_for_raw_grid = 0;
-    int_params.dt = dt * 1;
-    int_params.interval_for_raw_grid = 10000;
+    int_params.dt = dt;
+    int_params.interval_for_raw_grid = 100;
+
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-    int_params.current_func = create_current_stt_dc(5e10, 0, 0);
-    //int_params.current_func = create_current_she_dc(2e10, v3d_c(1, 0, 0), 0);
+
+    int_params.current_func = create_current_she_dc(0.1e10, v3d_c(1, 0, 0), 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     //str_free(&field_func);

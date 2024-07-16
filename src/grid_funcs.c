@@ -170,7 +170,7 @@ void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols) {
             v3d_set_at_loc(v, rows, cols, r, c, v3d_normalize(v3d_c(shit_random(-1.0, 1.0), shit_random(-1.0, 1.0), shit_random(-1.0, 1.0))));
 }
 
-void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta) {
+void v3d_create_skyrmion_at_old(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta) {
     double R2 = radius * radius;
     for (int i = row - 2 * radius; i < row + 2 * radius; ++i) {
         double dy = (double)i - row;
@@ -197,6 +197,37 @@ void v3d_create_skyrmion(v3d *v, unsigned int rows, unsigned int cols, int radiu
             }
         }
     }
+}
+
+void v3d_create_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
+    int dr = radius + dw_width;
+    for (int i = -dr; i <= dr; ++i) {
+        for (int j = -dr; j <= dr; ++j) {
+            double r = sqrt(i * i + j * j);
+            if (r > dr)
+                continue;
+            int x = ix + j;
+            int y = iy + i;
+            x = ((x % (int)cols) + (int)cols) % (int)cols;
+            y = ((y % (int)rows) + (int)rows) % (int)rows;
+            double phi = atan2(i, j) + M_PI;
+            phi = phi * vor + _gamma;
+            double theta = 2.0 * atan(pow(sinh(radius / dw_width) / sinh(r / dw_width), -Q));
+            v[y * cols + x] = v3d_c(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+        }
+    }
+}
+
+void grid_fill_with_random(grid *g) {
+    v3d_fill_with_random(g->m, g->gi.rows, g->gi.cols);
+}
+
+void grid_create_skyrmion_at_old(grid *g, int radius, int row, int col, double Q, double P, double theta) {
+    v3d_create_skyrmion_at_old(g->m, g->gi.rows, g->gi.cols, radius, row, col, Q, P, theta);
+}
+
+void grid_create_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
+    v3d_create_skyrmion_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, Q, vor, _gamma);
 }
 
 bool grid_free(grid *g) {

@@ -17,7 +17,7 @@ if test -f ./libatomistic.a; then
 fi
 
 if [ "$1" = "install" ]; then
-    if test -f $HOME/.local/lib/atomistic; then
+    if test -d $HOME/.local/lib/atomistic; then
         rm -r $HOME/.local/lib/atomistic
     fi
     mkdir --parents $HOME/.local/lib/atomistic
