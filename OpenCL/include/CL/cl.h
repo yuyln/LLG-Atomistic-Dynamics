@@ -74,7 +74,7 @@ typedef cl_bitfield         cl_mem_migration_flags;
 #endif
 typedef cl_uint             cl_image_info;
 #ifdef CL_VERSION_1_1
-typedef cl_uint             cl_gpu_create_type;
+typedef cl_uint             cl_buffer_create_type;
 #endif
 typedef cl_uint             cl_addressing_mode;
 typedef cl_uint             cl_filter_mode;
@@ -172,10 +172,10 @@ typedef struct _cl_image_desc {
 
 #ifdef CL_VERSION_1_1
 
-typedef struct _cl_gpu_region {
+typedef struct _cl_buffer_region {
     size_t                  origin;
     size_t                  size;
-} cl_gpu_region;
+} cl_buffer_region;
 
 #endif
 
@@ -880,7 +880,7 @@ typedef struct _cl_name_version {
 #define CL_SUBMITTED                                0x2
 #define CL_QUEUED                                   0x3
 
-/* cl_gpu_create_type */
+/* cl_buffer_create_type */
 #ifdef CL_VERSION_1_1
 #define CL_BUFFER_CREATE_TYPE_REGION                0x1220
 #endif
@@ -1096,7 +1096,7 @@ clCreateBuffer(cl_context   context,
 extern CL_API_ENTRY cl_mem CL_API_CALL
 clCreateSubBuffer(cl_mem                   buffer,
                   cl_mem_flags             flags,
-                  cl_gpu_create_type    buffer_create_type,
+                  cl_buffer_create_type    buffer_create_type,
                   const void *             buffer_create_info,
                   cl_int *                 errcode_ret) CL_API_SUFFIX__VERSION_1_1;
 
@@ -1580,8 +1580,8 @@ clEnqueueFillBuffer(cl_command_queue   command_queue,
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyBuffer(cl_command_queue    command_queue,
-                    cl_mem              src_gpu,
-                    cl_mem              dst_gpu,
+                    cl_mem              src_buffer,
+                    cl_mem              dst_buffer,
                     size_t              src_offset,
                     size_t              dst_offset,
                     size_t              size,
@@ -1593,8 +1593,8 @@ clEnqueueCopyBuffer(cl_command_queue    command_queue,
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyBufferRect(cl_command_queue    command_queue,
-                        cl_mem              src_gpu,
-                        cl_mem              dst_gpu,
+                        cl_mem              src_buffer,
+                        cl_mem              dst_buffer,
                         const size_t *      src_origin,
                         const size_t *      dst_origin,
                         const size_t *      region,
@@ -1662,7 +1662,7 @@ clEnqueueCopyImage(cl_command_queue     command_queue,
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyImageToBuffer(cl_command_queue command_queue,
                            cl_mem           src_image,
-                           cl_mem           dst_gpu,
+                           cl_mem           dst_buffer,
                            const size_t *   src_origin,
                            const size_t *   region,
                            size_t           dst_offset,
@@ -1672,7 +1672,7 @@ clEnqueueCopyImageToBuffer(cl_command_queue command_queue,
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyBufferToImage(cl_command_queue command_queue,
-                           cl_mem           src_gpu,
+                           cl_mem           src_buffer,
                            cl_mem           dst_image,
                            size_t           src_offset,
                            const size_t *   dst_origin,

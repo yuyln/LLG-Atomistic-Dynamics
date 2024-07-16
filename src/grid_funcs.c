@@ -15,7 +15,8 @@
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
     logging_log(LOG_WARNING, "Location (%d %d) out of bounds (%u %u)", row, col, rows, cols);\
-    return; \
+    row = ((row % (int)rows) + (int)rows) % (int)rows; \
+    col = ((col % (int)cols) + (int)cols) % (int)cols; \
 }} while(0)
 
 double shit_random(double from, double to) {
@@ -386,18 +387,21 @@ void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, vo
     int64_t y_min = i64_min(y0, y1);
 
     for (int64_t y = y_min; y < y_max; ++y)
-        for (int64_t x = x_min; x < x_max; ++x)
-            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
-                fun(g, y, x, user_data);
-
+        for (int64_t x = x_min; x < x_max; ++x) {
+            int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
+            int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;
+            fun(g, yl, xl, user_data);
+        }
 }
 
 void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     for (int64_t y = y0 - b; y < y0 + b; ++y)
         for (int64_t x = x0 - a; x < x0 + a; ++x)
-            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows)
-                if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1)
-                    fun(g, y, x, user_data);
+                if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1) {
+                    int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
+                    int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;
+                    fun(g, yl, xl, user_data);
+                }
 }
 
 static bool triangle_inside(double x, double y, double x0, double y0, double x1, double y1, double x2, double y2) {
@@ -418,10 +422,12 @@ void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1
     int64_t y_min = i64_min(y0, i64_min(y1, y2));
 
     for (int64_t y = y_min; y < y_max; ++y)
-        for (int64_t x = x_min; x < x_max; ++x)
-            if (x >= 0 && x < g->gi.cols && y >= 0 && y < g->gi.rows &&
-                triangle_inside(x, y, x0, y0, x1, y1, x2, y2))
-                fun(g, y, x, user_data);
+        for (int64_t x = x_min; x < x_max; ++x) {
+            int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
+            int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;
+            if (triangle_inside(x, y, x0, y0, x1, y1, x2, y2))
+                fun(g, yl, xl, user_data);
+        }
 }
 
 void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
