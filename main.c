@@ -93,7 +93,8 @@ int test(void) {
     //double dm = 0.5 * J;
     //double ani = 0.05 * J;
     double lattice = 0.5e-9;
-    double alpha = 0.04;
+    //double alpha = 0.04;
+    double alpha = 0.4;
     double J = 1.0e-3 * QE;
     double dm = 0.2 * J;
     double ani = 0.01 * J;
@@ -117,7 +118,6 @@ int test(void) {
         g.m[i] = v3d_c(0, 0, -1);
 
     int n = 6;
-
     double Ry = 2.0 * rows / (3.0 * n);
     double Rx = 2.0 * cols / (3.0 * n);
 
@@ -127,11 +127,11 @@ int test(void) {
             int xc = Rx / 4.0 + ix * (Rx + Rx / 2.0) + Rx / 2.0;
             if (iy % 2 == 0)
                 xc += Rx / 2.0 + Rx / 4.0;
-            //v3d_create_skyrmion(g.m, g.gi.rows, g.gi.cols, Rx / 2, yc, xc, 1, 1, M_PI / 2.0);
+            grid_create_skyrmion_at(&g, Rx / 2.0, 1, xc, yc, 1, 1, 0);
         }
     }
-    grid_create_skyrmion_at(&g, 3 * Rx, Rx / 2.0, cols / 2.0, rows / 2.0, 1, 1, M_PI);
-    grid_create_skyrmion_at(&g, Rx, Rx / 2.0, cols / 2.0, rows / 2.0, -1, 1, 0);
+    //grid_create_skyrmion_at(&g, 3 * Rx, Rx / 2.0, cols / 2.0, rows / 2.0, 1, 1, M_PI);
+    //grid_create_skyrmion_at(&g, Rx, Rx / 2.0, cols / 2.0, rows / 2.0, -1, 1, 0);
 
 
     int a = cols / 4;
@@ -172,7 +172,7 @@ int test(void) {
 
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
-    int_params.current_func = create_current_she_dc(0.1e10, v3d_c(1, 0, 0), 0);
+    int_params.current_func = create_current_she_dc(1e10, v3d_c(1, 0, 0), 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     //str_free(&field_func);

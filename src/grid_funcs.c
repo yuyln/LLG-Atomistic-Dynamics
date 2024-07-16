@@ -101,11 +101,13 @@ void grid_set_gamma_loc(grid *g, int row, int col, double gamma) {
 
 void grid_set_anisotropy_loc(grid *g, int row, int col, anisotropy ani) {
     CHECK_BOUNDS(g->gi.rows, g->gi.cols, row, col);
+    ani.dir = v3d_normalize(ani.dir);
     g->gp[row * g->gi.cols + col].ani = ani;
 }
 
 void grid_set_pinning_loc(grid *g, int row, int col, pinning pin) {
     CHECK_BOUNDS(g->gi.rows, g->gi.cols, row, col);
+    pin.dir = v3d_normalize(pin.dir);
     g->gp[row * g->gi.cols + col].pin = pin;
 }
 
@@ -218,6 +220,11 @@ void v3d_create_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double
     }
 }
 
+void v3d_uniform(v3d *v, unsigned int rows, unsigned int cols, v3d dir) {
+    for (unsigned int i = 0; i < rows * cols; ++i)
+        v[i] = v3d_normalize(dir);
+}
+
 void grid_fill_with_random(grid *g) {
     v3d_fill_with_random(g->m, g->gi.rows, g->gi.cols);
 }
@@ -228,6 +235,10 @@ void grid_create_skyrmion_at_old(grid *g, int radius, int row, int col, double Q
 
 void grid_create_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
     v3d_create_skyrmion_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, Q, vor, _gamma);
+}
+
+void grid_uniform(grid *g, v3d dir) {
+    v3d_uniform(g->m, g->gi.rows, g->gi.cols, dir);
 }
 
 bool grid_free(grid *g) {
@@ -435,3 +446,20 @@ void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, in
     grid_do_in_triangle(g, x1 + nx * thickness / 2, y1 + ny * thickness / 2, x1 - nx * thickness / 2, y1 - ny * thickness / 2, x0 + nx * thickness / 2, y0 + ny * thickness / 2, fun, user_data);
 }
 
+dm_interaction dm_interfacial(double dm) {
+    return (dm_interaction){.dmv_down = v3d_c(-dm, 0.0, 0.0),
+                            .dmv_up = v3d_c(dm, 0.0, 0.0),
+                            .dmv_left = v3d_c(0.0, dm, 0.0),
+                            .dmv_right = v3d_c(0.0, -dm, 0.0)};
+}
+
+dm_interaction dm_bulk(double dm) {
+    return (dm_interaction){.dmv_down = v3d_c(0.0, -dm, 0.0),
+                            .dmv_up = v3d_c(0.0, dm, 0.0),
+                            .dmv_left = v3d_c(dm, 0.0, 0.0),
+                            .dmv_right = v3d_c(-dm, 0.0, 0.0)};
+}
+
+anisotropy anisotropy_z_axis(double value) {
+    return (anisotropy){.dir = v3d_c(0, 0, 1), .ani = value};
+}

@@ -41,10 +41,12 @@ void grid_set_anisotropy(grid *g, anisotropy ani);
 void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
 void v3d_create_skyrmion_at_old(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
 void v3d_create_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
+void v3d_uniform(v3d *v, unsigned int rows, unsigned int cols, v3d dir);
 
 void grid_fill_with_random(grid *g);
 void grid_create_skyrmion_at_old(grid *g, int radius, int row, int col, double Q, double P, double theta);
 void grid_create_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
+void grid_uniform(grid *g, v3d dir);
 
 bool grid_free(grid *g);
 bool grid_release_from_gpu(grid *g);
@@ -62,3 +64,7 @@ void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, v
 void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
 #endif
+
+dm_interaction dm_interfacial(double value);
+dm_interaction dm_bulk(double value);
+anisotropy anisotropy_z_axis(double value);
