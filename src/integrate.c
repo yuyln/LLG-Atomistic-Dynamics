@@ -121,7 +121,7 @@ integrate_params integrate_params_init(void) {
     ret.interval_for_raw_grid = 10000;
     ret.interval_for_rgb_grid = 50000;
 
-    ret.current_func = str_is_cstr("return (current){0};");
+    ret.current_func = str_is_cstr("return (current){.type = CUR_NONE};");
     ret.field_func = str_is_cstr("return v3d_s(0);");
     ret.temperature_func = str_is_cstr("return 0;");
     ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
