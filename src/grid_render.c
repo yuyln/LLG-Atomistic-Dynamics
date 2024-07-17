@@ -22,16 +22,21 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     ret.rgba_cpu = mmalloc(ret.width * ret.height * sizeof(*ret.rgba_cpu));
     ret.rgba_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.rgba_cpu) * ret.width * ret.height, CL_MEM_READ_WRITE);
 
-    ret.buffer_cpu = mmalloc(ret.width * ret.height * sizeof(*ret.buffer_cpu));
-    ret.buffer_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.buffer_cpu) * ret.width * ret.height, CL_MEM_READ_WRITE);
+    ret.buffer_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.buffer_cpu));
+    ret.buffer_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.buffer_cpu) * g->gi.rows * g->gi.cols, CL_MEM_READ_WRITE);
+
+    ret.v3d_buffer_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.v3d_buffer_cpu));
+    ret.v3d_buffer_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.v3d_buffer_cpu) * g->gi.rows * g->gi.cols, CL_MEM_READ_WRITE);
 
     ret.grid_hsl_id = gpu_cl_append_kernel(ret.gpu, "render_grid_hsl");
     ret.grid_bwr_id = gpu_cl_append_kernel(ret.gpu, "render_grid_bwr");
     ret.pinning_id = gpu_cl_append_kernel(ret.gpu, "render_pinning");
     ret.energy_id = gpu_cl_append_kernel(ret.gpu, "render_energy");
     ret.charge_id = gpu_cl_append_kernel(ret.gpu, "render_charge");
+    ret.electric_id = gpu_cl_append_kernel(ret.gpu, "render_electric");
     ret.calc_charge_id = gpu_cl_append_kernel(ret.gpu, "calculate_charge_to_render");
     ret.calc_energy_id = gpu_cl_append_kernel(ret.gpu, "calculate_energy");
+    ret.calc_electric_id = gpu_cl_append_kernel(ret.gpu, "calculate_electric");
 
     gpu_cl_fill_kernel_args(ret.gpu, ret.grid_hsl_id, 0, 5, &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi, sizeof(ret.g->gi), &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
 
@@ -50,6 +55,17 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
 
     gpu_cl_fill_kernel_args(ret.gpu, ret.energy_id, 0, 3, &ret.buffer_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
     gpu_cl_fill_kernel_args(ret.gpu, ret.energy_id, 5, 3, &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height)); //Need to set ranges
+                                                                                                                                                          //
+//kernel void calculate_electric(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL v3d *out, double dt, grid_info gi) {
+    gpu_cl_fill_kernel_args(ret.gpu, ret.calc_electric_id, 0, 2, &ret.g->gp_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
+    gpu_cl_set_kernel_arg(ret.gpu, ret.calc_electric_id, 3, sizeof(cl_mem), &ret.v3d_buffer_gpu);
+    gpu_cl_set_kernel_arg(ret.gpu, ret.calc_electric_id, 5, sizeof(ret.g->gi), &ret.g->gi);
+
+//    kernel void render_electric(GLOBAL v3d *field, unsigned int rows, unsigned int cols, double max_mod,
+//                            GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
+
+    gpu_cl_fill_kernel_args(ret.gpu, ret.electric_id, 0, 3, &ret.v3d_buffer_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
+    gpu_cl_fill_kernel_args(ret.gpu, ret.electric_id, 4, 3, &ret.rgba_gpu, sizeof(cl_mem), &ret.width, sizeof(ret.width), &ret.height, sizeof(ret.height));
 
     return ret;
 }
@@ -57,8 +73,10 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
 void grid_renderer_close(grid_renderer *gr) {
     mfree(gr->rgba_cpu);
     mfree(gr->buffer_cpu);
+    mfree(gr->v3d_buffer_cpu);
     gpu_cl_release_memory(gr->rgba_gpu);
     gpu_cl_release_memory(gr->buffer_gpu);
+    gpu_cl_release_memory(gr->v3d_buffer_gpu);
     grid_release_from_gpu(gr->g);
 }
 
@@ -146,6 +164,32 @@ void grid_renderer_charge(grid_renderer *gr) {
 
 }
 
+void grid_renderer_electric_field(grid_renderer *gr) {
+    size_t global = gr->g->gi.rows * gr->g->gi.cols;
+    size_t local = gpu_cl_gcd(global, 32);
+
+    gpu_cl_enqueue_nd(gr->gpu, gr->calc_electric_id, 1, &local, &global, NULL);
+
+    gpu_cl_read_gpu(gr->gpu, global * sizeof(*gr->v3d_buffer_cpu), 0, gr->v3d_buffer_cpu, gr->v3d_buffer_gpu);
+
+    double max_electric = -FLT_MAX;
+   // for (uint64_t i = 0; i < global; ++i) {
+   //     double value = v3d_dot(gr->v3d_buffer_cpu[i], gr->v3d_buffer_cpu[i]);
+   //     v3d v = gr->v3d_buffer_cpu[i];
+   //     if (value > max_electric) max_electric = value;
+   // }
+
+    global = gr->width * gr->height;
+    local = gpu_cl_gcd(global, 32);
+    
+    gpu_cl_set_kernel_arg(gr->gpu, gr->electric_id, 3, sizeof(max_electric), &max_electric);
+    gpu_cl_enqueue_nd(gr->gpu, gr->electric_id, 1, &local, &global, NULL);
+
+    gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
+
+    window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
+}
+
 unsigned int steps_per_frame = 100;
 double print_time = 1.0;
 
@@ -226,8 +270,12 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
     double dt_fps = 0;
     double frame_start = profiler_get_sec();
     uint64_t frames = 0;
+//kernel void calculate_electric(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL v3d *out, double dt, grid_info gi) {
+    gpu_cl_set_kernel_arg(gpu, gr.calc_electric_id, 2, sizeof(cl_mem), &ctx.swap_gpu);
+    gpu_cl_set_kernel_arg(gpu, gr.calc_electric_id, 4, sizeof(ctx.params.dt), &ctx.params.dt);
 
     int state = 'h';
+    integrate_step(&ctx);
     while (!window_should_close()) {
         switch (state) {
             case 'q':
@@ -242,6 +290,9 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             case 'b':
                 grid_renderer_bwr(&gr);
                 break;
+            case 'w':
+                grid_renderer_electric_field(&gr);
+                break;
             default:
                 grid_renderer_hsl(&gr);
                 break;
@@ -255,10 +306,12 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             state = 'h';
         else if (window_key_pressed('b'))
             state = 'b';
+        else if (window_key_pressed('w'))
+            state = 'w';
 
         for (unsigned int i = 0; i < steps_per_frame; ++i) {
-            integrate_step(&ctx);
             integrate_exchange_grids(&ctx);
+            integrate_step(&ctx);
         }
 
         if (print_timer >= print_time) {

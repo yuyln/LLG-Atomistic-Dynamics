@@ -125,7 +125,7 @@ int test(void) {
     //    }
     //}
     grid_create_skyrmion_at(&g, 20, 1, cols / 2.0, rows / 2.0, -1, 1, M_PI);
-    grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
+    //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
 
 
 

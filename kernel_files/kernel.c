@@ -372,3 +372,45 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
     accel = v3d_scalar(accel, 1.0 / mass);
     v2[id] = param1.gs.pin.pinned? param1.gs.pin.dir: v3d_normalize(v3d_sum(v3d_scalar(param1.m, 2.0), v3d_sub(v3d_scalar(accel, dt * dt), v0l)));
 }
+
+kernel void calculate_electric(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL v3d *out, double dt, grid_info gi) {
+    size_t id = get_global_id(0);
+    int col = id % gi.cols;
+    int row = (id - col) / gi.cols;
+
+    if (col >= gi.cols || row >= gi.rows)
+        return;
+
+    parameters param;
+    param.rows = gi.rows;
+    param.cols = gi.cols;
+    param.gs = gs[id];
+    param.m = m0[id];
+    v3d dm = v3d_sub(m1[id], param.m);
+    param.neigh.left = apply_pbc(m0, gi.pbc, row, col - 1, gi.rows, gi.cols);
+    param.neigh.right = apply_pbc(m0, gi.pbc, row, col + 1, gi.rows, gi.cols);
+    param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, gi.rows, gi.cols);
+    param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, gi.rows, gi.cols);
+
+    out[id] = v3d_scalar(emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
+}
+
+kernel void render_electric(GLOBAL v3d *field, unsigned int rows, unsigned int cols, double max_mod,
+                            GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
+    size_t id = get_global_id(0);
+    int icol = id % width;
+    int irow = (id - icol) / width;
+    int vcol = (float)icol / width * cols;
+    int vrow = (float)irow / height * rows;
+
+    //rendering inverts the grid, need to invert back
+    vrow = rows - 1 - vrow;
+
+    if (vrow >= rows || vcol >= cols || icol >= width || irow >= height)
+        return;
+
+    v3d f = field[vrow * cols + vcol];
+    RGBA32 color = m_to_hsl(v3d_normalize(f));
+
+    rgba[id] = color;
+}
