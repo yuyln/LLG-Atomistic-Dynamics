@@ -46,7 +46,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "eletric_x(V/m),eletric_y(V/m),eletric_z(V/m),");
     fprintf(ctx.integrate_info, "magnetic_lattice_x(T),magnetic_lattice_y(T),magnetic_lattice_z(T),");
     fprintf(ctx.integrate_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
-    fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m)\n");
+    fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),");
+    fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m)\n");
 
     string output_grid_path = str_from_cstr("");
     str_cat_str(&output_grid_path, params.output_path);
@@ -169,7 +170,8 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.eletric_field.x, info.eletric_field.y, info.eletric_field.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_lattice.x, info.magnetic_field_lattice.y, info.magnetic_field_lattice.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_derivative.x, info.magnetic_field_derivative.y, info.magnetic_field_derivative.z);
-        fprintf(ctx->integrate_info, "%.15e,%.15e\n", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e\n", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite);
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
@@ -205,12 +207,16 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.exchange_energy += ctx->info[i].exchange_energy;
         info_local.charge_finite += ctx->info[i].charge_finite;
         info_local.charge_lattice += ctx->info[i].charge_lattice;
+        info_local.abs_charge_finite += ctx->info[i].abs_charge_finite;
+        info_local.abs_charge_lattice += ctx->info[i].abs_charge_lattice;
         info_local.avg_m = v3d_sum(info_local.avg_m, v3d_scalar(ctx->info[i].avg_m, 1.0 / (ctx->g->gi.rows * ctx->g->gi.cols)));
         info_local.eletric_field = v3d_sum(info_local.eletric_field , ctx->info[i].eletric_field);
         info_local.magnetic_field_lattice = v3d_sum(info_local.magnetic_field_lattice, ctx->info[i].magnetic_field_lattice);
         info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, ctx->info[i].magnetic_field_derivative);
         info_local.charge_center_x += ctx->info[i].charge_center_x;
         info_local.charge_center_y += ctx->info[i].charge_center_y;
+        info_local.abs_charge_center_x += ctx->info[i].abs_charge_center_x;
+        info_local.abs_charge_center_y += ctx->info[i].abs_charge_center_y;
     }
     return info_local;
 }

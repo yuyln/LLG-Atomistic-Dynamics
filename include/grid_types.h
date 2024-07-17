@@ -80,8 +80,14 @@ typedef struct {
     double charge_center_x;
     double charge_center_y;
 
+    double abs_charge_center_x;
+    double abs_charge_center_y;
+
     double charge_lattice;
     double charge_finite;
+
+    double abs_charge_lattice;
+    double abs_charge_finite;
 
     double exchange_energy;
     double dm_energy;

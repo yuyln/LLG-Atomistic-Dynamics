@@ -112,12 +112,16 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     local_info.energy = 0.5 * local_info.exchange_energy + 0.5 * local_info.dm_energy + local_info.field_energy + local_info.anisotropy_energy + local_info.cubic_energy + 0.5 * local_info.dipolar_energy;
     local_info.charge_finite = charge_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.charge_lattice = charge_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.abs_charge_finite = fabs(local_info.charge_finite);
+    local_info.abs_charge_lattice = fabs(local_info.charge_lattice);
     local_info.avg_m = param.m;
     local_info.eletric_field = v3d_scalar(emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
     local_info.magnetic_field_derivative = emergent_magnetic_field_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.magnetic_field_lattice = emergent_magnetic_field_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.charge_center_x = col * param.gs.lattice * local_info.charge_finite;
     local_info.charge_center_y = row * param.gs.lattice * local_info.charge_finite;
+    local_info.abs_charge_center_x = col * param.gs.lattice * local_info.abs_charge_finite;
+    local_info.abs_charge_center_y = row * param.gs.lattice * local_info.abs_charge_finite;
     info[id] = local_info;
 }
 
