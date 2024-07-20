@@ -122,6 +122,11 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     local_info.charge_center_y = row * param.gs.lattice * local_info.charge_finite;
     local_info.abs_charge_center_x = col * param.gs.lattice * local_info.abs_charge_finite;
     local_info.abs_charge_center_y = row * param.gs.lattice * local_info.abs_charge_finite;
+    v3d dm_dx = v3d_scalar(v3d_sub(param.neigh.right, param.neigh.left), 0.5);
+    v3d dm_dy = v3d_scalar(v3d_sub(param.neigh.up, param.neigh.down), 0.5);
+    local_info.D_xx = v3d_dot(dm_dx, dm_dx);
+    local_info.D_yy = v3d_dot(dm_dy, dm_dy);
+    local_info.D_xy = v3d_dot(dm_dx, dm_dy);
     info[id] = local_info;
 }
 

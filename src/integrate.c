@@ -47,7 +47,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "magnetic_lattice_x(T),magnetic_lattice_y(T),magnetic_lattice_z(T),");
     fprintf(ctx.integrate_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
     fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),");
-    fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m)\n");
+    fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),");
+    fprintf(ctx.integrate_info, "D_xx,D_yy,D_xy\n");
 
     string output_grid_path = str_from_cstr("");
     str_cat_str(&output_grid_path, params.output_path);
@@ -171,7 +172,8 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_lattice.x, info.magnetic_field_lattice.y, info.magnetic_field_lattice.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_derivative.x, info.magnetic_field_derivative.y, info.magnetic_field_derivative.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
-        fprintf(ctx->integrate_info, "%.15e,%.15e\n", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_xy);
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
@@ -217,6 +219,9 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.charge_center_y += ctx->info[i].charge_center_y;
         info_local.abs_charge_center_x += ctx->info[i].abs_charge_center_x;
         info_local.abs_charge_center_y += ctx->info[i].abs_charge_center_y;
+        info_local.D_xx += ctx->info[i].D_xx;
+        info_local.D_yy += ctx->info[i].D_yy;
+        info_local.D_xy += ctx->info[i].D_xy;
     }
     return info_local;
 }

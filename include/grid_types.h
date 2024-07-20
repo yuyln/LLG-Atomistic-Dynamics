@@ -96,6 +96,10 @@ typedef struct {
     double cubic_energy;
     double dipolar_energy;
     double energy;
+
+    double D_xx;
+    double D_yy;
+    double D_xy; //=D_yx
 } information_packed;
 
 #endif
