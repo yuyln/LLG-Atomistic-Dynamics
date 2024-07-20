@@ -515,3 +515,203 @@ dm_interaction dm_bulk(double dm) {
 anisotropy anisotropy_z_axis(double value) {
     return (anisotropy){.dir = v3d_c(0, 0, 1), .ani = value};
 }
+
+
+
+#define da_append(da, item) do { \
+    if ((da)->len >= (da)->cap) { \
+        if ((da)->cap <= 1) \
+            (da)->cap = (da)->len + 2;\
+        else\
+            (da)->cap *= 1.5; \
+        (da)->items = realloc((da)->items, sizeof(*(da)->items) * (da)->cap); \
+        if (!(da)->items) \
+            logging_log(LOG_FATAL, "%s:%d Could not append item to dynamic array. Allocation failed. Buy more RAM I guess, lol", __FILE__, __LINE__); \
+        memset(&(da)->items[(da)->len], 0, sizeof(*(da)->items) * ((da)->cap - (da)->len));\
+    } \
+    (da)->items[(da)->len] = (item); \
+    (da)->len += 1; \
+} while(0)
+
+#define da_remove(da, idx) do { \
+    if ((idx) >= (da)->len || (idx) < 0) { \
+        logging_log(LOG_ERROR, "%s:%d Trying to remove out of range idx %ll from dynamic array", __FILE__, __LINE__, (int64_t)idx); \
+        break; \
+    } \
+    memmove(&((da)->items[(idx)]), &((da)->items[(idx) + 1]), sizeof(*((da)->items)) * ((da)->len - (idx) - 1)); \
+    if ((da)->len <= (da)->cap / 2) { \
+        (da)->cap /= 1.5; \
+        (da)->items = realloc((da)->items, sizeof(*((da)->items)) * (da)->cap); \
+        if (!(da)->items) \
+            logging_log(LOG_FATAL, "%s:%d Could not append item to dynamic array. Allocation failed. Buy more RAM I guess, lol", __FILE__, __LINE__); \
+        memset(&((da)->items[(da)->len]), 0, sizeof(*((da)->items)) * ((da)->cap - (da)->len));\
+    } \
+    (da)->len -= 1;\
+} while(0)
+
+typedef struct {
+    uint64_t row;
+    uint64_t col;
+    enum {
+        UNDEFINED,
+        NOISE,
+        CLUSTER
+    } label;
+    uint64_t cluster;
+} point;
+
+typedef struct {
+    point *items;
+    uint64_t len;
+    uint64_t cap;
+} points;
+
+static double metric(v3d m1, v3d m2) {
+    v3d dm = v3d_sub(m1, m2);
+    return fabs(dm.z) >= 0.3;
+}
+
+centers v3d_cluster(v3d *v, unsigned int rows, unsigned int cols, double eps, uint64_t min_pts) {
+    points queue = {0};
+
+    bool *seen = mmalloc(sizeof(*seen) * rows * cols);
+    if (!seen)
+        logging_log(LOG_FATAL, "what the actual fuck");
+
+    centers ret = {0};
+
+    point *ps = mmalloc(sizeof(*ps) * rows * cols);
+    double avg_mz = 0;
+    for (unsigned int i = 0; i < rows; ++i) {
+        for (unsigned int j = 0; j < cols; ++j) {
+            ps[i * cols + j] = (point){.col = j, .row = i, .cluster = 0, .label = UNDEFINED};
+            avg_mz += v[i * cols + j].z / (double)(rows * cols);
+        }
+    }
+
+
+    for (unsigned int i = 0; i < rows * cols; ++i) {
+        point *it = &ps[i];
+
+        if (it->label != UNDEFINED)
+            continue;
+
+        queue.len = 0;
+        memset(seen, 0, sizeof(*seen) * rows * cols);
+        da_append(&queue, *it);
+        uint64_t count = 0;
+        while (queue.len) {
+            point *qt = &ps[queue.items[0].row * cols + queue.items[0].col];
+            uint64_t x = qt->col;
+            uint64_t y = qt->row;
+            bool *saw = &seen[y * cols + x];
+            if (qt->label != UNDEFINED || *saw) {
+                da_remove(&queue, 0);
+                continue;
+            }
+            *saw = true;
+
+            uint64_t right = x + 1;
+            right = ((right % cols) + cols) % cols;
+            uint64_t ridx = y * cols + right;
+
+            if (metric(v[ridx], v[y * cols + x]) < eps && !seen[ridx])
+                da_append(&queue, ps[ridx]);
+
+            uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + (int64_t)cols) % cols;
+            uint64_t lidx = y * cols + left;
+
+            if (metric(v[lidx], v[y * cols + x]) < eps && !seen[lidx])
+                da_append(&queue, ps[lidx]);
+
+            uint64_t up = y + 1;
+            up = ((up % rows) + rows) % rows;
+            uint64_t uidx = up * cols + x;
+
+            if (metric(v[uidx], v[y * cols + x]) < eps && !seen[uidx])
+                da_append(&queue, ps[uidx]);
+
+            uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + (int64_t)rows) % rows;
+            uint64_t didx = down * cols + x;
+
+            if (metric(v[didx], v[y * cols + x]) < eps && !seen[didx])
+                da_append(&queue, ps[didx]);
+
+            da_remove(&queue, 0);
+            count++;
+        }
+
+        int label = UNDEFINED;
+        if (count < min_pts)
+            label = NOISE;
+        else {
+            da_append(&ret, ((center){.x = it->col, .y = it->row,
+                        .id = ret.len, .count = 1, .avg_m = v[it->row + cols + it->col]}));
+            label = CLUSTER;
+        }
+
+        queue.len = 0;
+        memset(seen, 0, sizeof(*seen) * rows * cols);
+        da_append(&queue, *it);
+        while (queue.len) {
+            point *qt = &ps[queue.items[0].row * cols + queue.items[0].col];
+            uint64_t x = qt->col;
+            uint64_t y = qt->row;
+            bool *saw = &seen[y * cols + x];
+            if (qt->label != UNDEFINED || *saw) {
+                da_remove(&queue, 0);
+                continue;
+            }
+            *saw = true;
+
+            qt->label = label;
+            if (qt->label == CLUSTER) {
+                qt->cluster = ret.len - 1;
+                ret.items[qt->cluster].x += qt->col;
+                ret.items[qt->cluster].y += qt->row;
+                ret.items[qt->cluster].count += 1;
+                ret.items[qt->cluster].avg_m = v3d_sum(ret.items[qt->cluster].avg_m, v[qt->row * cols + qt->col]);
+            }
+
+            uint64_t right = x + 1;
+            right = ((right % cols) + cols) % cols;
+            uint64_t ridx = y * cols + right;
+
+            if (metric(v[ridx], v[y * cols + x]) < eps && !seen[ridx])
+                da_append(&queue, ps[ridx]);
+
+            uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + (int64_t)cols) % cols;
+            uint64_t lidx = y * cols + left;
+
+            if (metric(v[lidx], v[y * cols + x]) < eps && !seen[lidx])
+                da_append(&queue, ps[lidx]);
+
+            uint64_t up = y + 1;
+            up = ((up % rows) + rows) % rows;
+            uint64_t uidx = up * cols + x;
+
+            if (metric(v[uidx], v[y * cols + x]) < eps && !seen[uidx])
+                da_append(&queue, ps[uidx]);
+
+            uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + (int64_t)rows) % rows;
+            uint64_t didx = down * cols + x;
+
+            if (metric(v[didx], v[y * cols + x]) < eps && !seen[didx])
+                da_append(&queue, ps[didx]);
+            da_remove(&queue, 0);
+        }
+    }
+
+ 
+    for (uint64_t i = 0; i < ret.len; ++i) {
+        center *it = &ret.items[i];
+        it->x /= (double)it->count;
+        it->y /= (double)it->count;
+        it->avg_m = v3d_scalar(it->avg_m, 1.0 / (double)it->count);
+    }
+
+    free(seen);
+    free(queue.items);
+    free(ps);
+    return ret;
+}

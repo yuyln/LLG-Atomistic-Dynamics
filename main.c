@@ -1,4 +1,5 @@
 #include "atomistic_simulation.h"
+#include <stdint.h>
 
 
 //@TODO: PROPER ERROR CHECKING URGENT!!!
@@ -142,6 +143,14 @@ int test(void) {
     int_params.current_func = create_current_she_dc(1e10, v3d_c(1, 0, 0), 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
+    profiler_start_measure("cluster");
+    centers c = v3d_cluster(g.m, g.gi.rows, g.gi.cols, 0.2, 2);
+    profiler_end_measure("cluster");
+    logging_log(LOG_INFO, "%llu", c.len);
+    for (uint64_t i = 0; i < c.len; ++i)
+        logging_log(LOG_INFO, "%f %f - %f %f %f", c.items[i].x, c.items[i].y, c.items[i].avg_m.x, c.items[i].avg_m.y, c.items[i].avg_m.z);
+    profiler_print_measures(stdout);
+
     grid_free(&g);
     return 0;
 }
@@ -247,6 +256,6 @@ int test3(void) {
 }
 
 int main(void) {
-    return test2();
+    return test();
 }
 

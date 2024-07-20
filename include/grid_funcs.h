@@ -15,6 +15,20 @@ typedef struct {
     bool on_gpu;
 } grid;
 
+typedef struct {
+    double x;
+    double y;
+    uint64_t id;
+    uint64_t count;
+    v3d avg_m;
+} center;
+
+typedef struct {
+    center *items;
+    uint64_t len;
+    uint64_t cap;
+} centers;
+
 double shit_random(double from, double to);
 grid grid_init(unsigned int rows, unsigned int cols);
 
@@ -70,3 +84,5 @@ void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, in
 dm_interaction dm_interfacial(double value);
 dm_interaction dm_bulk(double value);
 anisotropy anisotropy_z_axis(double value);
+
+centers v3d_cluster(v3d *v, unsigned int rows, unsigned int cols, double eps, uint64_t min_pts);
