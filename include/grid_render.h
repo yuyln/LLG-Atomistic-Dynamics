@@ -47,6 +47,7 @@ void grid_renderer_pinning(grid_renderer *gr);
 void grid_renderer_energy(grid_renderer *gr, double time);
 void grid_renderer_charge(grid_renderer *gr);
 void grid_renderer_electric_field(grid_renderer *gr);
+void grid_renderer_clustering(grid_renderer *gr);
 void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height);
 void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, unsigned int width, unsigned int height);
 void grid_renderer_integrate(grid *g, integrate_params params, unsigned int width, unsigned int height);

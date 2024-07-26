@@ -85,13 +85,13 @@ void set_pin2(grid *g, uint64_t row, uint64_t col, void *dummy) {
 }
 
 int test(void) {
-    unsigned int rows = 64;
-    unsigned int cols = 64;
+    unsigned int rows = 128;
+    unsigned int cols = 128;
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
-    double dm = 0.5 * J;
-    double ani = 0.05 * J;
+    double dm = 0.2 * J;
+    double ani = 0.00 * J;
     double alpha = 0.3;
     //
     grid g = grid_init(rows, cols);
@@ -125,7 +125,8 @@ int test(void) {
     //        grid_create_skyrmion_at(&g, Rx / 2.0, 1, xc, yc, 1, 1, 0);
     //    }
     //}
-    grid_create_skyrmion_at(&g, 20, 1, cols / 2.0, rows / 2.0, -1, 1, M_PI);
+    grid_create_skyrmion_at(&g, 20, 1, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
+    grid_create_skyrmion_at(&g, 20, 1, 4 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
     //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
 
 
@@ -134,21 +135,22 @@ int test(void) {
     double ratio = (double)rows / cols;
     logging_log(LOG_INFO, "Integration dt: %e", dt);
     integrate_params int_params = integrate_params_init();
-    int_params.current_func = create_current_stt_dc(00e10, 0, 0);
     int_params.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
     int_params.duration = 200.2 * NS;
-    int_params.interval_for_raw_grid = 0;
+    int_params.interval_for_raw_grid = 1000;
     int_params.dt = dt;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-    int_params.current_func = create_current_she_dc(1e10, v3d_c(1, 0, 0), 0);
+    int_params.current_func = create_current_stt_dc(10e10, 0, 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     profiler_start_measure("cluster");
-    centers c = v3d_cluster(g.m, g.gi.rows, g.gi.cols, 0.2, 2);
+    grid_cluster_kmeans(&g, 3, 5);
     profiler_end_measure("cluster");
+
+    cluster_centers c = g.clusters;
     logging_log(LOG_INFO, "%llu", c.len);
-    for (uint64_t i = 0; i < c.len; ++i)
-        logging_log(LOG_INFO, "%f %f - %f %f %f", c.items[i].x, c.items[i].y, c.items[i].avg_m.x, c.items[i].avg_m.y, c.items[i].avg_m.z);
+    for (uint64_t i = 0; i < g.clusters.len; ++i)
+        logging_log(LOG_INFO, "%f %f - %f %f %f - %llu", c.items[i].x, c.items[i].y, c.items[i].avg_m.x, c.items[i].avg_m.y, c.items[i].avg_m.z, c.items[i].count);
     profiler_print_measures(stdout);
 
     grid_free(&g);

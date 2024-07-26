@@ -5,6 +5,38 @@
 #include "gpu.h"
 
 typedef struct {
+    uint64_t row;
+    uint64_t col;
+    enum {
+        UNDEFINED,
+        NOISE,
+        CLUSTER
+    } label;
+    uint64_t cluster;
+} cluster_point;
+
+typedef struct {
+    double x;
+    double y;
+    uint64_t id;
+    uint64_t count;
+    v3d avg_m;
+    double sum_weight;
+} cluster_center;
+
+typedef struct {
+    cluster_center *items;
+    uint64_t len;
+    uint64_t cap;
+} cluster_centers;
+
+typedef struct {
+    uint64_t *items;
+    uint64_t len;
+    uint64_t cap;
+} cluster_queue;
+
+typedef struct {
     grid_info gi;
     grid_site_params *gp;
     v3d *m;
@@ -13,21 +45,12 @@ typedef struct {
     cl_mem m_gpu;
 
     bool on_gpu;
+
+    cluster_point *points;
+    cluster_centers clusters;
+    cluster_queue queue;
+    bool *seen;
 } grid;
-
-typedef struct {
-    double x;
-    double y;
-    uint64_t id;
-    uint64_t count;
-    v3d avg_m;
-} center;
-
-typedef struct {
-    center *items;
-    uint64_t len;
-    uint64_t cap;
-} centers;
 
 double shit_random(double from, double to);
 grid grid_init(unsigned int rows, unsigned int cols);
@@ -85,4 +108,5 @@ dm_interaction dm_interfacial(double value);
 dm_interaction dm_bulk(double value);
 anisotropy anisotropy_z_axis(double value);
 
-centers v3d_cluster(v3d *v, unsigned int rows, unsigned int cols, double eps, uint64_t min_pts);
+void grid_cluster(grid *g, double eps, uint64_t min_pts);
+void grid_cluster_kmeans(grid *g, uint64_t n_clusters, uint64_t niter);
