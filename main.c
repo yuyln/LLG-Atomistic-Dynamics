@@ -90,8 +90,8 @@ int test(void) {
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
-    double dm = 0.2 * J;
-    double ani = 0.00 * J;
+    double dm = 0.5 * J;
+    double ani = 0.02 * J;
     double alpha = 0.3;
     //
     grid g = grid_init(rows, cols);
@@ -125,9 +125,12 @@ int test(void) {
     //        grid_create_skyrmion_at(&g, Rx / 2.0, 1, xc, yc, 1, 1, 0);
     //    }
     //}
-    grid_create_skyrmion_at(&g, 20, 1, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
-    grid_create_skyrmion_at(&g, 20, 1, 4 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
+    //grid_create_skyrmion_at(&g, 20, 1, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
+    //grid_create_skyrmion_at(&g, 20, 1, 4 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
     //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
+    grid_fill_with_random(&g);
+    g.gi.pbc.pbc_x = 0;
+    g.gi.pbc.pbc_y = 0;
 
 
 

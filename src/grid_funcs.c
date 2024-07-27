@@ -556,13 +556,6 @@ anisotropy anisotropy_z_axis(double value) {
         break; \
     } \
     memmove(&((da)->items[(idx)]), &((da)->items[(idx) + 1]), sizeof(*((da)->items)) * ((da)->len - (idx) - 1)); \
-    if ((da)->len <= (da)->cap / 2) { \
-        (da)->cap /= 1.5; \
-        (da)->items = realloc((da)->items, sizeof(*((da)->items)) * (da)->cap); \
-        if (!(da)->items) \
-            logging_log(LOG_FATAL, "%s:%d Could not append item to dynamic array. Allocation failed. Buy more RAM I guess, lol", __FILE__, __LINE__); \
-        memset(&((da)->items[(da)->len]), 0, sizeof(*((da)->items)) * ((da)->cap - (da)->len));\
-    } \
     (da)->len -= 1;\
 } while(0)
 
@@ -730,11 +723,12 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             if (qt->label == CLUSTER) {
                 qt->cluster = g->clusters.len - 1;
                 uint64_t c = qt->cluster;
-                g->clusters.items[c].x += x * fabs(g->m[y * cols + x].z);
-                g->clusters.items[c].y += y * fabs(g->m[y * cols + x].z);
+                double weight = g->m[y * cols + x].z;
+                g->clusters.items[c].x += x * weight;
+                g->clusters.items[c].y += y * weight;
                 g->clusters.items[c].count += 1;
-                g->clusters.items[c].avg_m = v3d_sum(g->clusters.items[c].avg_m, g->m[y * cols + x]);
-                g->clusters.items[c].sum_weight += fabs(g->m[y * cols + x].z);
+                g->clusters.items[c].avg_m = v3d_sum(g->clusters.items[c].avg_m, v3d_scalar(g->m[y * cols + x], weight));
+                g->clusters.items[c].sum_weight += weight;
             }
 
             uint64_t right = x + 1;
@@ -769,18 +763,12 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
 
     for (uint64_t i = 0; i < g->clusters.len; ++i) {
         cluster_center *it = &g->clusters.items[i];
-        if (it->count > 0) {
-            it->avg_m = v3d_scalar(it->avg_m, 1.0 / (double)it->count);
+        if (!CLOSE_ENOUGH(it->sum_weight, 0, EPS)) {
+            it->avg_m = v3d_scalar(it->avg_m, 1.0 / (double)it->sum_weight);
             it->x /= (double)it->sum_weight;
             it->y /= (double)it->sum_weight;
         }
     }
-
-    //for (uint64_t i = 0; i < ret.len; ++i) {
-    //    center *it = &ret.items[i];
-    //    if (CLOSE_ENOUGH(it->avg_m.z, avg_mz, 0.1))
-    //        da_remove(&ret, i);
-    //}
 }
 
 void grid_cluster_kmeans(grid *g, uint64_t n_clusters, uint64_t niter) {
