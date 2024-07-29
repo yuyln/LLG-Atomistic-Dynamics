@@ -32,6 +32,7 @@ typedef struct {
 
 typedef struct {
     uint64_t *items;
+    uint64_t start;
     uint64_t len;
     uint64_t cap;
 } cluster_queue;
@@ -109,4 +110,3 @@ dm_interaction dm_bulk(double value);
 anisotropy anisotropy_z_axis(double value);
 
 void grid_cluster(grid *g, double eps, uint64_t min_pts);
-void grid_cluster_kmeans(grid *g, uint64_t n_clusters, uint64_t niter);

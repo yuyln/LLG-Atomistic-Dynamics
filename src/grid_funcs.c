@@ -12,6 +12,7 @@
 #include "string_view.h"
 #include "logging.h"
 #include "allocator.h"
+#include "profiler.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
@@ -33,10 +34,14 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     ret.gp = mmalloc(sizeof(*ret.gp) * rows * cols);
     ret.m = mmalloc(sizeof(*ret.m) * rows * cols);
     ret.clusters = (cluster_centers){0};
-    ret.queue = (cluster_queue){0};
     ret.points = mmalloc(sizeof(*ret.points) * rows * cols);
     ret.seen = mmalloc(sizeof(*ret.seen) * rows * cols);
     ret.on_gpu = false;
+
+    ret.queue.cap = rows * cols;
+    ret.queue.len = 0;
+    ret.queue.items = mmalloc(sizeof(*ret.queue.items) * rows * cols);
+    ret.queue.start = 0;
 
     double dm = 0.18 * QE * 1.0e-3;
 
@@ -420,11 +425,14 @@ bool grid_from_file(string path, grid *g) {
     g->gp = mmalloc(sizeof(*g->gp) * g->gi.rows * g->gi.cols);
     g->m = mmalloc(sizeof(*g->m) * g->gi.rows * g->gi.cols);
     g->clusters = (cluster_centers){0};
-    g->queue = (cluster_queue){0};
     g->points = mmalloc(sizeof(*g->points) * g->gi.rows * g->gi.cols);
     g->seen = mmalloc(sizeof(*g->seen) * g->gi.rows * g->gi.cols);
-
     g->on_gpu = false;
+
+    g->queue.cap = g->gi.rows * g->gi.cols;
+    g->queue.len = 0;
+    g->queue.items = mmalloc(sizeof(*g->queue.items) * g->gi.rows * g->gi.cols);
+    g->queue.start = 0;
 
     memcpy(g->gp, ptr, sizeof(*g->gp) * g->gi.rows * g->gi.cols);
     ptr += sizeof(*g->gp) * g->gi.rows * g->gi.cols;
@@ -559,14 +567,20 @@ anisotropy anisotropy_z_axis(double value) {
     (da)->len -= 1;\
 } while(0)
 
+#define rb_at(rb, idx) (rb)->items[((idx) + (rb)->start) % (rb)->cap]
+#define rb_append(rb, item) do {\
+    rb_at((rb), (rb)->len) = (item); \
+    (rb)->len += 1; \
+} while (0)
+
 //https://iopscience.iop.org/article/10.1088/2633-1357/abad0c/pdf
-double q_ijk(v3d mi, v3d mj, v3d mk) {
+static double q_ijk(v3d mi, v3d mj, v3d mk) {
     double num = v3d_dot(mi, v3d_cross(mj, mk));
     double den = 1.0 + v3d_dot(mi, mj) + v3d_dot(mi, mk) + v3d_dot(mj, mk);
     return 2.0 * atan2(num, den);
 }
 
-double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
+static double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
     double q_012 = q_ijk(m, right, up);
     double q_023 = q_ijk(m, up, left);
     double q_034 = q_ijk(m, left, down);
@@ -576,55 +590,6 @@ double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
 
 static double metric(v3d *v, int rows, int cols, int i0, int j0, int i1, int j1) {
     UNUSED(rows);
-    //double charge_0 = 0;
-    //double charge_1 = 0;
-    //{
-    //    uint64_t x = j0;
-    //    uint64_t y = i0;
-
-    //    uint64_t right = (((x + 1) % cols) + cols) % cols;
-    //    uint64_t ridx = y * cols + right;
-    //    v3d mright = v[ridx];
-
-    //    uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
-    //    uint64_t lidx = y * cols + left;
-    //    v3d mleft = v[lidx];
-
-    //    uint64_t up = (((y + 1) % rows) + rows) % rows;;
-    //    uint64_t uidx = up * cols + x;
-    //    v3d mup = v[uidx];
-
-    //    uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
-    //    uint64_t didx = down * cols + x;
-    //    v3d mdown = v[didx];
-
-    //    v3d m = v[i0 * cols + j0];
-    //    charge_0 = charge_lattice(m, mleft, mright, mup, mdown);
-    //}
-
-    //{
-    //    uint64_t x = j1;
-    //    uint64_t y = i1;
-
-    //    uint64_t right = (((x + 1) % cols) + cols) % cols;
-    //    uint64_t ridx = y * cols + right;
-    //    v3d mright = v[ridx];
-
-    //    uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
-    //    uint64_t lidx = y * cols + left;
-    //    v3d mleft = v[lidx];
-
-    //    uint64_t up = (((y + 1) % rows) + rows) % rows;;
-    //    uint64_t uidx = up * cols + x;
-    //    v3d mup = v[uidx];
-
-    //    uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
-    //    uint64_t didx = down * cols + x;
-    //    v3d mdown = v[didx];
-
-    //    v3d m = v[i1 * cols + j1];
-    //    charge_1 = charge_lattice(m, mleft, mright, mup, mdown);
-    //}
     v3d m0 = v[i0 * cols + j0];
     v3d m1 = v[i1 * cols + j1];
     m0.z = m0.z < 0? -1: 1;
@@ -632,10 +597,15 @@ static double metric(v3d *v, int rows, int cols, int i0, int j0, int i1, int j1)
     return fabs(m1.z - m0.z);
 }
 
+INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
+INCEPTION("RB -> [ CLUSTER ] -> 3.818874674e-03 sec")
 void grid_cluster(grid *g, double eps, uint64_t min_pts) {
+    profiler_start_measure("CLUSTER");
     uint64_t rows = g->gi.rows;
     uint64_t cols = g->gi.cols;
+
     g->clusters.len = 0;
+
     double avg_mz = 0;
     for (uint64_t i = 0; i < rows; ++i) {
         for (uint64_t j = 0; j < cols; ++j) {
@@ -651,16 +621,20 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             continue;
 
         g->queue.len = 0;
+        g->queue.start = 0;
         memset(g->seen, 0, sizeof(*g->seen) * rows * cols);
-        da_append(&g->queue, i);
+
+        rb_append(&g->queue, i);
+
         uint64_t count = 0;
         while (g->queue.len) {
-            cluster_point *qt = &g->points[g->queue.items[0]];
+            cluster_point *qt = &g->points[rb_at(&g->queue, 0)];
             uint64_t x = qt->col;
             uint64_t y = qt->row;
             bool *saw = &g->seen[y * cols + x];
             if (qt->label != UNDEFINED || *saw) {
-                da_remove(&g->queue, 0);
+                g->queue.start += 1;
+                g->queue.len -= 1;
                 continue;
             }
             *saw = true;
@@ -670,51 +644,53 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             uint64_t ridx = y * cols + right;
 
             if (metric(g->m, rows, cols, y, right, y, x) < eps && !g->seen[ridx])
-                da_append(&g->queue, ridx);
+                rb_append(&g->queue, ridx);
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
             if (metric(g->m, rows, cols, y, left, y, x) < eps && !g->seen[lidx])
-                da_append(&g->queue, lidx);
+                rb_append(&g->queue, lidx);
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
             if (metric(g->m, rows, cols, up, x, y, x) < eps && !g->seen[uidx])
-                da_append(&g->queue, uidx);
+                rb_append(&g->queue, uidx);
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
             if (metric(g->m, rows, cols, down, x, y, x) < eps && !g->seen[didx])
-                da_append(&g->queue, didx);
+                rb_append(&g->queue, didx);
 
-            da_remove(&g->queue, 0);
+            g->queue.start += 1;
+            g->queue.len -= 1;
+
             count++;
         }
 
         int label = UNDEFINED;
-        if (count < min_pts) {
+        if (count < min_pts)
             label = NOISE;
-            //logging_log(LOG_INFO, "%e %e %llu", (double)i / g->gi.cols, (double)(i % g->gi.cols), count);
-        }
         else {
             da_append(&g->clusters, ((cluster_center){.x = 0, .y = 0, .id = g->clusters.len, .count = 0, .avg_m = v3d_s(0), .sum_weight = 0}));
             label = CLUSTER;
         }
 
         g->queue.len = 0;
+        g->queue.start = 0;
         memset(g->seen, 0, sizeof(*g->seen) * rows * cols);
-        da_append(&g->queue, i);
+        rb_append(&g->queue, i);
         while (g->queue.len) {
-            cluster_point *qt = &g->points[g->queue.items[0]];
+            cluster_point *qt = &g->points[rb_at(&g->queue, 0)];
             uint64_t x = qt->col;
             uint64_t y = qt->row;
             bool *saw = &g->seen[y * cols + x];
             if (qt->label != UNDEFINED || *saw) {
-                da_remove(&g->queue, 0);
+                g->queue.start += 1;
+                g->queue.len -= 1;
                 continue;
             }
             *saw = true;
@@ -736,28 +712,29 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             uint64_t ridx = y * cols + right;
 
             if (metric(g->m, rows, cols, y, right, y, x) < eps && !g->seen[ridx])
-                da_append(&g->queue, ridx);
+                rb_append(&g->queue, ridx);
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
             if (metric(g->m, rows, cols, y, left, y, x) < eps && !g->seen[lidx])
-                da_append(&g->queue, lidx);
+                rb_append(&g->queue, lidx);
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
             if (metric(g->m, rows, cols, up, x, y, x) < eps && !g->seen[uidx])
-                da_append(&g->queue, uidx);
+                rb_append(&g->queue, uidx);
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
             if (metric(g->m, rows, cols, down, x, y, x) < eps && !g->seen[didx])
-                da_append(&g->queue, didx);
+                rb_append(&g->queue, didx);
 
-            da_remove(&g->queue, 0);
+            g->queue.start += 1;
+            g->queue.len -= 1;
         }
     }
 
@@ -769,85 +746,5 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             it->y /= (double)it->sum_weight;
         }
     }
-}
-
-void grid_cluster_kmeans(grid *g, uint64_t n_clusters, uint64_t niter) {
-    uint64_t rows = g->gi.rows;
-    uint64_t cols = g->gi.cols;
-    v3d avg_m = {0};
-    static bool first = true;
-    for (uint64_t i = 0; i < rows; ++i) {
-        for (uint64_t j = 0; j < cols; ++j) {
-            g->points[i * cols + j] = (cluster_point){.cluster = 0, .row = i, .col = j, .label = UNDEFINED};
-            avg_m = v3d_sum(avg_m, g->m[i * cols + j]);
-        }
-    }
-    avg_m = v3d_scalar(avg_m, 1.0 / (double)(rows * cols));
-
-    if (first) {
-        for (uint64_t i = 0; i < n_clusters; ++i)
-            da_append(&g->clusters, ((cluster_center){.id = i, .count = 0, .x = shit_random(0, cols), .y = shit_random(0, rows)}));
-    }
-    first = false;
-
-    for (uint64_t iter = 0; iter < niter; ++iter) {
-        for (uint64_t i = 0; i < g->clusters.len; ++i) {
-            g->clusters.items[i].count = 0;
-            g->clusters.items[i].sum_weight = 0;
-        }
-
-        for (uint64_t i = 0; i < rows * cols; ++i) {
-            uint64_t y = i / cols;
-            uint64_t x = i % cols;
-
-            double min_dist = FLT_MAX;
-            uint64_t min_dist_idx = 0;
-
-            for (uint64_t j = 0; j < g->clusters.len; ++j) {
-                double dx = x - g->clusters.items[j].x;
-                double dy = y - g->clusters.items[j].y;
-
-                dx /= (double)g->gi.cols;
-                dy /= (double)g->gi.rows;
-                double dist_real2 = dx * dx + dy + dy;
-
-                v3d dm = v3d_sub(g->clusters.items[j].avg_m, g->m[i]);
-                double dist_m2 = v3d_dot(dm, dm);
-
-                double dist = sqrt(dist_real2 + dist_m2);
-                if (dist < min_dist) {
-                    min_dist = dist;
-                    min_dist_idx = j;
-                }
-            }
-            g->points[i].cluster = min_dist_idx;
-        }
-
-        for (uint64_t i = 0; i < rows * cols; ++i) {
-            uint64_t y = i / cols;
-            uint64_t x = i % cols;
-            uint64_t idx = g->points[i].cluster;
-            v3d diff = v3d_sub(g->m[i], avg_m);
-            double weight = 1;
-            if (g->m[i].z > -0.5)
-                continue;
-            g->clusters.items[idx].count += 1;
-            g->clusters.items[idx].x += x * weight;
-            g->clusters.items[idx].y += y * weight;
-            g->clusters.items[idx].sum_weight += weight;
-            g->clusters.items[idx].avg_m = v3d_sum(g->clusters.items[idx].avg_m, v3d_scalar(g->m[i], weight));
-        }
-
-        for (uint64_t i = 0; i < g->clusters.len; ++i) {
-            if (g->clusters.items[i].count > 0) {
-                g->clusters.items[i].x /= g->clusters.items[i].sum_weight;
-                g->clusters.items[i].y /= g->clusters.items[i].sum_weight;
-                g->clusters.items[i].avg_m = (v3d_scalar(g->clusters.items[i].avg_m, 1.0 / (g->clusters.items[i].sum_weight)));
-            }
-            else {
-                g->clusters.items[i] = (cluster_center){.avg_m = v3d_normalize(v3d_c(shit_random(-1, 1), shit_random(-1, 1), shit_random(-1, 1))), .id = i, .x = shit_random(0, cols), .y = shit_random(0, rows), .count = 0};
-            }
-        }
-
-    }
+    profiler_end_measure("CLUSTER");
 }

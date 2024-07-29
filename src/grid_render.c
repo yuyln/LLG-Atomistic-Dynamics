@@ -196,7 +196,6 @@ double eps = 0.105;
 void grid_renderer_clustering(grid_renderer *gr) {
     grid_from_gpu(gr->g, *gr->gpu);
     grid_cluster(gr->g, eps, 5);
-    //grid_cluster_kmeans(gr->g, 2, 1);
     double delta_h = 1.0 / gr->g->clusters.len;
     for (uint64_t y = 0; y < gr->height; ++y) {
         uint64_t gy = (gr->height - y - 1) / (double)gr->height * gr->g->gi.rows;
@@ -237,7 +236,6 @@ void grid_renderer_clustering(grid_renderer *gr) {
 void grid_renderer_clustering_centers(grid_renderer *gr) {
     grid_from_gpu(gr->g, *gr->gpu);
     grid_cluster(gr->g, eps, 5);
-    //grid_cluster_kmeans(gr->g, 2, 1);
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
             int iy = gr->g->clusters.items[i].y / (gr->g->gi.rows - 1) * (gr->height - 1);
