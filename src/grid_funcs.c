@@ -606,7 +606,6 @@ INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
 INCEPTION("RB -> [ CLUSTER ] -> 3.818874674e-03 sec")
 INCEPTION("RB with custom metric etc -> [ CLUSTER ] -> 4.142878783e-03 sec");
 void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight) {
-    profiler_start_measure("CLUSTER");
     uint64_t rows = g->gi.rows;
     uint64_t cols = g->gi.cols;
 
@@ -712,8 +711,12 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                 qt->cluster = g->clusters.len - 1;
                 uint64_t c = qt->cluster;
                 double weight = weight_f(g, y, x, user_data_weight);
-                g->clusters.items[c].x += x * weight;
-                g->clusters.items[c].y += y * weight;
+                g->clusters.items[c].x += x * weight * g->gp[y * cols + x].lattice;
+                g->clusters.items[c].y += y * weight * g->gp[y * cols + x].lattice;
+
+                g->clusters.items[c].col += x * weight;
+                g->clusters.items[c].row += y * weight;
+
                 g->clusters.items[c].count += 1;
                 g->clusters.items[c].avg_m = v3d_sum(g->clusters.items[c].avg_m, v3d_scalar(g->m[y * cols + x], weight));
                 g->clusters.items[c].sum_weight += weight;
@@ -756,7 +759,9 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             it->avg_m = v3d_scalar(it->avg_m, 1.0 / (double)it->sum_weight);
             it->x /= (double)it->sum_weight;
             it->y /= (double)it->sum_weight;
+
+            it->row /= (double)it->sum_weight;
+            it->col /= (double)it->sum_weight;
         }
     }
-    profiler_end_measure("CLUSTER");
 }

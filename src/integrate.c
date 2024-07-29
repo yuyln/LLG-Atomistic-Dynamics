@@ -50,6 +50,17 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),");
     fprintf(ctx.integrate_info, "D_xx,D_yy,D_xy\n");
 
+    if (params.do_cluster) {
+        string output_cluster_path = str_from_cstr("");
+
+        str_cat_str(&output_cluster_path, params.output_path);
+        str_cat_cstr(&output_cluster_path, "/clusters.dat");
+
+        ctx.clusters = mfopen(str_as_cstr(&output_cluster_path), "w");
+
+        str_free(&output_cluster_path);
+    }
+
     string output_grid_path = str_from_cstr("");
     str_cat_str(&output_grid_path, params.output_path);
     str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
@@ -104,6 +115,10 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_release_memory(ctx->swap_gpu);
     mfclose(ctx->integrate_info);
     mfclose(ctx->integrate_evolution);
+
+    if (ctx->params.do_cluster)
+        mfclose(ctx->clusters);
+
     gpu_cl_release_memory(ctx->info_gpu);
     mfree(ctx->info);
 
@@ -119,8 +134,12 @@ integrate_params integrate_params_init(void) {
     ret.dt = 1.0e-15;
     ret.duration = 200.0 * NS;
     ret.interval_for_information = 1000;
+    ret.interval_for_cluster = ret.interval_for_information;
     ret.interval_for_raw_grid = 10000;
     ret.interval_for_rgb_grid = 50000;
+
+    ret.cluster_eps = 0.1;
+    ret.cluster_min_pts = 5;
 
     ret.current_func = str_is_cstr("return (current){.type = CUR_NONE};");
     ret.field_func = str_is_cstr("return v3d_s(0);");
@@ -162,6 +181,7 @@ void integrate(grid *g, integrate_params params) {
 void integrate_step(integrate_context *ctx) {
     gpu_cl_set_kernel_arg(ctx->gpu, ctx->step_id, 4, sizeof(double), &ctx->time);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->step_id, 1, &ctx->local, &ctx->global, NULL);
+    bool read_grid_from_gpu = false;
 
     if (ctx->integrate_step % ctx->params.interval_for_information == 0) {
         information_packed info = integrate_get_info(ctx);
@@ -179,6 +199,7 @@ void integrate_step(integrate_context *ctx) {
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
         v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
         v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
+        read_grid_from_gpu = true;
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_rgb_grid == 0) {
@@ -188,6 +209,20 @@ void integrate_step(integrate_context *ctx) {
         snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx->params.output_path.str, ctx->integrate_step);
         stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
     }
+
+    if (ctx->params.do_cluster && ctx->integrate_step % ctx->params.interval_for_cluster == 0) {
+        if (!read_grid_from_gpu)
+            v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+        grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
+        fprintf(ctx->clusters, "%e,", ctx->time);
+
+        for (uint64_t i = 0; i < ctx->g->clusters.len - 1; ++i)
+            fprintf(ctx->clusters, "%e,%e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y);
+
+        uint64_t i = ctx->g->clusters.len - 1;
+        fprintf(ctx->clusters, "%e,%e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y);
+    }
+
     ctx->integrate_step += 1;
     ctx->time += ctx->params.dt;
 }

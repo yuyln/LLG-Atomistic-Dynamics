@@ -211,11 +211,11 @@ void grid_renderer_clustering(grid_renderer *gr) {
 
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = gr->g->clusters.items[i].y / (gr->g->gi.rows - 1) * (gr->height - 1);
+            int iy = gr->g->clusters.items[i].row / (gr->g->gi.rows - 1) * (gr->height - 1);
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {
-                int ix = gr->g->clusters.items[i].x / (gr->g->gi.cols - 1) * (gr->width - 1);
+                int ix = gr->g->clusters.items[i].col / (gr->g->gi.cols - 1) * (gr->width - 1);
                 ix = ix + idx;
                 RGBA32 color = {0};
                 if (idx * idx + idy * idy <= 8 * 8)
@@ -238,11 +238,11 @@ void grid_renderer_clustering_centers(grid_renderer *gr) {
     grid_cluster(gr->g, eps, 5, NULL, NULL, NULL, NULL);
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = gr->g->clusters.items[i].y / (gr->g->gi.rows - 1) * (gr->height - 1);
+            int iy = gr->g->clusters.items[i].row / (gr->g->gi.rows - 1) * (gr->height - 1);
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {
-                int ix = gr->g->clusters.items[i].x / (gr->g->gi.cols - 1) * (gr->width - 1);
+                int ix = gr->g->clusters.items[i].col / (gr->g->gi.cols - 1) * (gr->width - 1);
                 ix = ix + idx;
                 RGBA32 color = {0};
                 if (idx * idx + idy * idy <= 8 * 8)

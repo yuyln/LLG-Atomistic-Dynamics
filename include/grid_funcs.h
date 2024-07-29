@@ -18,6 +18,10 @@ typedef struct {
 typedef struct {
     double x;
     double y;
+
+    double row;
+    double col;
+
     uint64_t id;
     uint64_t count;
     v3d avg_m;

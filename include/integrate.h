@@ -14,14 +14,26 @@
 typedef struct {
     double dt;
     double duration;
+
     unsigned int interval_for_information;
     unsigned int interval_for_raw_grid;
     unsigned int interval_for_rgb_grid;
+    unsigned int interval_for_cluster;
+
     string current_func;
     string field_func;
     string temperature_func;
     string compile_augment;
     string output_path;
+
+    bool do_cluster;
+    double(*cluster_metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*);
+    double(*cluster_weight)(grid*, uint64_t, uint64_t, void*);
+    void *cluster_metric_data;
+    void *cluster_weight_data;
+
+    double cluster_eps;
+    uint64_t cluster_min_pts;
 } integrate_params;
 
 typedef struct {
@@ -40,6 +52,7 @@ typedef struct {
 
     FILE *integrate_info;
     FILE *integrate_evolution;
+    FILE *clusters;
 
     information_packed *info;
     cl_mem info_gpu;

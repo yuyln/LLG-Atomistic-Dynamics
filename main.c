@@ -132,8 +132,6 @@ int test(void) {
     g.gi.pbc.pbc_x = 0;
     g.gi.pbc.pbc_y = 0;
 
-
-
     double dt = 0.01 * HBAR / (J * SIGN(J));
     double ratio = (double)rows / cols;
     logging_log(LOG_INFO, "Integration dt: %e", dt);
@@ -142,16 +140,10 @@ int test(void) {
     int_params.duration = 200.2 * NS;
     int_params.interval_for_raw_grid = 1000;
     int_params.dt = dt;
+    int_params.do_cluster = true;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
     int_params.current_func = create_current_stt_dc(10e10, 0, 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-
-    cluster_centers c = g.clusters;
-    logging_log(LOG_INFO, "%llu", c.len);
-    for (uint64_t i = 0; i < g.clusters.len; ++i)
-        logging_log(LOG_INFO, "%f %f - %f %f %f - %llu", c.items[i].x, c.items[i].y, c.items[i].avg_m.x, c.items[i].avg_m.y, c.items[i].avg_m.z, c.items[i].count);
-
-    profiler_print_measures(stdout);
 
     grid_free(&g);
     return 0;
