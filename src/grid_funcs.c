@@ -588,21 +588,33 @@ static double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
     return 1.0 / (8.0 * M_PI) * (q_012 + q_023 + q_034 + q_041);
 }
 
-static double metric(v3d *v, int rows, int cols, int i0, int j0, int i1, int j1) {
-    UNUSED(rows);
-    v3d m0 = v[i0 * cols + j0];
-    v3d m1 = v[i1 * cols + j1];
+static double default_metric(grid *g, uint64_t i0, uint64_t j0, uint64_t i1, uint64_t j1, void *user_data) {
+    UNUSED(user_data);
+    v3d m0 = g->m[i0 * g->gi.cols + j0];
+    v3d m1 = g->m[i1 * g->gi.cols + j1];
     m0.z = m0.z < 0? -1: 1;
     m1.z = m1.z < 0? -1: 1;
     return fabs(m1.z - m0.z);
 }
 
+static double default_weight(grid *g, uint64_t i, uint64_t j, void *user_data) {
+    UNUSED(user_data);
+    return g->m[i * g->gi.cols + j].z;
+}
+
 INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
 INCEPTION("RB -> [ CLUSTER ] -> 3.818874674e-03 sec")
-void grid_cluster(grid *g, double eps, uint64_t min_pts) {
+INCEPTION("RB with custom metric etc -> [ CLUSTER ] -> 4.142878783e-03 sec");
+void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight) {
     profiler_start_measure("CLUSTER");
     uint64_t rows = g->gi.rows;
     uint64_t cols = g->gi.cols;
+
+    if (!metric)
+        metric = default_metric;
+
+    if (!weight_f)
+        weight_f = default_weight;
 
     g->clusters.len = 0;
 
@@ -643,26 +655,26 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             right = ((right % cols) + cols) % cols;
             uint64_t ridx = y * cols + right;
 
-            if (metric(g->m, rows, cols, y, right, y, x) < eps && !g->seen[ridx])
+            if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx])
                 rb_append(&g->queue, ridx);
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
-            if (metric(g->m, rows, cols, y, left, y, x) < eps && !g->seen[lidx])
+            if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx])
                 rb_append(&g->queue, lidx);
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
-            if (metric(g->m, rows, cols, up, x, y, x) < eps && !g->seen[uidx])
+            if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx])
                 rb_append(&g->queue, uidx);
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
-            if (metric(g->m, rows, cols, down, x, y, x) < eps && !g->seen[didx])
+            if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx])
                 rb_append(&g->queue, didx);
 
             g->queue.start += 1;
@@ -699,7 +711,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             if (qt->label == CLUSTER) {
                 qt->cluster = g->clusters.len - 1;
                 uint64_t c = qt->cluster;
-                double weight = g->m[y * cols + x].z;
+                double weight = weight_f(g, y, x, user_data_weight);
                 g->clusters.items[c].x += x * weight;
                 g->clusters.items[c].y += y * weight;
                 g->clusters.items[c].count += 1;
@@ -711,26 +723,26 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts) {
             right = ((right % cols) + cols) % cols;
             uint64_t ridx = y * cols + right;
 
-            if (metric(g->m, rows, cols, y, right, y, x) < eps && !g->seen[ridx])
+            if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx])
                 rb_append(&g->queue, ridx);
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
-            if (metric(g->m, rows, cols, y, left, y, x) < eps && !g->seen[lidx])
+            if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx])
                 rb_append(&g->queue, lidx);
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
-            if (metric(g->m, rows, cols, up, x, y, x) < eps && !g->seen[uidx])
+            if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx])
                 rb_append(&g->queue, uidx);
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
-            if (metric(g->m, rows, cols, down, x, y, x) < eps && !g->seen[didx])
+            if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx])
                 rb_append(&g->queue, didx);
 
             g->queue.start += 1;

@@ -109,4 +109,4 @@ dm_interaction dm_interfacial(double value);
 dm_interaction dm_bulk(double value);
 anisotropy anisotropy_z_axis(double value);
 
-void grid_cluster(grid *g, double eps, uint64_t min_pts);
+void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight);
