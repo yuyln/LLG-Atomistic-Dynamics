@@ -13,6 +13,8 @@ typedef struct {
         CLUSTER
     } label;
     uint64_t cluster;
+    double x;
+    double y;
 } cluster_point;
 
 typedef struct {

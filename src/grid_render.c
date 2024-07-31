@@ -11,6 +11,7 @@
 
 #include <float.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     grid_renderer ret = {0};
@@ -194,8 +195,6 @@ void grid_renderer_electric_field(grid_renderer *gr) {
 double eps = 0.105;
 
 void grid_renderer_clustering(grid_renderer *gr) {
-    grid_from_gpu(gr->g, *gr->gpu);
-    grid_cluster(gr->g, eps, 5, NULL, NULL, NULL, NULL);
     double delta_h = 1.0 / gr->g->clusters.len;
     for (uint64_t y = 0; y < gr->height; ++y) {
         uint64_t gy = (gr->height - y - 1) / (double)gr->height * gr->g->gi.rows;
@@ -211,13 +210,14 @@ void grid_renderer_clustering(grid_renderer *gr) {
 
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = gr->g->clusters.items[i].row / (gr->g->gi.rows - 1) * (gr->height - 1);
+            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.5) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {
-                int ix = gr->g->clusters.items[i].col / (gr->g->gi.cols - 1) * (gr->width - 1);
+                int ix = (gr->g->clusters.items[i].x + gr->g->gp->lattice * 0.5) / (gr->g->gi.cols) * (gr->width - 1) * 1.0 / gr->g->gp->lattice;
                 ix = ix + idx;
                 RGBA32 color = {0};
+
                 if (idx * idx + idy * idy <= 8 * 8)
                     color = m_to_hsl(v3d_normalize(gr->g->clusters.items[i].avg_m));
                 else if (idx * idx + idy * idy <= 10 * 10)
@@ -226,6 +226,7 @@ void grid_renderer_clustering(grid_renderer *gr) {
                     continue;
                 if (iy * gr->width + ix < gr->width * gr->height)
                     gr->rgba_cpu[iy * gr->width + ix] = color;
+
             }
         }
     }
@@ -234,17 +235,16 @@ void grid_renderer_clustering(grid_renderer *gr) {
 }
 
 void grid_renderer_clustering_centers(grid_renderer *gr) {
-    grid_from_gpu(gr->g, *gr->gpu);
-    grid_cluster(gr->g, eps, 5, NULL, NULL, NULL, NULL);
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = gr->g->clusters.items[i].row / (gr->g->gi.rows - 1) * (gr->height - 1);
+            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.5) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {
-                int ix = gr->g->clusters.items[i].col / (gr->g->gi.cols - 1) * (gr->width - 1);
+                int ix = (gr->g->clusters.items[i].x + gr->g->gp->lattice * 0.5) / (gr->g->gi.cols) * (gr->width - 1) * 1.0 / gr->g->gp->lattice;
                 ix = ix + idx;
                 RGBA32 color = {0};
+
                 if (idx * idx + idy * idy <= 8 * 8)
                     color = m_to_hsl(v3d_normalize(gr->g->clusters.items[i].avg_m));
                 else if (idx * idx + idy * idy <= 10 * 10)
@@ -253,10 +253,10 @@ void grid_renderer_clustering_centers(grid_renderer *gr) {
                     continue;
                 if (iy * gr->width + ix < gr->width * gr->height)
                     gr->rgba_cpu[iy * gr->width + ix] = color;
+
             }
         }
     }
-
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
 
@@ -391,10 +391,10 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             state = 'v';
 
         if (window_key_pressed('k')) {
-            eps += 0.0001;
+            eps += 0.01;
             logging_log(LOG_INFO, "eps: %e" , eps);
         } else if (window_key_pressed('l')) {
-            eps -= 0.0001;
+            eps -= 0.01;
             logging_log(LOG_INFO, "eps: %e" , eps);
         } 
 

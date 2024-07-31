@@ -85,13 +85,13 @@ void set_pin2(grid *g, uint64_t row, uint64_t col, void *dummy) {
 }
 
 int test(void) {
-    unsigned int rows = 128;
-    unsigned int cols = 128;
+    unsigned int rows = 64;
+    unsigned int cols = 64;
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
     double dm = 0.5 * J;
-    double ani = 0.02 * J;
+    double ani = 0.01 * J;
     double alpha = 0.3;
     //
     grid g = grid_init(rows, cols);
@@ -125,12 +125,10 @@ int test(void) {
     //        grid_create_skyrmion_at(&g, Rx / 2.0, 1, xc, yc, 1, 1, 0);
     //    }
     //}
-    //grid_create_skyrmion_at(&g, 20, 1, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
-    //grid_create_skyrmion_at(&g, 20, 1, 4 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
+    //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
+    grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, 0);
     //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
-    grid_fill_with_random(&g);
-    g.gi.pbc.pbc_x = 0;
-    g.gi.pbc.pbc_y = 0;
+    //grid_fill_with_random(&g);
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
     double ratio = (double)rows / cols;
@@ -141,9 +139,18 @@ int test(void) {
     int_params.interval_for_raw_grid = 1000;
     int_params.dt = dt;
     int_params.do_cluster = true;
+    int_params.interval_for_cluster = 100;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-    int_params.current_func = create_current_stt_dc(10e10, 0, 0);
+    double angle = 26.566 / 180.0 * M_PI;
+    double jx = 10e10 * cos(angle);
+    double jy = 10e10 * sin(angle);
+    int_params.current_func = create_current_stt_dc(-jx, -2 * jy, 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
+
+    for (uint64_t i = 0; i < g.clusters.len; ++i) {
+        cluster_center *it = &g.clusters.items[i];
+        logging_log(LOG_INFO, "%e %e - %e %e %e", it->x, it->y, it->avg_m.x, it->avg_m.y, it->avg_m.z);
+    }
 
     grid_free(&g);
     return 0;
@@ -245,6 +252,35 @@ int test3(void) {
     int_params.current_func = create_current_stt_dc(1e10, 0, 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
+    grid_free(&g);
+    return 0;
+}
+
+int doing_clustering(void) {
+    grid g = grid_init(64, 64);
+
+    FILE *f = mfopen("testing.dat", "w");
+    for (int i = -10; i < 10; ++i) {
+        grid_uniform(&g, v3d_c(0, 0, 1));
+        for (int j = 0; j < 10; ++j) {
+            int start_x = j + i;
+            start_x = ((start_x % 64) + 64) % 64;
+            int idx = 31 * 64 + start_x;
+            g.m[idx] = v3d_c(0, 0, -1);
+        }
+        grid_cluster(&g, 0.3, 5, NULL, NULL, NULL, NULL);
+        int start_x = ((i % 64) + 64) % 64;
+        int end_x = (((i + 10) % 64) + 64) % 64;
+        fprintf(f, "%d,%d,%d,%f,%f\n", i, start_x, end_x, g.clusters.items[1].x / 0.5e-9, g.clusters.items[1].y / 0.5e-9);
+        for (uint64_t j = 0; j < g.clusters.len; ++j) {
+            cluster_center *it = &g.clusters.items[j];
+            if (it->avg_m.z >= 0.8)
+                continue;
+            logging_log(LOG_INFO, "i: %d | ID: %llu | x, y: %f %f | m: %e %e %e", i, j, it->x / 0.5e-9, it->y / 0.5e-9, it->avg_m.x, it->avg_m.y, it->avg_m.z);
+        }
+    }
+
+    mfclose(f);
     grid_free(&g);
     return 0;
 }

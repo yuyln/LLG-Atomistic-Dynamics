@@ -13,6 +13,7 @@
 #include "logging.h"
 #include "allocator.h"
 #include "profiler.h"
+#include "utils.h"
 
 #define CHECK_BOUNDS(rows, cols, row, col) do { if (row >= (int)rows || col >= (int)cols || \
         row < 0 || col < 0) { \
@@ -543,36 +544,6 @@ anisotropy anisotropy_z_axis(double value) {
     return (anisotropy){.dir = v3d_c(0, 0, 1), .ani = value};
 }
 
-#define da_append(da, item) do { \
-    if ((da)->len >= (da)->cap) { \
-        if ((da)->cap <= 1) \
-            (da)->cap = (da)->len + 2;\
-        else\
-            (da)->cap *= 1.5; \
-        (da)->items = realloc((da)->items, sizeof(*(da)->items) * (da)->cap); \
-        if (!(da)->items) \
-            logging_log(LOG_FATAL, "%s:%d Could not append item to dynamic array. Allocation failed. Buy more RAM I guess, lol", __FILE__, __LINE__); \
-        memset(&(da)->items[(da)->len], 0, sizeof(*(da)->items) * ((da)->cap - (da)->len));\
-    } \
-    (da)->items[(da)->len] = (item); \
-    (da)->len += 1; \
-} while(0)
-
-#define da_remove(da, idx) do { \
-    if ((idx) >= (da)->len || (idx) < 0) { \
-        logging_log(LOG_ERROR, "%s:%d Trying to remove out of range idx %ll from dynamic array", __FILE__, __LINE__, (int64_t)idx); \
-        break; \
-    } \
-    memmove(&((da)->items[(idx)]), &((da)->items[(idx) + 1]), sizeof(*((da)->items)) * ((da)->len - (idx) - 1)); \
-    (da)->len -= 1;\
-} while(0)
-
-#define rb_at(rb, idx) (rb)->items[((idx) + (rb)->start) % (rb)->cap]
-#define rb_append(rb, item) do {\
-    rb_at((rb), (rb)->len) = (item); \
-    (rb)->len += 1; \
-} while (0)
-
 //https://iopscience.iop.org/article/10.1088/2633-1357/abad0c/pdf
 static double q_ijk(v3d mi, v3d mj, v3d mk) {
     double num = v3d_dot(mi, v3d_cross(mj, mk));
@@ -592,8 +563,8 @@ static double default_metric(grid *g, uint64_t i0, uint64_t j0, uint64_t i1, uin
     UNUSED(user_data);
     v3d m0 = g->m[i0 * g->gi.cols + j0];
     v3d m1 = g->m[i1 * g->gi.cols + j1];
-    m0.z = m0.z < 0? -1: 1;
-    m1.z = m1.z < 0? -1: 1;
+    m0.z = m0.z < 0.0? -1: 1;
+    m1.z = m1.z < 0.0? -1: 1;
     return fabs(m1.z - m0.z);
 }
 
@@ -604,7 +575,7 @@ static double default_weight(grid *g, uint64_t i, uint64_t j, void *user_data) {
 
 INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
 INCEPTION("RB -> [ CLUSTER ] -> 3.818874674e-03 sec")
-INCEPTION("RB with custom metric etc -> [ CLUSTER ] -> 4.142878783e-03 sec");
+INCEPTION("RB with custom metric etc -> [ CLUSTER ] -> 4.142878783e-03 sec")
 void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight) {
     uint64_t rows = g->gi.rows;
     uint64_t cols = g->gi.cols;
@@ -617,13 +588,14 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
 
     g->clusters.len = 0;
 
-    double avg_mz = 0;
+    v3d avg_m = {0};
     for (uint64_t i = 0; i < rows; ++i) {
         for (uint64_t j = 0; j < cols; ++j) {
-            g->points[i * cols + j] = (cluster_point){.cluster = 0, .row = i, .col = j, .label = UNDEFINED};
-            avg_mz += g->m[i * cols + j].z / (double)(rows * cols);
+            g->points[i * cols + j] = (cluster_point){.row = i, .col = j, .label = UNDEFINED};
+            avg_m = v3d_sum(avg_m, g->m[i * cols + j]);
         }
     }
+    avg_m = v3d_scalar(avg_m, 1.0 / (rows * cols));
 
     for (uint64_t i = 0; i < rows * cols; ++i) {
         cluster_point *it = &g->points[i];
@@ -653,32 +625,35 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             uint64_t right = x + 1;
             right = ((right % cols) + cols) % cols;
             uint64_t ridx = y * cols + right;
+            if (x < cols - 1 || g->gi.pbc.pbc_x)
+                if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx])
+                    rb_append(&g->queue, ridx);
 
-            if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx])
-                rb_append(&g->queue, ridx);
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
-            if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx])
-                rb_append(&g->queue, lidx);
+            if (x > 0 || g->gi.pbc.pbc_x)
+                if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx])
+                    rb_append(&g->queue, lidx);
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
-            if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx])
-                rb_append(&g->queue, uidx);
+            if (up < rows - 1 || g->gi.pbc.pbc_y)
+                if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx])
+                    rb_append(&g->queue, uidx);
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
-            if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx])
-                rb_append(&g->queue, didx);
+            if (down > 0 || g->gi.pbc.pbc_y)
+                if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx])
+                    rb_append(&g->queue, didx);
 
             g->queue.start += 1;
             g->queue.len -= 1;
-
             count++;
         }
 
@@ -686,7 +661,8 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
         if (count < min_pts)
             label = NOISE;
         else {
-            da_append(&g->clusters, ((cluster_center){.x = 0, .y = 0, .id = g->clusters.len, .count = 0, .avg_m = v3d_s(0), .sum_weight = 0}));
+            uint64_t c = g->clusters.len;
+            da_append(&g->clusters, ((cluster_center){.id = c, .x = 0, .y = 0, .started = i}));
             label = CLUSTER;
         }
 
@@ -694,6 +670,9 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
         g->queue.start = 0;
         memset(g->seen, 0, sizeof(*g->seen) * rows * cols);
         rb_append(&g->queue, i);
+        it->x = it->col * g->gp[i].lattice;
+        it->y = it->row * g->gp[i].lattice;
+
         while (g->queue.len) {
             cluster_point *qt = &g->points[rb_at(&g->queue, 0)];
             uint64_t x = qt->col;
@@ -711,8 +690,8 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                 qt->cluster = g->clusters.len - 1;
                 uint64_t c = qt->cluster;
                 double weight = weight_f(g, y, x, user_data_weight);
-                g->clusters.items[c].x += x * weight * g->gp[y * cols + x].lattice;
-                g->clusters.items[c].y += y * weight * g->gp[y * cols + x].lattice;
+                g->clusters.items[c].x += qt->x * weight;
+                g->clusters.items[c].y += qt->y * weight;
 
                 g->clusters.items[c].col += x * weight;
                 g->clusters.items[c].row += y * weight;
@@ -725,28 +704,47 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             uint64_t right = x + 1;
             right = ((right % cols) + cols) % cols;
             uint64_t ridx = y * cols + right;
-
-            if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx])
-                rb_append(&g->queue, ridx);
+            if (x < cols - 1 || g->gi.pbc.pbc_x) {
+                if (metric(g, y, right, y, x, user_data_metric) < eps && !g->seen[ridx]) {
+                    rb_append(&g->queue, ridx);
+                    g->points[ridx].x = qt->x + g->gp[y * cols + x].lattice;
+                    g->points[ridx].y = qt->y;
+                }
+            }
 
             uint64_t left = ((((int64_t)x - 1) % (int64_t)cols) + cols) % cols;
             uint64_t lidx = y * cols + left;
 
-            if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx])
-                rb_append(&g->queue, lidx);
+            if (x > 0 || g->gi.pbc.pbc_x) {
+                if (metric(g, y, left, y, x, user_data_metric) < eps && !g->seen[lidx]) {
+                    rb_append(&g->queue, lidx);
+                    g->points[lidx].x = qt->x - g->gp[y * cols + x].lattice;
+                    g->points[lidx].y = qt->y;
+                }
+            }
 
             uint64_t up = y + 1;
             up = ((up % rows) + rows) % rows;
             uint64_t uidx = up * cols + x;
 
-            if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx])
-                rb_append(&g->queue, uidx);
+            if (y < rows - 1 || g->gi.pbc.pbc_y) {
+                if (metric(g, up, x, y, x, user_data_metric) < eps && !g->seen[uidx]) {
+                    rb_append(&g->queue, uidx);
+                    g->points[uidx].y = qt->y + g->gp[y * cols + x].lattice;
+                    g->points[uidx].x = qt->x;
+                }
+            }
 
             uint64_t down = ((((int64_t)y - 1) % (int64_t)rows) + rows) % rows;
             uint64_t didx = down * cols + x;
 
-            if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx])
-                rb_append(&g->queue, didx);
+            if (y > 0 || g->gi.pbc.pbc_y) {
+                if (metric(g, down, x, y, x, user_data_metric) < eps && !g->seen[didx]) {
+                    rb_append(&g->queue, didx);
+                    g->points[didx].y = qt->y - g->gp[y * cols + x].lattice;
+                    g->points[didx].x = qt->x;
+                }
+            }
 
             g->queue.start += 1;
             g->queue.len -= 1;
@@ -756,12 +754,16 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
     for (uint64_t i = 0; i < g->clusters.len; ++i) {
         cluster_center *it = &g->clusters.items[i];
         if (!CLOSE_ENOUGH(it->sum_weight, 0, EPS)) {
-            it->avg_m = v3d_scalar(it->avg_m, 1.0 / (double)it->sum_weight);
-            it->x /= (double)it->sum_weight;
-            it->y /= (double)it->sum_weight;
+            it->avg_m = v3d_normalize(v3d_scalar(it->avg_m, 1.0 / it->sum_weight));
 
-            it->row /= (double)it->sum_weight;
-            it->col /= (double)it->sum_weight;
+            it->x /= it->sum_weight;
+            it->y /= it->sum_weight;
+
+            it->row /= it->sum_weight;
+            it->col /= it->sum_weight;
+
+            it->x = it->x - floor(it->x / (cols * g->gp->lattice)) * cols * g->gp->lattice;
+            it->y = it->y - floor(it->y / (rows * g->gp->lattice)) * rows * g->gp->lattice;
         }
     }
 }
