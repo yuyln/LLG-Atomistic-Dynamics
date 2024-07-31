@@ -85,13 +85,13 @@ void set_pin2(grid *g, uint64_t row, uint64_t col, void *dummy) {
 }
 
 int test(void) {
-    unsigned int rows = 64;
-    unsigned int cols = 64;
+    unsigned int rows = 32;
+    unsigned int cols = 32;
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
-    double dm = 0.5 * J;
-    double ani = 0.01 * J;
+    double dm = 0.7 * J;
+    double ani = 0.02 * J;
     double alpha = 0.3;
     //
     grid g = grid_init(rows, cols);
@@ -126,7 +126,7 @@ int test(void) {
     //    }
     //}
     //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
-    grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, 0);
+    grid_create_skyrmion_at(&g, 6, 3, 2.5 * cols / 5.0, rows / 2.0, -1, 1, 0);
     //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
     //grid_fill_with_random(&g);
 
@@ -141,10 +141,10 @@ int test(void) {
     int_params.do_cluster = true;
     int_params.interval_for_cluster = 100;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-    double angle = 26.566 / 180.0 * M_PI;
+    double angle = M_PI / 2.0;//26.566 / 180.0 * M_PI;
     double jx = 10e10 * cos(angle);
     double jy = 10e10 * sin(angle);
-    int_params.current_func = create_current_stt_dc(-jx, -2 * jy, 0);
+    int_params.current_func = create_current_stt_dc(jx, jy, 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     for (uint64_t i = 0; i < g.clusters.len; ++i) {
