@@ -662,7 +662,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             label = NOISE;
         else {
             uint64_t c = g->clusters.len;
-            da_append(&g->clusters, ((cluster_center){.id = c, .x = 0, .y = 0, .started = i}));
+            da_append(&g->clusters, ((cluster_center){.id = c, .x = 0, .y = 0}));
             label = CLUSTER;
         }
 
