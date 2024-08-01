@@ -273,6 +273,24 @@ void v3d_create_biskyrmion_at(v3d *v, unsigned int rows, unsigned int cols, doub
     }
 }
 
+void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
+    int dr = radius + dw_width;
+    for (int i = -dr; i <= dr; ++i) {
+        for (int j = -dr; j <= dr; ++j) {
+            double r = sqrt(i * i + j * j);
+            if (r > dr)
+                continue;
+            int x = ix + j;
+            int y = iy + i;
+            x = ((x % (int)cols) + (int)cols) % (int)cols;
+            y = ((y % (int)rows) + (int)rows) % (int)rows;
+            double phi = atan2(i, j) + M_PI;
+            phi = phi * vor + _gamma;
+            double theta = 4.0 * atan(pow(sinh(radius / dw_width) / sinh(r / dw_width), -Q));
+            v[y * cols + x] = v3d_c(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+        }
+    }
+}
 
 void v3d_uniform(v3d *v, unsigned int rows, unsigned int cols, v3d dir) {
     for (unsigned int i = 0; i < rows * cols; ++i)
@@ -297,6 +315,10 @@ void grid_uniform(grid *g, v3d dir) {
 
 void grid_create_biskyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double dr, double angle, double Q, double vorticity, double _gamma) {
     v3d_create_biskyrmion_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, dr, angle, Q, vorticity, _gamma);
+}
+
+void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
+    v3d_create_skyrmionium_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, Q, vor, _gamma);
 }
 
 bool grid_free(grid *g) {

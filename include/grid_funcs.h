@@ -86,12 +86,14 @@ void v3d_fill_with_random(v3d *v, unsigned int rows, unsigned int cols);
 void v3d_create_skyrmion_at_old(v3d *v, unsigned int rows, unsigned int cols, int radius, int row, int col, double Q, double P, double theta);
 void v3d_create_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
 void v3d_create_biskyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double dr, double angle, double Q, double vorticity, double _gamma);
+void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
 void v3d_uniform(v3d *v, unsigned int rows, unsigned int cols, v3d dir);
 
 void grid_fill_with_random(grid *g);
 void grid_create_skyrmion_at_old(grid *g, int radius, int row, int col, double Q, double P, double theta);
 void grid_create_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
 void grid_create_biskyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double dr, double angle, double Q, double vorticity, double _gamma);
+void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma);
 void grid_uniform(grid *g, v3d dir);
 
 bool grid_free(grid *g);

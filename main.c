@@ -111,8 +111,8 @@ int test(void) {
     grid_set_dm(&g, default_dm);
 
     grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_skyrmionium_at(&g, 10, 10, cols / 2.0, rows / 2.0, 1, 1, 0);
     //grid_create_skyrmion_at(&g, 15, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, 0);
-    //grid_create_skyrmion_at(&g, 3, 3, 1 * cols / 5.0, rows / 2.0, 1, 1, 0);
 
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
@@ -126,15 +126,15 @@ int test(void) {
     int_params.do_cluster = true;
     int_params.interval_for_cluster = 100;
 
-    int_params.current_func = str_is_cstr("current ret = (current){.type=CUR_SHE};\n"\
-                                          "double x = gs.col - 0.5 * 64;\n"\
-                                          "double y = gs.row - 0.5 * 64;\n"\
-                                          "int ring = x * x + y * y <= 15 * 15 && x * x + y * y >= 13 * 13;\n"\
-                                          "ret.she.p = v3d_scalar(v3d_normalize(v3d_c(x, y, 0)), 1000e10 * ring * (time < 40e-12));\n"\
-                                          "ret.she.thickness = 0.5e-9;\n"\
-                                          "ret.she.beta = 0;\n"\
-                                          "ret.she.theta_sh = 1;\n"\
-                                          "return ret;\n");
+    //int_params.current_func = str_is_cstr("current ret = (current){.type=CUR_SHE};\n"\
+    //                                      "double x = gs.col - 0.5 * 64;\n"\
+    //                                      "double y = gs.row - 0.5 * 64;\n"\
+    //                                      "int ring = x * x + y * y <= 15 * 15 && x * x + y * y >= 13 * 13;\n"\
+    //                                      "ret.she.p = v3d_scalar(v3d_normalize(v3d_c(x, y, 0)), 1000e10 * ring * (time < 40e-12));\n"\
+    //                                      "ret.she.thickness = 0.5e-9;\n"\
+    //                                      "ret.she.beta = 0;\n"\
+    //                                      "ret.she.theta_sh = 1;\n"\
+    //                                      "return ret;\n");
 
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
@@ -255,8 +255,8 @@ int test3(void) {
 }
 
 int main(void) {
-    //test();
-    organize_clusters("./clusters.dat", "clusters_org.dat", 64 * 0.5e-9, 64 * 0.5e-9, 1e8, true);
+    test();
+    //organize_clusters("./clusters.dat", "clusters_org.dat", 64 * 0.5e-9, 64 * 0.5e-9, 1e8, true);
     return 0;
 }
 
