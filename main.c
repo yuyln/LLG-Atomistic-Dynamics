@@ -85,8 +85,8 @@ void set_pin2(grid *g, uint64_t row, uint64_t col, void *dummy) {
 }
 
 int test(void) {
-    unsigned int rows = 128;
-    unsigned int cols = 128;
+    unsigned int rows = 64;
+    unsigned int cols = 64;
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
@@ -256,7 +256,7 @@ int test3(void) {
 
 int main(void) {
     //test();
-    organize_clusters("./clusters.dat", "clusters_org.dat", 128 * 0.5e-9, 128 * 0.5e-9, 1e8);
+    organize_clusters("./clusters.dat", "clusters_org.dat", 64 * 0.5e-9, 64 * 0.5e-9, 1e8, true);
     return 0;
 }
 

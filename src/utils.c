@@ -6,6 +6,7 @@
 typedef struct {
     double x;
     double y;
+    double size;
 } center;
 
 typedef struct {
@@ -14,11 +15,11 @@ typedef struct {
     uint64_t cap;
 } centers;
 
-bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold) {
-    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold);
+bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold, bool has_size) {
+    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold, has_size);
 }
 
-bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold) {
+bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold, bool has_size) {
     FILE *f_in = mfopen(in_path, "rb");
     char *buffer = NULL;
 
@@ -41,12 +42,14 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             n = 0;
         }
     }
-    if (max_n % 2) {
-        logging_log(LOG_ERROR, "Number of commas is not a multiple of two. \"%s\" is probably corrupted", in_path);
+    uint64_t div_fac = has_size? 3: 2;
+
+    if (max_n % div_fac) {
+        logging_log(LOG_ERROR, "Number of commas is not a multiple of %llu. \"%s\" is probably corrupted", div_fac, in_path);
         return false;
     }
 
-    max_n >>= 1;
+    max_n /= div_fac;
 
     centers cs[3] = {0};
 
@@ -76,14 +79,29 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             aux = NULL;
             cs[0].items[counter].y = strtod(data, &aux);
             data = aux + 1;
+
+            if (has_size) {
+                aux = NULL;
+                cs[0].items[counter].size = strtod(data, &aux);
+                data = aux + 1;
+            }
         }
         ptr = line_end + 1;
 
         fprintf(fout, "%e,", time);
-        for (uint64_t i = 0; i < cs[2].len - 1; ++i)
+        for (uint64_t i = 0; i < cs[0].len - 1; ++i) {
             fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
-        uint64_t i = cs[2].len - 1;
-        fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+            if (has_size) {
+                fprintf(fout, "%e,", cs[0].items[i].size);
+            }
+        }
+        uint64_t i = cs[0].len - 1;
+        if (has_size) {
+            fprintf(fout, "%e,%e,%e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+        } else {
+            fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+        }
+
     }
 
     while (ptr < buffer + len) {
@@ -105,6 +123,12 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                 aux = NULL;
                 cs[1].items[counter].y = strtod(data, &aux);
                 data = aux + 1;
+                
+                if (has_size) {
+                    aux = NULL;
+                    cs[1].items[counter].size = strtod(data, &aux);
+                    data = aux + 1;
+                }
             }
             cs[2].items[counter] = cs[1].items[counter];
         }
@@ -129,6 +153,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             if (min_d2 >= d2_threshold) {
                 cs[2].items[min_idx].x = -1;
                 cs[2].items[min_idx].y = -1;
+                cs[2].items[min_idx].size = 0;
             }
         }
 
@@ -137,11 +162,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                 cs[0].items[i] = cs[2].items[i];
                 cs[1].items[i] = cs[2].items[i];
                 fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
+                if (has_size) {
+                    fprintf(fout, "%e,", cs[0].items[i].size);
+                }
             }
             uint64_t i = cs[2].len - 1;
             cs[0].items[i] = cs[2].items[i];
             cs[1].items[i] = cs[2].items[i];
-            fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+            if (has_size) {
+                fprintf(fout, "%e,%e,%e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+            } else {
+                fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+            }
         }
     }
 
