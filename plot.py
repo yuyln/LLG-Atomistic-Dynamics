@@ -6,6 +6,31 @@ import pandas as pd
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
+#x0 = np.array([2, 1])
+#x1 = np.array([1.1, 2.1])
+#x1s, x0s = np.meshgrid(x1, x0)
+#
+#print(x0s)
+#print(x1s)
+#print("\n")
+#
+#dx = x1s - x0s
+#d2 = np.abs(dx)
+#print(d2)
+#print("\n")
+#i = np.argmin(d2, axis=0)
+#print(i)
+#print("\n")
+#print(np.take_along_axis(d2, i[None], 0))
+#print("\n")
+#print(np.take_along_axis(x1s, i[None], 0))
+#print("\n")
+#print(i.shape)
+#print("\n")
+#print(x1[i])
+#print("\n")
+#print(d2 >= 0.15)
+
 cmd = utils.CMDArgs("dummy", "dummy")
 frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 if 0:
@@ -46,7 +71,7 @@ if 0:
     
     exit(1)
 
-data = pd.read_csv("./clusters.dat", header=None)
+data = pd.read_csv("./clusters.dat", header=None).fillna(-1)
 xs = data.iloc[:, 1::2].to_numpy()
 ys = data.iloc[:, 2::2].to_numpy()
 utils.FixPlot(8, 8)
@@ -61,10 +86,12 @@ sx = (gi.cols) * gp[0].lattice
 sy = (gi.rows) * gp[0].lattice
 
 
-invalids = np.zeros((9, xs.shape[1]), dtype=bool)
 min_d2s = np.zeros((9, xs.shape[1]))
-sdxs = np.zeros((9, xs.shape[1]))
-sdys = np.zeros((9, xs.shape[1]))
+new_xs = np.zeros((9, xs.shape[1]))
+new_ys = np.zeros((9, xs.shape[1]))
+invalids = np.zeros((9, xs.shape[1]), dtype=bool)
+
+min_d2s[:, :] = 1e8
 
 for t in range(1, xs.shape[0]):
     def find_min(x0, y0, x1, y1):
@@ -77,51 +104,40 @@ for t in range(1, xs.shape[0]):
         d2 = dx * dx + dy * dy
 
         i = d2.argmin(axis=0)
-        idxs = np.indices(i.shape)
-
-        min_d2 = d2[i, idxs][0]
-        sdx = dx[i, idxs][0]
-        sdy = dy[i, idxs][0]
-
-        invalid = min_d2 >= (5e-9 ** 2.0)
-        return invalid, sdx, sdy, min_d2
+        min_d2 = np.take_along_axis(d2, i[None], 0)[0]
+        new_x = x1[i]
+        new_y = y1[i]
+        invalid = ((new_x - x0) ** 2.0 + (new_y - y0) ** 2.0) >= (1.0e-9 ** 2.0)
+        return new_x, new_y, min_d2, invalid
 
     c = 0
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
-            invalids[c, :], sdxs[c, :], sdys[c, :], min_d2s[c, :] = find_min(xs[t - 1, :] + j * sx, ys[t - 1, :] + i * sy, xs[t, :], ys[t, :])
+            new_xs[c, :], new_ys[c, :], min_d2s[c, :], invalids[c, :] = find_min(ind_xs[t - 1, :] + j * sx, ind_ys[t - 1, :] + i * sy, xs[t, :], ys[t, :])
             c += 1
 
     i = min_d2s.argmin(axis=0)
-    idxs = np.indices(i.shape)
+    min_d2 = np.take_along_axis(min_d2s, i[None], 0)
+    new_x = np.take_along_axis(new_xs, i[None], 0)
+    new_y = np.take_along_axis(new_ys, i[None], 0)
+    invalid = min_d2 >= (1.0e-9 ** 2.0)
+    ind_xs[t, :] = new_x
+    ind_ys[t, :] = new_y
+    ind_xs[t, invalid[0]] = -1
 
-    ind_xs[t, :] = ind_xs[t - 1, :] + sdxs[i, idxs][0]
-    ind_ys[t, :] = ind_ys[t - 1, :] + sdys[i, idxs][0]
+fig, ax = plt.subplots()
+ax.set_xlim((0, gi.cols * gp[0].lattice))
+ax.set_ylim((0, gi.rows * gp[0].lattice))
 
-    ind_xs[t, invalids[i, idxs][0]] = -1
-    ind_ys[t, invalids[i, idxs][0]] = -1
-
-ind_xs = ind_xs - np.floor(ind_xs / sx) * sx
-ind_ys = ind_ys - np.floor(ind_ys / sy) * sy
-fig, ax = plt.subplots(ncols=3, nrows=3)
-
-for i in range(3):
-    for j in range(3):
-        ax[i][j].set_xlim((0, (gi.cols - 1) * gp[0].lattice))
-        ax[i][j].set_ylim((0, (gi.rows - 1) * gp[0].lattice))
-        ax[i][j].set_xticks(())
-        ax[i][j].set_yticks(())
-
-print(ind_xs)
+with np.printoptions(threshold=np.inf):
+    print(ind_xs)
+#
+#print(xs[0], xs[-1])
 
 plt.subplots_adjust(wspace=0, hspace=0)
 
-print(xs.max(), (gi.cols - 1) * gp[0].lattice, gi.cols * gp[0].lattice)
-for i in range(3):
-    for j in range(3):
-        for k in range(xs.shape[1]):
-            ax[i][j].scatter(ind_xs[:, k] / (gi.cols * gp[0].lattice) * (gi.cols - 1) * gp[0].lattice, ind_ys[:, k] / (gi.rows * gp[0].lattice) * (gi.rows - 1) * gp[0].lattice, s=0.5)
+c = plt.colormaps["hsv"]
+t = data[0] / max(data[0])
+ax.scatter(xs, ys, s=0.5)
 
-print(ax[0][0].get_xlim())
-print(ax[0][0].get_ylim())
 fig.savefig("./trajectories.png", dpi=cmd.DPI, facecolor="white", bbox_inches="tight")

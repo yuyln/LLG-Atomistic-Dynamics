@@ -1,6 +1,8 @@
 #ifndef __UTILS_H
 #define __UTILS_H
 #include "string_view.h"
+#include "grid_funcs.h"
+#include "allocator.h"
 
 #define da_append(da, item) do { \
     if ((da)->len >= (da)->cap) { \
@@ -39,5 +41,8 @@
     rb_at((rb), (rb)->len) = (item); \
     (rb)->len += 1; \
 } while (0)
+
+bool organize_clusters_inplace(const char *clusters_file_path);
+bool organize_clusters(const char *clusters_file_path, const char *clusters_output_path);
 
 #endif

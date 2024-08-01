@@ -2,10 +2,12 @@
 #include "kernel_funcs.h"
 #include "logging.h"
 #include "allocator.h"
+#include "utils.h"
 
 #include "stb_image_write.h"
 
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 
 
@@ -213,7 +215,9 @@ void integrate_step(integrate_context *ctx) {
     if (ctx->params.do_cluster && ctx->integrate_step % ctx->params.interval_for_cluster == 0) {
         if (!read_grid_from_gpu)
             v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+
         grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
+
         fprintf(ctx->clusters, "%e,", ctx->time);
 
         for (uint64_t i = 0; i < ctx->g->clusters.len - 1; ++i)

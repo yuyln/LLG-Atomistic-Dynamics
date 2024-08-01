@@ -237,7 +237,7 @@ void grid_renderer_clustering(grid_renderer *gr) {
 void grid_renderer_clustering_centers(grid_renderer *gr) {
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.5) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
+            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.0) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {

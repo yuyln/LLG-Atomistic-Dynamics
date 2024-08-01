@@ -16,4 +16,5 @@
 #include "gsa.h"
 #include "logging.h"
 #include "profiler.h"
+#include "utils.h"
 #endif
