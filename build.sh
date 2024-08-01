@@ -2,7 +2,7 @@
 
 set -xe
 
-COMMON_CFLAGS="-DnPROFILING -O0 -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
+COMMON_CFLAGS="-DnPROFILING -O3 -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_linux_x11.c"
 CC="gcc"
 LIBS="-lm `pkg-config --static --libs OpenCL x11`"

@@ -53,14 +53,14 @@ bool organize_clusters(const char *in_path, const char *out_path) {
 
     char *ptr = buffer;
     while (*ptr) {
+        double time[2] = {0};
         for (int i = 0; i < 2; ++i) {
             char *line_end = ptr;
             while (*line_end != '\n')
                 line_end += 1;
 
-            char *first_comma = ptr;
-            while (*first_comma != ',')
-                first_comma += 1;
+            char *first_comma = NULL;
+            time[i] = strtod(ptr, &first_comma);
 
             char *data = first_comma + 1;
             uint64_t aux = 0;
@@ -68,11 +68,15 @@ bool organize_clusters(const char *in_path, const char *out_path) {
                 char *aux = NULL;
                 cs[i].items[counter].x = strtod(data, &aux);
                 data = aux + 1;
+
+                aux = NULL;
                 cs[i].items[counter].y = strtod(data, &aux);
                 data = aux + 1;
             }
             ptr = line_end + 1;
         }
+        logging_log(LOG_INFO, "%e, %e, %e", time[0], cs[0].items[1].x, cs[0].items[1].y);
+        logging_log(LOG_INFO, "%e, %e, %e", time[1], cs[1].items[1].x, cs[1].items[1].y);
     }
 
     return true;
