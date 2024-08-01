@@ -132,6 +132,8 @@ int test(void) {
     //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows, -1, 1, 0);
     //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
     grid_fill_with_random(&g);
+    g.gi.pbc.pbc_x = 1;
+    g.gi.pbc.pbc_y = 1;
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
     double ratio = (double)rows / cols;
@@ -147,7 +149,7 @@ int test(void) {
     double angle = M_PI / 2.0;//26.566 / 180.0 * M_PI;
     double jx = 10e10 * cos(angle);
     double jy = 10e10 * sin(angle);
-    int_params.current_func = create_current_stt_dc(jx, 2 * jy, 0);
+    int_params.current_func = create_current_stt_ac(jx, jy, 100 / (200 * NS), 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     for (uint64_t i = 0; i < g.clusters.len; ++i) {
@@ -289,7 +291,12 @@ int doing_clustering(void) {
 }
 
 int main(void) {
-    organize_clusters("./clusters.dat", "./clusters_org.dat");
+    test();
+    profiler_start_measure("CLUSTERING");
+    organize_clusters("./clusters.dat", "./clusters_org.dat", 32 * 0.5e-9, 32 * 0.5e-9, 2e-9 * 2e-9);
+    profiler_end_measure("CLUSTERING");
+    profiler_print_measures(stdout);
+
     return 0;
 }
 

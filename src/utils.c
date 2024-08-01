@@ -1,4 +1,7 @@
 #include "utils.h"
+#include <stdint.h>
+#include <float.h>
+#include <math.h>
 
 typedef struct {
     double x;
@@ -11,10 +14,11 @@ typedef struct {
     uint64_t cap;
 } centers;
 
-bool organize_clusters_inplace(const char *in_path) {
+bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold) {
+    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold);
 }
 
-bool organize_clusters(const char *in_path, const char *out_path) {
+bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold) {
     FILE *f_in = mfopen(in_path, "rb");
     char *buffer = NULL;
 
@@ -44,40 +48,106 @@ bool organize_clusters(const char *in_path, const char *out_path) {
 
     max_n >>= 1;
 
-    centers cs[2] = {0};
+    centers cs[3] = {0};
 
     for (uint64_t i = 0; i < max_n; ++i) {
         da_append(&cs[0], ((center){.x = -1, .y = -1}));
         da_append(&cs[1], ((center){.x = -1, .y = -1}));
+        da_append(&cs[2], ((center){.x = -1, .y = -1}));
     }
 
     char *ptr = buffer;
-    while (*ptr) {
-        double time[2] = {0};
-        for (int i = 0; i < 2; ++i) {
-            char *line_end = ptr;
-            while (*line_end != '\n')
-                line_end += 1;
 
-            char *first_comma = NULL;
-            time[i] = strtod(ptr, &first_comma);
+    FILE *fout = mfopen(out_path, "wb");
+    {
+        char *line_end = ptr;
+        while (*line_end != '\n')
+            line_end += 1;
 
-            char *data = first_comma + 1;
-            uint64_t aux = 0;
-            for (uint64_t counter = 0; data < line_end && counter < max_n; ++counter) {
+        char *first_comma = NULL;
+        double time = strtod(ptr, &first_comma);
+
+        char *data = first_comma + 1;
+        for (uint64_t counter = 0; data < line_end && counter < max_n; ++counter) {
+            char *aux = NULL;
+            cs[0].items[counter].x = strtod(data, &aux);
+            data = aux + 1;
+
+            aux = NULL;
+            cs[0].items[counter].y = strtod(data, &aux);
+            data = aux + 1;
+        }
+        ptr = line_end + 1;
+
+        fprintf(fout, "%e,", time);
+        for (uint64_t i = 0; i < cs[2].len - 1; ++i)
+            fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
+        uint64_t i = cs[2].len - 1;
+        fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+    }
+
+    while (ptr < buffer + len) {
+        char *line_end = ptr;
+        while (*line_end != '\n')
+            line_end += 1;
+
+        char *first_comma = NULL;
+        double time = strtod(ptr, &first_comma);
+        fprintf(fout, "%e,", time);
+
+        char *data = first_comma + 1;
+        for (uint64_t counter = 0; counter < max_n; ++counter) {
+            cs[1].items[counter].x = -1;
+            cs[1].items[counter].y = -1;
+            if (data < line_end) {
                 char *aux = NULL;
-                cs[i].items[counter].x = strtod(data, &aux);
+                cs[1].items[counter].x = strtod(data, &aux);
                 data = aux + 1;
 
                 aux = NULL;
-                cs[i].items[counter].y = strtod(data, &aux);
+                cs[1].items[counter].y = strtod(data, &aux);
                 data = aux + 1;
             }
-            ptr = line_end + 1;
         }
-        logging_log(LOG_INFO, "%e, %e, %e", time[0], cs[0].items[1].x, cs[0].items[1].y);
-        logging_log(LOG_INFO, "%e, %e, %e", time[1], cs[1].items[1].x, cs[1].items[1].y);
+        ptr = line_end + 1;
+
+        for (uint64_t i = 0; i < cs[1].len; ++i) {
+            double min_d2 = FLT_MAX;
+            uint64_t min_idx = 0;
+            for (uint64_t j = 0; j < cs[0].len; ++j) {
+                for (int di = -1; di <= 1; ++di) {
+                    for (int dj = -1; dj <= 1; ++dj) {
+                        double dx = cs[1].items[i].x - cs[0].items[j].x - dj * sample_x;
+                        double dy = cs[1].items[i].y - cs[0].items[j].y - di * sample_y;
+                        double d2 = dx * dx + dy * dy;
+                        min_idx = d2 < min_d2? j: min_idx;
+                        min_d2 = d2 < min_d2? d2: min_d2;
+                    }
+                }
+            }
+            cs[2].items[min_idx] = cs[1].items[i];
+
+            if (min_d2 >= d2_threshold) {
+                cs[2].items[min_idx].x = -1;
+                cs[2].items[min_idx].y = -1;
+            }
+        }
+
+        {
+            for (uint64_t i = 0; i < cs[2].len - 1; ++i) {
+                cs[0].items[i] = cs[2].items[i];
+                cs[1].items[i] = cs[2].items[i];
+                fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
+            }
+            uint64_t i = cs[2].len - 1;
+            cs[0].items[i] = cs[2].items[i];
+            cs[1].items[i] = cs[2].items[i];
+            fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+        }
     }
+
+    mfclose(fout);
+    mfree(buffer);
 
     return true;
 }
