@@ -190,7 +190,7 @@ string create_field_J(v3d field, double J, double mu) {
     static char buffer[2048];
     J *= SIGN(J);
     mu *= SIGN(mu);
-    int written = snprintf(buffer, sizeof(buffer) - 1, "return v3d_c(%.15e, %.15e, %.15e);", field.x / J * 1.0 / mu, field.y / J * 1.0 / mu, field.z / J * 1.0 / mu);
+    int written = snprintf(buffer, sizeof(buffer) - 1, "return v3d_c(%.15e, %.15e, %.15e);", field.x * J * 1.0 / mu, field.y * J * 1.0 / mu, field.z * J * 1.0 / mu);
 
     if (written < 0)
         logging_log(LOG_FATAL, "Something went wrong during `snprintf`. This should never happen, there is something very wrong with your machine");
