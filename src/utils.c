@@ -42,7 +42,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
         }
     }
     if (max_n % 2) {
-        logging_log(LOG_ERROR, "Number of commnas not a multiple of two. \"%s\" is probably corrupted", in_path);
+        logging_log(LOG_ERROR, "Number of commas is not a multiple of two. \"%s\" is probably corrupted", in_path);
         return false;
     }
 
@@ -97,8 +97,6 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
 
         char *data = first_comma + 1;
         for (uint64_t counter = 0; counter < max_n; ++counter) {
-            cs[1].items[counter].x = -1;
-            cs[1].items[counter].y = -1;
             if (data < line_end) {
                 char *aux = NULL;
                 cs[1].items[counter].x = strtod(data, &aux);
@@ -108,6 +106,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                 cs[1].items[counter].y = strtod(data, &aux);
                 data = aux + 1;
             }
+            cs[2].items[counter] = cs[1].items[counter];
         }
         ptr = line_end + 1;
 

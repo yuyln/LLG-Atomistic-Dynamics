@@ -85,13 +85,13 @@ void set_pin2(grid *g, uint64_t row, uint64_t col, void *dummy) {
 }
 
 int test(void) {
-    unsigned int rows = 32;
-    unsigned int cols = 32;
+    unsigned int rows = 128;
+    unsigned int cols = 128;
 
     double lattice = 0.5e-9;
     double J = 1.0e-3 * QE;
-    double dm = 0.7 * J;
-    double ani = 0.05 * J;
+    double dm = 0.2 * J;
+    double ani = 0.01 * J;
     double alpha = 0.3;
     //
     grid g = grid_init(rows, cols);
@@ -102,38 +102,18 @@ int test(void) {
 
     double mu = g.gp->mu;
 
-    dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(dm, 0.0, 0.0),
-                                                 .dmv_up = v3d_c(-dm, 0.0, 0.0),
-                                                 .dmv_left = v3d_c(0.0, -dm, 0.0),
-                                                 .dmv_right = v3d_c(0.0, dm, 0.0)};
+    dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(0.0, dm, 0.0),
+                                                 .dmv_up = v3d_c(0.0, -dm, 0.0),
+                                                 .dmv_left = v3d_c(-dm, 0.0, 0.0),
+                                                 .dmv_right = v3d_c(dm, 0.0, 0.0)};
+    default_dm = dm_interfacial(dm);
 
     grid_set_dm(&g, default_dm);
 
-    for (unsigned int i = 0; i < rows * cols; ++i)
-        g.m[i] = v3d_c(0, 0, 1);
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    //grid_create_skyrmion_at(&g, 15, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, 0);
+    //grid_create_skyrmion_at(&g, 3, 3, 1 * cols / 5.0, rows / 2.0, 1, 1, 0);
 
-    int n = 6;
-    double Ry = 2.0 * rows / (3.0 * n);
-    double Rx = 2.0 * cols / (3.0 * n);
-
-    //for (unsigned int iy = 0; iy < n; ++iy) {
-    //    int yc = Ry / 4.0 + iy * (Ry + Ry / 2.0) + Ry / 2.0;
-    //    for (unsigned int ix = 0; ix < n; ++ix) {
-    //        int xc = Rx / 4.0 + ix * (Rx + Rx / 2.0) + Rx / 2.0;
-    //        if (iy % 2 == 0)
-    //            xc += Rx / 2.0 + Rx / 4.0;
-    //        grid_create_skyrmion_at(&g, Rx / 2.0, 1, xc, yc, 1, 1, 0);
-    //    }
-    //}
-    //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, M_PI);
-    //grid_uniform(&g, v3d_c(0, 0, 1));
-    //grid_create_skyrmion_at(&g, 6, 3, 4 * cols / 5.0, rows / 2.0, -1, 1, 0);
-    //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows / 2.0, -1, 1, 0);
-    //grid_create_skyrmion_at(&g, 6, 3, 1 * cols / 5.0, rows, -1, 1, 0);
-    //grid_create_skyrmion_at(&g, 10, 1, cols / 2.0, rows / 2.0, 1, 1, 0);
-    grid_fill_with_random(&g);
-    g.gi.pbc.pbc_x = 1;
-    g.gi.pbc.pbc_y = 1;
 
     double dt = 0.01 * HBAR / (J * SIGN(J));
     double ratio = (double)rows / cols;
@@ -145,12 +125,24 @@ int test(void) {
     int_params.dt = dt;
     int_params.do_cluster = true;
     int_params.interval_for_cluster = 100;
+
+    int_params.current_func = str_is_cstr("current ret = (current){.type=CUR_SHE};\n"\
+                                          "double x = gs.col - 0.5 * 64;\n"\
+                                          "double y = gs.row - 0.5 * 64;\n"\
+                                          "int ring = x * x + y * y <= 15 * 15 && x * x + y * y >= 13 * 13;\n"\
+                                          "ret.she.p = v3d_scalar(v3d_normalize(v3d_c(x, y, 0)), 1000e10 * ring * (time < 40e-12));\n"\
+                                          "ret.she.thickness = 0.5e-9;\n"\
+                                          "ret.she.beta = 0;\n"\
+                                          "ret.she.theta_sh = 1;\n"\
+                                          "return ret;\n");
+
     grid_renderer_integrate(&g, int_params, 1000, 1000);
-    double angle = M_PI / 2.0;//26.566 / 180.0 * M_PI;
-    double jx = 10e10 * cos(angle);
-    double jy = 10e10 * sin(angle);
-    int_params.current_func = create_current_stt_ac(jx, jy, 100 / (200 * NS), 0);
+
+    double jx = 1e10;
+    double jy = 1e10;
+    int_params.current_func = create_current_she_ac(jx, v3d_c(jx, jy, 0), 100 / (200 * NS), 0);
     grid_renderer_integrate(&g, int_params, 1000, 1000);
+    
 
     for (uint64_t i = 0; i < g.clusters.len; ++i) {
         cluster_center *it = &g.clusters.items[i];
@@ -208,6 +200,7 @@ int test2(void) {
     int_params.field_func = create_field_D2_over_J(v3d_c(0.6, 0, 0.0), J, dm, mu);
     int_params.duration = 200.2 * NS;
     int_params.interval_for_raw_grid = 0;
+    int_params.do_cluster = true;
     int_params.dt = dt;
 
     grid_renderer_integrate(&g, int_params, 1000, 1000);
@@ -261,42 +254,9 @@ int test3(void) {
     return 0;
 }
 
-int doing_clustering(void) {
-    grid g = grid_init(64, 64);
-
-    FILE *f = mfopen("testing.dat", "w");
-    for (int i = -10; i < 10; ++i) {
-        grid_uniform(&g, v3d_c(0, 0, 1));
-        for (int j = 0; j < 10; ++j) {
-            int start_x = j + i;
-            start_x = ((start_x % 64) + 64) % 64;
-            int idx = 31 * 64 + start_x;
-            g.m[idx] = v3d_c(0, 0, -1);
-        }
-        grid_cluster(&g, 0.3, 5, NULL, NULL, NULL, NULL);
-        int start_x = ((i % 64) + 64) % 64;
-        int end_x = (((i + 10) % 64) + 64) % 64;
-        fprintf(f, "%d,%d,%d,%f,%f\n", i, start_x, end_x, g.clusters.items[1].x / 0.5e-9, g.clusters.items[1].y / 0.5e-9);
-        for (uint64_t j = 0; j < g.clusters.len; ++j) {
-            cluster_center *it = &g.clusters.items[j];
-            if (it->avg_m.z >= 0.8)
-                continue;
-            logging_log(LOG_INFO, "i: %d | ID: %llu | x, y: %f %f | m: %e %e %e", i, j, it->x / 0.5e-9, it->y / 0.5e-9, it->avg_m.x, it->avg_m.y, it->avg_m.z);
-        }
-    }
-
-    mfclose(f);
-    grid_free(&g);
-    return 0;
-}
-
 int main(void) {
-    test();
-    profiler_start_measure("CLUSTERING");
-    organize_clusters("./clusters.dat", "./clusters_org.dat", 32 * 0.5e-9, 32 * 0.5e-9, 2e-9 * 2e-9);
-    profiler_end_measure("CLUSTERING");
-    profiler_print_measures(stdout);
-
+    //test();
+    organize_clusters("./clusters.dat", "clusters_org.dat", 128 * 0.5e-9, 128 * 0.5e-9, 1e8);
     return 0;
 }
 
