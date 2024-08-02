@@ -394,6 +394,10 @@ def CreateAnimationFromFrames(base_dir: str, output: str, cmd: CMDArgs, gi: grid
     min_x, max_x = -lattice / 2, (cols - 1) * lattice + lattice / 2
     min_y, max_y = -lattice / 2, (rows - 1) * lattice + lattice / 2
     img = ax.imshow(frames[0], extent=[min_x, max_x, min_y, max_y])
+    ax.set_xticklabels((f"{i/1e-9:.0f}" for i in ax.get_xticks()))
+    ax.set_yticklabels((f"{i/1e-9:.0f}" for i in ax.get_yticks()))
+    ax.set_xlabel("$x$(nm)")
+    ax.set_ylabel("$y$(nm)")
 
     def animate(i):
         img.set_array(frames[i])

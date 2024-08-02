@@ -7,6 +7,8 @@ typedef struct {
     double x;
     double y;
     double size;
+    double vx; //TODO
+    double vy; //TODO
 } center;
 
 typedef struct {
@@ -149,6 +151,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                 }
             }
             cs[2].items[min_idx] = cs[1].items[i];
+            cs[0].items[min_idx] = (center){.x = -1, .y = -1};
 
             if (min_d2 >= d2_threshold) {
                 cs[2].items[min_idx].x = -1;
@@ -179,6 +182,9 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
 
     mfclose(fout);
     mfree(buffer);
+    mfree(cs[0].items);
+    mfree(cs[1].items);
+    mfree(cs[2].items);
 
     return true;
 }

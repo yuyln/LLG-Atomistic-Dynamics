@@ -37,6 +37,9 @@ if [ "$1" = "install" ]; then
     cp ./libatomistic.a $HOME/.local/lib/atomistic/
     cp -r ./include $HOME/.local/lib/atomistic/include
     cp ./run_atomistic $HOME/.local/bin/run_atomistic
+
+    $CC -fPIC $CFLAGS -shared -o libatomistic.so $FILES $LIBS
+    cp ./libatomistic.so $HOME/.local/lib/atomistic/
 else
     set -xe
     CFLAGS="$COMMON_CFLAGS -Wall -Wextra -pedantic -ggdb -g3 -Wno-overlength-strings -Wno-override-init"
@@ -52,5 +55,5 @@ else
 
     rm *.o
 
-    $CC -L./ $CFLAGS main.c -o main -latomistic $LIBS
+    $CC -L./ $CFLAGS main.c -o main -l:libatomistic.a $LIBS
 fi

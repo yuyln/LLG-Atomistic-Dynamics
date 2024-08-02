@@ -774,13 +774,6 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
 
     for (uint64_t i = 0; i < g->clusters.len; ++i) {
         cluster_center *it = &g->clusters.items[i];
-
-        if (it->count >= (0.6 * rows * cols)) {
-            it->x = -1;
-            it->y = -1;
-            continue;
-        }
-
         if (!CLOSE_ENOUGH(it->sum_weight, 0, EPS)) {
             it->avg_m = v3d_normalize(v3d_scalar(it->avg_m, 1.0 / it->sum_weight));
 
@@ -792,6 +785,11 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
 
             it->x = it->x - floor(it->x / (cols * g->gp->lattice)) * cols * g->gp->lattice;
             it->y = it->y - floor(it->y / (rows * g->gp->lattice)) * rows * g->gp->lattice;
+        }
+
+        if (it->count >= (0.6 * rows * cols)) {
+            it->x = -1;
+            it->y = -1;
         }
     }
 }
