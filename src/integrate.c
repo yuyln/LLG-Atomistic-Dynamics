@@ -29,9 +29,10 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
-    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 2, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 4, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols));
     ctx.global = grid->gi.cols * grid->gi.rows;
-    ctx.local = gpu_cl_gcd(ctx.global, 32);
+    ctx.global = ctx.global + (gpu_optimal_wg - ctx.global % gpu_optimal_wg);
+    ctx.local = gpu_optimal_wg;
 
     string output_info_path = str_from_cstr("");
 
@@ -218,13 +219,13 @@ void integrate_step(integrate_context *ctx) {
 
         grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
 
-        fprintf(ctx->clusters, "%e,", ctx->time);
+        fprintf(ctx->clusters, "%.15e,", ctx->time);
 
         for (uint64_t i = 0; i < ctx->g->clusters.len - 1; ++i)
-            fprintf(ctx->clusters, "%e,%e,%e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+            fprintf(ctx->clusters, "%.15e,%.15e,%.15e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
 
         uint64_t i = ctx->g->clusters.len - 1;
-        fprintf(ctx->clusters, "%e,%e,%e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+        fprintf(ctx->clusters, "%.15e,%.15e,%.15e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
     }
 
     ctx->integrate_step += 1;

@@ -27,6 +27,7 @@
 
 extern uint64_t p_id;
 extern uint64_t d_id;
+extern uint64_t gpu_optimal_wg;
 
 typedef struct {
     cl_kernel kernel;

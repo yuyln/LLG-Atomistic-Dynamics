@@ -11,6 +11,7 @@ static_assert(sizeof(cl_char4) == sizeof(uint32_t), "Size of cl_char4 is not the
 
 uint64_t p_id = 0;
 uint64_t d_id = 0;
+uint64_t gpu_optimal_wg = 32; //TODO: change to 64 on amd?
 
 static const char *errors[60] = {"CL_SUCCESS",
                                  "CL_DEVICE_NOT_FOUND",

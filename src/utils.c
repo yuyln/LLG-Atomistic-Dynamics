@@ -90,18 +90,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
         }
         ptr = line_end + 1;
 
-        fprintf(fout, "%e,", time);
+        fprintf(fout, "%.15e,", time);
         for (uint64_t i = 0; i < cs[0].len - 1; ++i) {
-            fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
+            fprintf(fout, "%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y);
             if (has_size) {
-                fprintf(fout, "%e,", cs[0].items[i].size);
+                fprintf(fout, "%.15e,", cs[0].items[i].size);
             }
         }
         uint64_t i = cs[0].len - 1;
         if (has_size) {
-            fprintf(fout, "%e,%e,%e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+            fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
         } else {
-            fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+            fprintf(fout, "%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y);
         }
 
     }
@@ -113,7 +113,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
 
         char *first_comma = NULL;
         double time = strtod(ptr, &first_comma);
-        fprintf(fout, "%e,", time);
+        fprintf(fout, "%.15e,", time);
 
         char *data = first_comma + 1;
         for (uint64_t counter = 0; counter < max_n; ++counter) {
@@ -164,18 +164,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             for (uint64_t i = 0; i < cs[2].len - 1; ++i) {
                 cs[0].items[i] = cs[2].items[i];
                 cs[1].items[i] = cs[2].items[i];
-                fprintf(fout, "%e,%e,", cs[0].items[i].x, cs[0].items[i].y);
+                fprintf(fout, "%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y);
                 if (has_size) {
-                    fprintf(fout, "%e,", cs[0].items[i].size);
+                    fprintf(fout, "%.15e,", cs[0].items[i].size);
                 }
             }
             uint64_t i = cs[2].len - 1;
             cs[0].items[i] = cs[2].items[i];
             cs[1].items[i] = cs[2].items[i];
             if (has_size) {
-                fprintf(fout, "%e,%e,%e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+                fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
             } else {
-                fprintf(fout, "%e,%e\n", cs[0].items[i].x, cs[0].items[i].y);
+                fprintf(fout, "%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y);
             }
         }
     }

@@ -18,6 +18,10 @@ typedef struct {
     RGBA32 *rgba_cpu;
     unsigned int width, height;
 
+    uint64_t r_global;
+    uint64_t g_global;
+    uint64_t local;
+
     uint64_t grid_hsl_id;
     uint64_t grid_bwr_id;
     uint64_t pinning_id;
@@ -33,7 +37,6 @@ typedef struct {
 
     v3d *v3d_buffer_cpu;
     cl_mem v3d_buffer_gpu;
-
 } grid_renderer;
 
 extern unsigned int steps_per_frame;

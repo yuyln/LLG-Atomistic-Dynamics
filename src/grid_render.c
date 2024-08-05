@@ -21,6 +21,14 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     ret.gpu = gpu;
     grid_to_gpu(g, *ret.gpu);
 
+    ret.r_global = ret.width * ret.height;
+    ret.r_global = ret.r_global + (gpu_optimal_wg - ret.r_global % gpu_optimal_wg);
+    
+    ret.g_global = g->gi.rows * g->gi.cols;
+    ret.g_global = ret.g_global + (gpu_optimal_wg - ret.g_global % gpu_optimal_wg);
+
+    ret.local = gpu_optimal_wg;
+
     ret.rgba_cpu = mmalloc(ret.width * ret.height * sizeof(*ret.rgba_cpu));
     ret.rgba_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.rgba_cpu) * ret.width * ret.height, CL_MEM_READ_WRITE);
 
@@ -83,54 +91,41 @@ void grid_renderer_close(grid_renderer *gr) {
 }
 
 void grid_renderer_hsl(grid_renderer *gr) {
-    size_t global = gr->width * gr->height;
-    size_t local = gpu_cl_gcd(global, 32);
-    gpu_cl_enqueue_nd(gr->gpu, gr->grid_hsl_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->grid_hsl_id, 1, &gr->local, &gr->r_global, NULL);
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
 
 void grid_renderer_pinning(grid_renderer *gr) {
-    size_t global = gr->width * gr->height;
-    size_t local = gpu_cl_gcd(global, 32);
-
-    gpu_cl_enqueue_nd(gr->gpu, gr->pinning_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->pinning_id, 1, &gr->local, &gr->r_global, NULL);
 
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
 
 void grid_renderer_bwr(grid_renderer *gr) {
-    size_t global = gr->width * gr->height;
-    size_t local = gpu_cl_gcd(global, 32);
-    gpu_cl_enqueue_nd(gr->gpu, gr->grid_bwr_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->grid_bwr_id, 1, &gr->local, &gr->r_global, NULL);
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }
 
 void grid_renderer_energy(grid_renderer *gr, double time) {
-    size_t global = gr->g->gi.rows * gr->g->gi.cols;
-    size_t local = gpu_cl_gcd(global, 32);
-
     gpu_cl_set_kernel_arg(gr->gpu, gr->calc_energy_id, 4, sizeof(time), &time);
-    gpu_cl_enqueue_nd(gr->gpu, gr->calc_energy_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->calc_energy_id, 1, &gr->local, &gr->g_global, NULL);
 
-    gpu_cl_read_gpu(gr->gpu, global * sizeof(*gr->buffer_cpu), 0, gr->buffer_cpu, gr->buffer_gpu);
+    gpu_cl_read_gpu(gr->gpu, gr->g->gi.rows * gr->g->gi.cols * sizeof(*gr->buffer_cpu), 0, gr->buffer_cpu, gr->buffer_gpu);
 
     double min_energy = FLT_MAX;
     double max_energy = -FLT_MAX;
 
-    for (uint64_t i = 0; i < global; ++i) {
+    for (uint64_t i = 0; i < gr->g->gi.rows * gr->g->gi.cols; ++i) {
         if (gr->buffer_cpu[i] < min_energy) min_energy = gr->buffer_cpu[i];
         if (gr->buffer_cpu[i] > max_energy) max_energy = gr->buffer_cpu[i];
     }
 
-    global = gr->width * gr->height;
-    local = gpu_cl_gcd(global, 32);
-    
     gpu_cl_set_kernel_arg(gr->gpu, gr->energy_id, 3, sizeof(min_energy), &min_energy);
     gpu_cl_set_kernel_arg(gr->gpu, gr->energy_id, 4, sizeof(max_energy), &max_energy);
-    gpu_cl_enqueue_nd(gr->gpu, gr->energy_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->energy_id, 1, &gr->local, &gr->r_global, NULL);
 
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
 
@@ -138,27 +133,21 @@ void grid_renderer_energy(grid_renderer *gr, double time) {
 }
 
 void grid_renderer_charge(grid_renderer *gr) {
-    size_t global = gr->g->gi.rows * gr->g->gi.cols;
-    size_t local = gpu_cl_gcd(global, 32);
+    gpu_cl_enqueue_nd(gr->gpu, gr->calc_charge_id, 1, &gr->local, &gr->g_global, NULL);
 
-    gpu_cl_enqueue_nd(gr->gpu, gr->calc_charge_id, 1, &local, &global, NULL);
-
-    gpu_cl_read_gpu(gr->gpu, global * sizeof(*gr->buffer_cpu), 0, gr->buffer_cpu, gr->buffer_gpu);
+    gpu_cl_read_gpu(gr->gpu, gr->g->gi.rows * gr->g->gi.cols * sizeof(*gr->buffer_cpu), 0, gr->buffer_cpu, gr->buffer_gpu);
 
     double min_charge = FLT_MAX;
     double max_charge = -FLT_MAX;
 
-    for (uint64_t i = 0; i < global; ++i) {
+    for (uint64_t i = 0; i < gr->g->gi.rows * gr->g->gi.cols; ++i) {
         if (gr->buffer_cpu[i] < min_charge) min_charge = gr->buffer_cpu[i];
         if (gr->buffer_cpu[i] > max_charge) max_charge = gr->buffer_cpu[i];
     }
 
-    global = gr->width * gr->height;
-    local = gpu_cl_gcd(global, 32);
-    
     gpu_cl_set_kernel_arg(gr->gpu, gr->charge_id, 3, sizeof(min_charge), &min_charge);
     gpu_cl_set_kernel_arg(gr->gpu, gr->charge_id, 4, sizeof(max_charge), &max_charge);
-    gpu_cl_enqueue_nd(gr->gpu, gr->charge_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->charge_id, 1, &gr->local, &gr->r_global, NULL);
 
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
 
@@ -167,12 +156,9 @@ void grid_renderer_charge(grid_renderer *gr) {
 }
 
 void grid_renderer_electric_field(grid_renderer *gr) {
-    size_t global = gr->g->gi.rows * gr->g->gi.cols;
-    size_t local = gpu_cl_gcd(global, 32);
+    gpu_cl_enqueue_nd(gr->gpu, gr->calc_electric_id, 1, &gr->local, &gr->g_global, NULL);
 
-    gpu_cl_enqueue_nd(gr->gpu, gr->calc_electric_id, 1, &local, &global, NULL);
-
-    gpu_cl_read_gpu(gr->gpu, global * sizeof(*gr->v3d_buffer_cpu), 0, gr->v3d_buffer_cpu, gr->v3d_buffer_gpu);
+    gpu_cl_read_gpu(gr->gpu, gr->g->gi.rows * gr->g->gi.cols * sizeof(*gr->v3d_buffer_cpu), 0, gr->v3d_buffer_cpu, gr->v3d_buffer_gpu);
 
     double max_electric = -FLT_MAX;
    // for (uint64_t i = 0; i < global; ++i) {
@@ -181,11 +167,8 @@ void grid_renderer_electric_field(grid_renderer *gr) {
    //     if (value > max_electric) max_electric = value;
    // }
 
-    global = gr->width * gr->height;
-    local = gpu_cl_gcd(global, 32);
-    
     gpu_cl_set_kernel_arg(gr->gpu, gr->electric_id, 3, sizeof(max_electric), &max_electric);
-    gpu_cl_enqueue_nd(gr->gpu, gr->electric_id, 1, &local, &global, NULL);
+    gpu_cl_enqueue_nd(gr->gpu, gr->electric_id, 1, &gr->local, &gr->r_global, NULL);
 
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
 

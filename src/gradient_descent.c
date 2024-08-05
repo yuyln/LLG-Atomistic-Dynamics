@@ -19,7 +19,8 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     grid_to_gpu(ret.g, *ret.gpu);
 
     ret.global = g->gi.rows * g->gi.cols;
-    ret.local = gpu_cl_gcd(ret.global, 32);
+    ret.global = ret.global + (gpu_optimal_wg - ret.global % gpu_optimal_wg);
+    ret.local = gpu_optimal_wg;
     ret.params = params;
     ret.T0 = params.T;
 
@@ -34,13 +35,13 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     ret.exchange_id = gpu_cl_append_kernel(ret.gpu, "exchange_grid");
     ret.energy_id = gpu_cl_append_kernel(ret.gpu, "calculate_energy");
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
 

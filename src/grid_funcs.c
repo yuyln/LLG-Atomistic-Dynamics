@@ -558,8 +558,8 @@ dm_interaction dm_interfacial(double dm) {
 dm_interaction dm_bulk(double dm) {
     return (dm_interaction){.dmv_down = v3d_c(0.0, -dm, 0.0),
                             .dmv_up = v3d_c(0.0, dm, 0.0),
-                            .dmv_left = v3d_c(dm, 0.0, 0.0),
-                            .dmv_right = v3d_c(-dm, 0.0, 0.0)};
+                            .dmv_left = v3d_c(-dm, 0.0, 0.0),
+                            .dmv_right = v3d_c(dm, 0.0, 0.0)};
 }
 
 anisotropy anisotropy_z_axis(double value) {
