@@ -17,11 +17,11 @@ typedef struct {
     uint64_t cap;
 } centers;
 
-bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold, bool has_size) {
-    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold, has_size);
+bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold) {
+    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold);
 }
 
-bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold, bool has_size) {
+bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold) {
     FILE *f_in = mfopen(in_path, "rb");
     char *buffer = NULL;
 
@@ -44,6 +44,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             n = 0;
         }
     }
+    bool has_size = max_n % 3 == 0;
     uint64_t div_fac = has_size? 3: 2;
 
     if (max_n % div_fac) {
