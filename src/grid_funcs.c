@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
+#include <inttypes.h>
 
 #include "grid_funcs.h"
 #include "constants.h"
@@ -464,6 +465,69 @@ bool grid_from_file(string path, grid *g) {
 defer:
     mfclose(f);
     mfree(data);
+    return ret;
+}
+
+bool grid_from_animation_bin(string path, grid *g, int64_t frame) {
+    if (!g)
+        logging_log(LOG_FATAL, "NULL pointer to grid provided");
+
+    if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows)
+        logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
+
+    string p_ = str_from_cstr("");
+    str_cat_str(&p_, path);
+    FILE *f = mfopen(str_as_cstr(&p_), "rb");
+    bool ret = true;
+
+    str_free(&p_);
+    uint64_t frames = 0;
+    if (fread(&frames, 1, sizeof(frames), f) != sizeof(frames)) {
+        logging_log(LOG_ERROR, "Reading data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+    frame = ((frame % (int64_t)frames) + frames) % frames;
+
+    if (fread(&g->gi, 1, sizeof(g->gi), f) != sizeof(g->gi)) {
+        logging_log(LOG_ERROR, "Reading data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+    
+    g->gp = mmalloc(sizeof(*g->gp) * g->gi.rows * g->gi.cols);
+    g->m = mmalloc(sizeof(*g->m) * g->gi.rows * g->gi.cols);
+    g->points = mmalloc(sizeof(*g->points) * g->gi.rows * g->gi.cols);
+    g->clusters = (cluster_centers){0};
+
+    g->queue.cap = g->gi.rows * g->gi.cols;
+    g->queue.len = 0;
+    g->queue.items = mmalloc(sizeof(*g->queue.items) * g->gi.rows * g->gi.cols);
+    g->queue.start = 0;
+
+    g->seen = mmalloc(sizeof(*g->seen) * g->gi.rows * g->gi.cols);
+
+    g->on_gpu = false;
+
+    if (fread(g->gp, 1, sizeof(*g->gp) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->gp) * g->gi.rows * g->gi.cols)) {
+        logging_log(LOG_ERROR, "Reading data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (fseek(f, frame * g->gi.rows * g->gi.cols * sizeof(*g->m), SEEK_CUR) < 0) {
+        logging_log(LOG_ERROR, "Advancing to %"PRIi64" from %.*s failed: %s", frame, (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (fread(g->m, 1, sizeof(*g->m) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->m) * g->gi.rows * g->gi.cols)) {
+        logging_log(LOG_ERROR, "Reading data from %.*s failed: %s", (int)path.len, path.str, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+defer:
+    mfclose(f);
     return ret;
 }
 

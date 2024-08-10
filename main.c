@@ -85,16 +85,6 @@ int skyrmionium_testing(void) {
     int_params.interval_for_cluster = 100;
 
     grid_create_skyrmionium_at(&g, 10, 10, cols / 2.0, rows / 2.0, 1, 1, 0);
-    //int_params.current_func = str_is_cstr("current ret = (current){.type=CUR_SHE};\n"\
-    //                                      "double x = gs.col - 0.5 * 64;\n"\
-    //                                      "double y = gs.row - 0.5 * 64;\n"\
-    //                                      "int ring = x * x + y * y <= 15 * 15 && x * x + y * y >= 13 * 13;\n"\
-    //                                      "ret.she.p = v3d_scalar(v3d_normalize(v3d_c(0, .1, -1)), 1000e10 * ring * (time < 40e-12));\n"\
-    //                                      "ret.she.thickness = 0.5e-9;\n"\
-    //                                      "ret.she.beta = 0;\n"\
-    //                                      "ret.she.theta_sh = 1;\n"\
-    //                                      "return ret;\n");
-
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     double jx = 1e10;
@@ -304,8 +294,9 @@ int testing(void) {
 
 int testing3(void) {
     grid g = {0};
-    if (!grid_from_file(str_is_cstr("/home/jose/dados/dimer/dynamics/dimer/input.bin"), &g))
+    if (!grid_from_animation_bin(str_is_cstr("/home/jose/dados/dimer/static/dimer_field_vs_sample_size_6x6_triangular/data/0.55000/168/integrate_evolution.dat"), &g, -1)) {
         logging_log(LOG_FATAL, "a");
+    }
 
     int rows = g.gi.rows;
     int cols = g.gi.cols;
@@ -329,7 +320,8 @@ int testing3(void) {
     gpu_optimal_wg = 64;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
-    int_params.temperature_func = create_temperature(0.1);
+    int_params.temperature_func = create_temperature(5);
+    steps_per_frame = 1;
     grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     grid_free(&g);
