@@ -41,18 +41,14 @@ a = 1
 
 min_ani, max_ani = min(gp, key=lambda x: x.ani.ani).ani.ani, max(gp, key=lambda x: x.ani.ani).ani.ani
 anis = np.zeros((gi.rows, gi.cols))
-for i in range(gi.rows):
-    for j in range(gi.cols):
-        anis[i, j] = (gp[i * gi.cols + j].ani.ani - min_ani) / (max_ani - min_ani)
+#for i in range(gi.rows):
+#    for j in range(gi.cols):
+#        anis[i, j] = (gp[i * gi.cols + j].ani.ani - min_ani) / (max_ani - min_ani)
 
-
-
-ani_cmap = LinearSegmentedColormap.from_list("mcmp", ["#ffffff00", "#000000bb"])
-ax.imshow(anis.reshape((gi.rows, gi.cols)), cmap=ani_cmap, origin="lower", extent=[min_x, max_x, min_y, max_y], interpolation=cmd.INTERPOLATION)
-
+#ani_cmap = LinearSegmentedColormap.from_list("mcmp", ["#ffffff00", "#000000bb"])
+#ax.imshow(anis.reshape((gi.rows, gi.cols)), cmap=ani_cmap, origin="lower", extent=[min_x, max_x, min_y, max_y], interpolation=cmd.INTERPOLATION)
 
 ax.scatter(xs, ys, s=0.5, color="blue")
-
 ax.set_xlim((min_x, max_x))
 ax.set_ylim((min_y, max_y))
 

@@ -45,7 +45,7 @@ grid grid_init(unsigned int rows, unsigned int cols) {
     ret.queue.items = mmalloc(sizeof(*ret.queue.items) * rows * cols);
     ret.queue.start = 0;
 
-    double dm = 0.18 * QE * 1.0e-3;
+    double dm = 0.2 * QE * 1.0e-3;
 
     dm_interaction default_dm = (dm_interaction){.dmv_down = v3d_c(dm, 0, 0),
                                                  .dmv_up = v3d_c(-dm, 0, 0),
@@ -557,11 +557,11 @@ void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, vo
 void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
     for (int64_t y = y0 - b; y < y0 + b; ++y)
         for (int64_t x = x0 - a; x < x0 + a; ++x)
-                if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1) {
-                    int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
-                    int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;
-                    fun(g, yl, xl, user_data);
-                }
+            if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1) {
+                int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
+                int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;
+                fun(g, yl, xl, user_data);
+            }
 }
 
 static bool triangle_inside(double x, double y, double x0, double y0, double x1, double y1, double x2, double y2) {
