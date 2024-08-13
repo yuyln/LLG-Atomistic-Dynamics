@@ -1,6 +1,4 @@
 #include "atomistic_simulation.h"
-#include <stdint.h>
-#include <float.h>
 
 void apply_circular_defect(grid *g, uint64_t row, uint64_t col, void *user_data) {
     int rows = g->gi.rows;
