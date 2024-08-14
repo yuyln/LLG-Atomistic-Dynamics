@@ -143,6 +143,7 @@ integrate_params integrate_params_init(void) {
 
     ret.cluster_eps = 0.1;
     ret.cluster_min_pts = 5;
+    ret.do_cluster = true;
 
     ret.current_func = str_is_cstr("return (current){.type = CUR_NONE};");
     ret.field_func = str_is_cstr("return v3d_s(0);");
