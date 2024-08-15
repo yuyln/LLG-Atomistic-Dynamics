@@ -9,7 +9,7 @@
 #include "integrate.h"
 #include "gradient_descent.h"
 #include "render.h"
-#include "string_view.h"
+#include "string_builder.h"
 #include "v3d.h"
 #include "complete_kernel.h"
 #include "kernel_funcs.h"

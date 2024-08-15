@@ -8,7 +8,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "string_view.h"
+#include "string_builder.h"
 #include "constants.h"
 #include "logging.h"
 

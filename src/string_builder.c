@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <inttypes.h>
 
-#include "string_view.h"
+#include "string_builder.h"
 #include "logging.h"
 #include "utils.h"
 #include "allocator.h"

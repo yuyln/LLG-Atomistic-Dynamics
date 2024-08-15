@@ -1,7 +1,7 @@
 #include "kernel_funcs.h"
 #include "complete_kernel.h"
 #include "constants.h"
-#include "string_view.h"
+#include "string_builder.h"
 #include "logging.h"
 #include <stdio.h>
 
