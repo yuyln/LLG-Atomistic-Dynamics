@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "allocator.h"
 #include "utils.h"
+#include "string_view.h"
 
 #include "stb_image_write.h"
 
@@ -34,14 +35,13 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     ctx.global = ctx.global + (gpu_optimal_wg - ctx.global % gpu_optimal_wg);
     ctx.local = gpu_optimal_wg;
 
-    string output_info_path = str_from_cstr("");
+    string_builder output_info_path = {0};
+    sb_cat_cstr(&output_info_path, params.output_path);
+    sb_cat_cstr(&output_info_path, "/integrate_info.dat");
 
-    str_cat_str(&output_info_path, params.output_path);
-    str_cat_cstr(&output_info_path, "/integrate_info.dat");
+    ctx.integrate_info = mfopen(sb_as_cstr(&output_info_path), "w");
 
-    ctx.integrate_info = mfopen(str_as_cstr(&output_info_path), "w");
-
-    str_free(&output_info_path);
+    sb_free(&output_info_path);
 
     fprintf(ctx.integrate_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
     fprintf(ctx.integrate_info, "charge_finite,charge_lattice,");
@@ -54,22 +54,21 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "D_xx,D_yy,D_xy\n");
 
     if (params.do_cluster) {
-        string output_cluster_path = str_from_cstr("");
+        string_builder output_cluster_path = {0};
+        sb_cat_cstr(&output_cluster_path, params.output_path);
+        sb_cat_cstr(&output_cluster_path, "/clusters.dat");
 
-        str_cat_str(&output_cluster_path, params.output_path);
-        str_cat_cstr(&output_cluster_path, "/clusters.dat");
+        ctx.clusters = mfopen(sb_as_cstr(&output_cluster_path), "w");
 
-        ctx.clusters = mfopen(str_as_cstr(&output_cluster_path), "w");
-
-        str_free(&output_cluster_path);
+        sb_free(&output_cluster_path);
     }
 
-    string output_grid_path = str_from_cstr("");
-    str_cat_str(&output_grid_path, params.output_path);
-    str_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
+    string_builder output_grid_path = {0};
+    sb_cat_cstr(&output_grid_path, params.output_path);
+    sb_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
-    ctx.integrate_evolution = mfopen(str_as_cstr(&output_grid_path), "wb");
-    str_free(&output_grid_path);
+    ctx.integrate_evolution = mfopen(sb_as_cstr(&output_grid_path), "wb");
+    sb_free(&output_grid_path);
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");
     ctx.info = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.info));
@@ -145,16 +144,16 @@ integrate_params integrate_params_init(void) {
     ret.cluster_min_pts = 5;
     ret.do_cluster = true;
 
-    ret.current_func = str_is_cstr("return (current){.type = CUR_NONE};");
-    ret.field_func = str_is_cstr("return v3d_s(0);");
-    ret.temperature_func = str_is_cstr("return 0;");
-    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
-    ret.output_path = str_is_cstr("./");
+    ret.current_func = "return (current){.type = CUR_NONE};";
+    ret.field_func = "return v3d_s(0);";
+    ret.temperature_func = "return 0;";
+    ret.compile_augment = "-cl-fast-relaxed-math";
+    ret.output_path = "./";
     return ret;
 }
 
 void integrate(grid *g, integrate_params params) {
-    gpu_cl gpu = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, (string){.str="\0", .len=0}, params.compile_augment);
+    gpu_cl gpu = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, NULL, params.compile_augment);
     integrate_context ctx = integrate_context_init(g, &gpu, params);
 
     uint64_t expected_steps = params.duration / params.dt + 1;
@@ -175,10 +174,6 @@ void integrate(grid *g, integrate_params params) {
 
     gpu_cl_enqueue_nd(ctx.gpu, ctx.render_id, 1, &ctx.local, &ctx.global, NULL);
     gpu_cl_read_gpu(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_gpu);
-    char buffer[1024];
-    snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx.params.output_path.str, ctx.integrate_step);
-    stbi_write_jpg(buffer, ctx.g->gi.cols, ctx.g->gi.rows, 4, ctx.rgb, 0);
-
     integrate_context_close(&ctx);
 }
 
@@ -210,8 +205,8 @@ void integrate_step(integrate_context *ctx) {
         gpu_cl_enqueue_nd(ctx->gpu, ctx->render_id, 1, &ctx->local, &ctx->global, NULL);
         gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_gpu);
         char buffer[1024];
-        snprintf(buffer, 1023, "%s/frame_%"PRIu64".jpg", ctx->params.output_path.str, ctx->integrate_step);
-        stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
+        snprintf(buffer, sizeof(buffer), "%s/frame_%"PRIu64".png", ctx->params.output_path, ctx->integrate_step);
+        stbi_write_png(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, ctx->g->gi.cols * sizeof(*ctx->rgb));
     }
 
     if (ctx->params.do_cluster && ctx->integrate_step % ctx->params.interval_for_cluster == 0) {

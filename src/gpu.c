@@ -81,15 +81,15 @@ const char *gpu_cl_get_str_error(cl_int err) {
 }
 
 INCEPTION("Compile OPT is assumed to be storing a null terminated string")
-static void gpu_cl_compile_source(gpu_cl *gpu, string source, string compile_opt) {
+static void gpu_cl_compile_source(gpu_cl *gpu, const char *source, const char *compile_opt) {
     cl_int err;
-    gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source.str, &source.len, &err);
+    gpu->program = clCreateProgramWithSource(gpu->ctx, 1, (const char**)&source, NULL, &err);
     if (err != CL_SUCCESS)
         logging_log(LOG_FATAL, "Could not create program on GPU %d: %s", err, gpu_cl_get_str_error(err));
 
-    logging_log(LOG_INFO, "Compile OpenCL program with: %.*s", (int)compile_opt.len, compile_opt.str);
+    logging_log(LOG_INFO, "Compile OpenCL program with: %s", compile_opt);
 
-    cl_int err_building = clBuildProgram(gpu->program, gpu->n_devices, gpu->devices, compile_opt.str, NULL, NULL);
+    cl_int err_building = clBuildProgram(gpu->program, gpu->n_devices, gpu->devices, compile_opt, NULL, NULL);
 
     uint64_t size;
     if ((err = clGetProgramBuildInfo(gpu->program, gpu->devices[d_id], CL_PROGRAM_BUILD_LOG, 0, NULL, &size)) != CL_SUCCESS)
@@ -313,7 +313,7 @@ static void gpu_cl_init_queue(gpu_cl *gpu) {
     logging_log(LOG_INFO, "Created command queue on GPU");
 }
 
-gpu_cl gpu_cl_init(string current_function, string field_func, string temperature_func, string kernel_augment, string compile_augment) {
+gpu_cl gpu_cl_init(const char *current_function, const char *field_func, const char *temperature_func, const char *kernel_augment, const char *compile_augment) {
     gpu_cl ret = {0};
     gpu_cl_get_platforms(&ret);
     p_id = p_id % ret.n_platforms;
@@ -329,15 +329,13 @@ gpu_cl gpu_cl_init(string current_function, string field_func, string temperatur
     gpu_cl_init_context(&ret);
     gpu_cl_init_queue(&ret);
 
-    const char *cmp_ = "-DOPENCL_COMPILATION";
-    string cmp = str_is_cstr(cmp_);
-
-    string kernel = fill_functions_on_kernel(current_function, field_func, temperature_func, kernel_augment);
-    string compile = fill_compilation_params(cmp, compile_augment);
+    const char *cmp = "-DOPENCL_COMPILATION";
+    char *kernel = fill_functions_on_kernel(current_function, field_func, temperature_func, kernel_augment);
+    char *compile = fill_compilation_params(cmp, compile_augment);
     gpu_cl_compile_source(&ret, kernel, compile);
 
-    str_free(&kernel);
-    str_free(&compile);
+    mfree(kernel);
+    mfree(compile);
 
     return ret;
 }

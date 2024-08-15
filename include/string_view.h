@@ -6,20 +6,16 @@
 
 #define S_FMT "%.*s"
 #define S_ARG(s) (int)((s).len), (s).str
-#define str_is_cstr(s) (string){.str=(char*)(s), .len=strlen((s)), .can_manipulate=false}
-#define STR_NULL (string){.str="\0", .len=0, .can_manipulate=false}
 
 typedef struct {
-    char *str;
+    char *items;
     uint64_t len;
-    bool can_manipulate;
-} string;
+    uint64_t cap;
+} string_builder;
 
-void str_cat_str(string *s, string s2);
-void str_cat_cstr(string *s, const char *s2);
-void str_cat_fmt(string *s, const char *fmt, ...);
-void str_free(string *s);
-string str_from_cstr(const char *s);
-string str_from_fmt(const char *fmt, ...);
-const char *str_as_cstr(string *s);
+void sb_cat_sb(string_builder *s, string_builder s2);
+void sb_cat_cstr(string_builder *s, const char *s2);
+void sb_cat_fmt(string_builder *s, const char *fmt, ...);
+void sb_free(string_builder *s);
+char *sb_as_cstr(string_builder *s);
 #endif

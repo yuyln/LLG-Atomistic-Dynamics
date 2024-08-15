@@ -114,14 +114,14 @@ gradient_descent_params gradient_descent_params_init(void) {
     ret.damping = 0.0;
     ret.restoring = 0.0;
     ret.T_factor = 0.999999;
-    ret.field_func = str_is_cstr("return v3d_s(0);");
-    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
+    ret.field_func = "return v3d_s(0);";
+    ret.compile_augment = "-cl-fast-relaxed-math";
 ;
     return ret;
 }
 
 void gradient_descent(grid *g, gradient_descent_params params) {
-    gpu_cl gpu = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    gpu_cl gpu = gpu_cl_init(NULL, params.field_func, NULL, NULL, params.compile_augment);
     grid_to_gpu(g, gpu);
     gradient_descent_context ctx = gradient_descent_context_init(g, &gpu, params);
 

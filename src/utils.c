@@ -189,3 +189,28 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
 
     return true;
 }
+
+const char *str_fmt_tmp(const char *fmt, ...) {
+    static char strs[MAX_STRS][MAX_STR_LEN] = {0};
+    static uint64_t idx = 0;
+    uint64_t ret_idx = idx;
+
+    va_list arg_list;
+    va_start(arg_list, fmt);
+    if (!fmt) {
+        logging_log(LOG_WARNING, "Format string provided is NULL");
+        goto end;
+    }
+
+    if (vsnprintf(strs[idx], MAX_STR_LEN, fmt, arg_list) > MAX_STR_LEN)
+        logging_log(LOG_WARNING, "String written with len greater than MAX_STR_LEN");
+
+    va_end(arg_list);
+    idx += 1;
+    if (idx >= MAX_STR_LEN) {
+        idx = 0;
+        logging_log(LOG_WARNING, "Surpassed MAX_STRS limit. Strings are going to be overwritten, starting with %s", strs[0]);
+    }
+end:
+    return strs[ret_idx];
+}

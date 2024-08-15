@@ -220,7 +220,7 @@ void grid_renderer_clustering(grid_renderer *gr) {
 void grid_renderer_clustering_centers(grid_renderer *gr) {
     for (uint64_t i = 0; i < gr->g->clusters.len; ++i) {
         for (int idy = -10; idy <= 10; ++idy) {
-            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.0) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
+            int iy = (gr->g->clusters.items[i].y + gr->g->gp->lattice * 0.5) / (gr->g->gi.rows) * (gr->height - 1) * 1.0 / gr->g->gp->lattice;
             iy = iy + idy;
             iy = gr->height - iy - 1;
             for (int idx = -10; idx <= 10; ++idx) {
@@ -247,7 +247,7 @@ unsigned int steps_per_frame = 100;
 double print_time = 1.0;
 
 void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height) {
-    gpu_cl gpu_stack = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    gpu_cl gpu_stack = gpu_cl_init(NULL, params.field_func, NULL, NULL, params.compile_augment);
     gpu_cl *gpu = &gpu_stack;
     gsa_context ctx = gsa_context_init(g, gpu, params);
     window_init("GSA", width, height);
@@ -312,7 +312,7 @@ void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned 
 }
 
 void grid_renderer_integrate(grid *g, integrate_params params, unsigned int width, unsigned int height) {
-    gpu_cl gpu_stack = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, STR_NULL, params.compile_augment);
+    gpu_cl gpu_stack = gpu_cl_init(params.current_func, params.field_func, params.temperature_func, NULL, params.compile_augment);
     gpu_cl *gpu = &gpu_stack;
     window_init("Integration", width, height);
     integrate_context ctx = integrate_context_init(g, gpu, params);
@@ -409,7 +409,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
 }
 
 void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, unsigned int width, unsigned int height) {
-    gpu_cl gpu_stack = gpu_cl_init(STR_NULL, params.field_func, STR_NULL, STR_NULL, params.compile_augment);
+    gpu_cl gpu_stack = gpu_cl_init(NULL, params.field_func, NULL, NULL, params.compile_augment);
     gpu_cl *gpu = &gpu_stack;
     window_init("Gradient Descent", width, height);
     gradient_descent_context ctx = gradient_descent_context_init(g, gpu, params);

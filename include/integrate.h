@@ -6,7 +6,6 @@
 
 #include "gpu.h"
 #include "grid_funcs.h"
-#include "string_view.h"
 #include "constants.h"
 #include "complete_kernel.h"
 #include "colors.h"
@@ -20,11 +19,11 @@ typedef struct {
     unsigned int interval_for_rgb_grid;
     unsigned int interval_for_cluster;
 
-    string current_func;
-    string field_func;
-    string temperature_func;
-    string compile_augment;
-    string output_path;
+    const char *current_func;
+    const char *field_func;
+    const char *temperature_func;
+    const char *compile_augment;
+    const char *output_path;
 
     bool do_cluster;
     double(*cluster_metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*);

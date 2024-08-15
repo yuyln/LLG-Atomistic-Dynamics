@@ -81,14 +81,13 @@ gsa_context gsa_context_init(grid *g, gpu_cl *gpu, gsa_params params) {
     return gsa_context_init_base(g, gpu, params.qA, params.qV, params.qT, params.T0, params.inner_steps, params.outer_steps, params.print_factor);
 }
 
-
-void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inner_steps, uint64_t outer_steps, uint64_t print_params, string field_func, string compile_augment) {
-    gpu_cl gpu = gpu_cl_init(STR_NULL, field_func, STR_NULL, STR_NULL, compile_augment);
+void gsa(grid *g, gsa_params params) {
+    gpu_cl gpu = gpu_cl_init(NULL, params.field_func, NULL, NULL, params.compile_augment);
     grid_to_gpu(g, gpu);
 
-    gsa_context ctx = gsa_context_init_base(g, &gpu, qA, qV, qT, T0, inner_steps, outer_steps, print_params);
-    while (ctx.outer_step < outer_steps) {
-        while (ctx.inner_step < inner_steps) {
+    gsa_context ctx = gsa_context_init_base(g, &gpu, params.qA, params.qV, params.qT, params.T0, params.inner_steps, params.outer_steps, params.print_factor);
+    while (ctx.outer_step < params.outer_steps) {
+        while (ctx.inner_step < params.inner_steps) {
             gsa_thermal_step(&ctx);
             gsa_metropolis_step(&ctx);
         }
@@ -107,10 +106,6 @@ void gsa_base(grid *g, double qA, double qV, double qT, double T0, uint64_t inne
     grid_release_from_gpu(g);
     gpu_cl_close(&gpu);
     logging_log(LOG_INFO, "GSA Done. Minimun energy found %.15e eV", ctx.min_energy / QE);
-}
-
-void gsa(grid *g, gsa_params params) {
-    gsa_base(g, params.qA, params.qV, params.qT, params.T0, params.inner_steps, params.outer_steps, params.print_factor, params.field_func, params.compile_augment);
 }
 
 void gsa_thermal_step(gsa_context *ctx) {
@@ -179,7 +174,7 @@ gsa_params gsa_params_init(void) {
     ret.inner_steps = 100000;
     ret.outer_steps = 15;
     ret.print_factor = 10;
-    ret.field_func = str_is_cstr("return v3d_s(0);");
-    ret.compile_augment = str_is_cstr("-cl-fast-relaxed-math");
+    ret.field_func = "return v3d_s(0);";
+    ret.compile_augment = "-cl-fast-relaxed-math";
     return ret;
 }

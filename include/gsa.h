@@ -1,9 +1,7 @@
 #ifndef __GSA_H
 #define __GSA_H
 #include <stdint.h>
-
 #include "grid_funcs.h"
-#include "string_view.h"
 
 typedef struct {
     double qA;
@@ -14,8 +12,8 @@ typedef struct {
     uint64_t outer_steps;
     uint64_t print_factor;
 
-    string field_func;
-    string compile_augment;
+    const char *field_func;
+    const char *compile_augment;
 } gsa_params;
 
 typedef struct {

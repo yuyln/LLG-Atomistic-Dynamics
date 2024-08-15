@@ -1,8 +1,15 @@
 #ifndef __UTILS_H
 #define __UTILS_H
-#include "string_view.h"
 #include "grid_funcs.h"
 #include "allocator.h"
+
+#ifndef MAX_STRS
+#define MAX_STRS 256
+#endif
+
+#ifndef MAX_STR_LEN
+#define MAX_STR_LEN 2048
+#endif
 
 #define da_append(da, item) do { \
     if ((da)->len >= (da)->cap) { \
@@ -45,4 +52,5 @@
 bool organize_clusters_inplace(const char *clusters_file_path, double sample_dx, double sample_dy, double distance_square_invalid);
 bool organize_clusters(const char *clusters_file_path, const char *clusters_output_path, double sample_dx, double sample_dy, double distance_square_invalid);
 
+const char *str_fmt_tmp(const char *fmt, ...);
 #endif

@@ -50,7 +50,7 @@ typedef struct {
     uint64_t n_kernels;
 } gpu_cl;
 
-gpu_cl gpu_cl_init(string current_function, string field_func, string temperature_func, string kernel_augment, string compile_augment);
+gpu_cl gpu_cl_init(const char *current_function, const char *field_func, const char *temperature_func, const char *kernel_augment, const char *compile_augment);
 void gpu_cl_close(gpu_cl *gpu);
 uint64_t gpu_cl_append_kernel(gpu_cl *gpu, const char *kernel);
 void gpu_cl_fill_kernel_args(gpu_cl *gpu, uint64_t kernel, uint64_t offset, uint64_t nargs, ...);

@@ -105,8 +105,8 @@ void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, g
 
 bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols);
 bool grid_dump(FILE *f, grid *g);
-bool grid_from_file(string path, grid *g);
-bool grid_from_animation_bin(string path, grid *g, int64_t frame);
+bool grid_from_file(const char *path, grid *g);
+bool grid_from_animation_bin(const char *path, grid *g, int64_t frame);
 
 void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);

@@ -13,8 +13,8 @@ typedef struct {
     double damping;
     double restoring;
     double T_factor;
-    string field_func;
-    string compile_augment;
+    const char *field_func;
+    const char *compile_augment;
 } gradient_descent_params;
 
 typedef struct {
