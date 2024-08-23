@@ -205,8 +205,8 @@ void integrate_step(integrate_context *ctx) {
         gpu_cl_enqueue_nd(ctx->gpu, ctx->render_id, 1, &ctx->local, &ctx->global, NULL);
         gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_gpu);
         char buffer[1024];
-        snprintf(buffer, sizeof(buffer), "%s/frame_%"PRIu64".png", ctx->params.output_path, ctx->integrate_step);
-        stbi_write_png(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, ctx->g->gi.cols * sizeof(*ctx->rgb));
+        snprintf(buffer, sizeof(buffer), "%s/frame_%"PRIu64".jpg", ctx->params.output_path, ctx->integrate_step);
+        stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
     }
 
     if (ctx->params.do_cluster && ctx->integrate_step % ctx->params.interval_for_cluster == 0) {
