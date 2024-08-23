@@ -25,6 +25,7 @@
 #define LOC(row, col, depth, rows, cols) ((col) + (row) * (cols) + (depth) * (cols) * (rows))
 #define EPS 1.0e-12
 #define CLOSE_ENOUGH(x, y, eps) ((SIGN((x) - (y)) * ((x) - (y))) <= (eps))
+#define V_AT(v, i, j, k, rows, cols) (v[(k) * (rows) * (cols) + (i) * (cols) + (j)])
 
 #ifndef OPENCL_COMPILATION
 #define GLOBAL 

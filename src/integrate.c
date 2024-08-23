@@ -19,7 +19,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     grid_to_gpu(grid, *gpu);
     ctx.params = params;
     ctx.time = 0.0;
-    ctx.swap_gpu = gpu_cl_create_gpu(gpu, sizeof(*grid->m) * grid->gi.rows * grid->gi.cols, CL_MEM_READ_WRITE);
+    ctx.swap_gpu = gpu_cl_create_gpu(gpu, sizeof(*grid->m) * grid->dimensions, CL_MEM_READ_WRITE);
     ctx.step_id = gpu_cl_append_kernel(gpu, "gpu_step");
     ctx.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
 
@@ -30,8 +30,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
-    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 4, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols));
-    ctx.global = grid->gi.cols * grid->gi.rows;
+    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 4, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols), &ctx.g->gi.depth, sizeof(ctx.g->gi.depth));
+    ctx.global = grid->dimensions;
     ctx.global = ctx.global + (gpu_optimal_wg - ctx.global % gpu_optimal_wg);
     ctx.local = gpu_optimal_wg;
 
@@ -49,9 +49,9 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "eletric_x(V/m),eletric_y(V/m),eletric_z(V/m),");
     fprintf(ctx.integrate_info, "magnetic_lattice_x(T),magnetic_lattice_y(T),magnetic_lattice_z(T),");
     fprintf(ctx.integrate_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
-    fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),");
-    fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),");
-    fprintf(ctx.integrate_info, "D_xx,D_yy,D_xy\n");
+    fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),charge_center_z(m),");
+    fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),abs_charge_center_z(m),");
+    fprintf(ctx.integrate_info, "D_xx,D_yy,D_zz,D_xy,D_xz,D_yz\n");
 
     if (params.do_cluster) {
         string_builder output_cluster_path = {0};
@@ -71,8 +71,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     sb_free(&output_grid_path);
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");
-    ctx.info = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.info));
-    ctx.info_gpu = gpu_cl_create_gpu(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.info), CL_MEM_READ_WRITE);
+    ctx.info = mmalloc(grid->dimensions * sizeof(*ctx.info));
+    ctx.info_gpu = gpu_cl_create_gpu(gpu, grid->dimensions * sizeof(*ctx.info), CL_MEM_READ_WRITE);
 
     gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_gpu, sizeof(cl_mem),
                                                      &grid->m_gpu, sizeof(cl_mem),
@@ -82,12 +82,6 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                      &ctx.time, sizeof(double),
                                                      &grid->gi, sizeof(grid_info));
 
-    ctx.render_id = gpu_cl_append_kernel(gpu, "render_grid_hsl");
-    ctx.rgb = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb));
-    ctx.rgb_gpu = gpu_cl_create_gpu(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.rgb), CL_MEM_READ_WRITE);
-
-    gpu_cl_fill_kernel_args(gpu, ctx.render_id, 0, 5, &grid->m_gpu, sizeof(cl_mem), &grid->gi, sizeof(grid->gi), &ctx.rgb_gpu, sizeof(cl_mem), &grid->gi.cols, sizeof(grid->gi.cols), &grid->gi.rows, sizeof(grid->gi.rows));
-
     uint64_t expected_steps = params.duration / params.dt + 1;
     if (ctx.params.interval_for_information == 0)
         ctx.params.interval_for_information = expected_steps + 1;
@@ -95,20 +89,14 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     if (ctx.params.interval_for_raw_grid == 0)
         ctx.params.interval_for_raw_grid = expected_steps + 1;
 
-    if (ctx.params.interval_for_rgb_grid == 0)
-        ctx.params.interval_for_rgb_grid = expected_steps + 1;
-
     uint64_t number_raw = 3 + expected_steps / ctx.params.interval_for_raw_grid;
-    uint64_t number_rgb = 3 + expected_steps / ctx.params.interval_for_rgb_grid;
     logging_log(LOG_INFO, "Expected raw frames written %"PRIu64, number_raw);
-    logging_log(LOG_INFO, "Expected rgb frames written %"PRIu64, number_rgb);
 
     fwrite(&number_raw, sizeof(number_raw), 1, ctx.integrate_evolution);
     grid_dump(ctx.integrate_evolution, grid);
 
-    uint64_t dump_size = grid->gi.rows * grid->gi.cols * (sizeof(*grid->gp) + number_raw * sizeof(*grid->m)) + sizeof(number_raw);
+    uint64_t dump_size = grid->dimensions * (sizeof(*grid->gp) + number_raw * sizeof(*grid->m)) + sizeof(number_raw);
     logging_log(LOG_INFO, "Expected raw grid dump %.2f MB", dump_size / 1.0e6);
-    logging_log(LOG_INFO, "Expected rgb grid dump %.2f MB", sizeof(*ctx.rgb) * grid->gi.rows * grid->gi.cols * number_rgb / 1.0e6);
     return ctx;
 }
 
@@ -169,11 +157,9 @@ void integrate(grid *g, integrate_params params) {
     }
     logging_log(LOG_INFO, "Steps: %d", ctx.integrate_step);
 
-    v3d_from_gpu(g->m, g->m_gpu, g->gi.rows, g->gi.cols, gpu);
-    v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols);
+    v3d_from_gpu(g->m, g->m_gpu, g->gi.rows, g->gi.cols, g->gi.depth, gpu);
+    v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols, g->gi.depth);
 
-    gpu_cl_enqueue_nd(ctx.gpu, ctx.render_id, 1, &ctx.local, &ctx.global, NULL);
-    gpu_cl_read_gpu(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_gpu);
     integrate_context_close(&ctx);
 }
 
@@ -190,38 +176,30 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.eletric_field.x, info.eletric_field.y, info.eletric_field.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_lattice.x, info.magnetic_field_lattice.y, info.magnetic_field_lattice.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_derivative.x, info.magnetic_field_derivative.y, info.magnetic_field_derivative.z);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_xy);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite, info.charge_center_z / info.charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite, info.abs_charge_center_z / info.abs_charge_finite);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_zz, info.D_xy, info.D_xz, info.D_yz);
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
-        v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
-        v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
+        v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth, *ctx->gpu);
+        v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth);
         read_grid_from_gpu = true;
-    }
-
-    if (ctx->integrate_step % ctx->params.interval_for_rgb_grid == 0) {
-        gpu_cl_enqueue_nd(ctx->gpu, ctx->render_id, 1, &ctx->local, &ctx->global, NULL);
-        gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.cols * ctx->g->gi.rows * sizeof(*ctx->rgb), 0, ctx->rgb, ctx->rgb_gpu);
-        char buffer[1024];
-        snprintf(buffer, sizeof(buffer), "%s/frame_%"PRIu64".jpg", ctx->params.output_path, ctx->integrate_step);
-        stbi_write_jpg(buffer, ctx->g->gi.cols, ctx->g->gi.rows, 4, ctx->rgb, 0);
     }
 
     if (ctx->params.do_cluster && ctx->integrate_step % ctx->params.interval_for_cluster == 0) {
         if (!read_grid_from_gpu)
-            v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+            v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth, *ctx->gpu);
 
         grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
 
         fprintf(ctx->clusters, "%.15e,", ctx->time);
 
         for (uint64_t i = 0; i < ctx->g->clusters.len - 1; ++i)
-            fprintf(ctx->clusters, "%.15e,%.15e,%.15e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+            fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
 
         uint64_t i = ctx->g->clusters.len - 1;
-        fprintf(ctx->clusters, "%.15e,%.15e,%.15e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+        fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
     }
 
     ctx->integrate_step += 1;
@@ -232,10 +210,10 @@ information_packed integrate_get_info(integrate_context *ctx) {
     gpu_cl_set_kernel_arg(ctx->gpu, ctx->info_id, 5, sizeof(double), &ctx->time);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->info_id, 1, &ctx->local, &ctx->global, NULL);
 
-    gpu_cl_read_gpu(ctx->gpu, sizeof(*ctx->info) * ctx->g->gi.rows * ctx->g->gi.cols, 0, ctx->info, ctx->info_gpu);
+    gpu_cl_read_gpu(ctx->gpu, sizeof(*ctx->info) * ctx->g->dimensions, 0, ctx->info, ctx->info_gpu);
 
     information_packed info_local = {0};
-    for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i) {
+    for (uint64_t i = 0; i < ctx->g->dimensions; ++i) {
         info_local.energy += ctx->info[i].energy;
         info_local.dipolar_energy += ctx->info[i].dipolar_energy;
         info_local.cubic_energy += ctx->info[i].cubic_energy;
@@ -253,11 +231,16 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, ctx->info[i].magnetic_field_derivative);
         info_local.charge_center_x += ctx->info[i].charge_center_x;
         info_local.charge_center_y += ctx->info[i].charge_center_y;
+        info_local.charge_center_z += ctx->info[i].charge_center_z;
         info_local.abs_charge_center_x += ctx->info[i].abs_charge_center_x;
         info_local.abs_charge_center_y += ctx->info[i].abs_charge_center_y;
+        info_local.abs_charge_center_z += ctx->info[i].abs_charge_center_z;
         info_local.D_xx += ctx->info[i].D_xx;
         info_local.D_yy += ctx->info[i].D_yy;
+        info_local.D_zz += ctx->info[i].D_zz;
         info_local.D_xy += ctx->info[i].D_xy;
+        info_local.D_xz += ctx->info[i].D_xz;
+        info_local.D_yz += ctx->info[i].D_yz;
     }
     return info_local;
 }
@@ -267,5 +250,5 @@ void integrate_exchange_grids(integrate_context *ctx) {
 }
 
 void integrate_context_read_grid(integrate_context *ctx) {
-    v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+    v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth, *ctx->gpu);
 }
