@@ -1,4 +1,5 @@
 #include "atomistic_simulation.h"
+#include "grid_funcs.h"
 #include <stdint.h>
 #include <float.h>
 
@@ -441,13 +442,23 @@ int Tc(void) {
 */
 
 int main(void) {
-    grid g = grid_init(32, 32, 6);
+    grid g = grid_init(64, 64, 1);
     grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_skyrmion_at(&g, 5, 3, 16, 16, -1, 1, M_PI / 2);
+    grid_create_skyrmion_at(&g, 5, 3, g.gi.cols / 2, g.gi.rows / 2, -1, 1, M_PI / 2);
     integrate_params ip = integrate_params_init();
     ip.dt = 0.01 * HBAR / (1.0e-3 * QE);
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0.0, 0.5), 1e-3 * QE, 0.5 * 1.0e-3 * QE, g.gp->mu);
-    V_AT(g.gp, 16, 16, 3, 32, 32).pin = (pinning){.pinned = 1, .dir = v3d_c(1, 0, 0)};
+    g.gi.pbc.pbc_z = false;
+    grid_set_dm(&g, dm_bulk(0.5 * 1.0e-3 * QE));
+    for (uint64_t i = 0; i < g.gi.rows; ++i) {
+        for (uint64_t j = 0; j < g.gi.cols; ++j) {
+            grid_set_dm_loc(&g, i, j, 0, dm_interfacial(0.5 * 1.0e-3 * QE));
+            grid_set_dm_loc(&g, i, j, g.gi.depth - 1, dm_interfacial(0.5 * 1.0e-3 * QE));
+        }
+    }
+
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0.0, 0.6), 1e-3 * QE, 0.5 * 1.0e-3 * QE, g.gp->mu);
+    for (uint64_t k = 0; k < g.gi.depth; ++k)
+        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.dir = v3d_c(0, 0, -1), .pinned = 1};
     grid_renderer_integrate(&g, ip, 1000, 1000);
     //Tc();
     //circular_defect();
