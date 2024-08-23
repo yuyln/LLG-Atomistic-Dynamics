@@ -4,7 +4,7 @@
 
 //@TODO: PROPER ERROR CHECKING URGENT!!!
 //@TODO: check time measuring when compiling it to windows
-int Stosic(void) {
+/*int Stosic(void) {
     unsigned int rows = 64;
     unsigned int cols = 64;
 
@@ -438,12 +438,21 @@ int Tc(void) {
     grid_free(&g);
     return 0;
 }
+*/
 
 int main(void) {
+    grid g = grid_init(32, 32, 6);
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_skyrmion_at(&g, 5, 3, 16, 16, -1, 1, M_PI / 2);
+    integrate_params ip = integrate_params_init();
+    ip.dt = 0.01 * HBAR / (1.0e-3 * QE);
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0.0, 0.5), 1e-3 * QE, 0.5 * 1.0e-3 * QE, g.gp->mu);
+    V_AT(g.gp, 16, 16, 3, 32, 32).pin = (pinning){.pinned = 1, .dir = v3d_c(1, 0, 0)};
+    grid_renderer_integrate(&g, ip, 1000, 1000);
     //Tc();
     //circular_defect();
     //organize_clusters("./clusters.dat", "./clusters_org.dat", 128 * 0.5e-9, 128 * 0.5e-9, 1e8);
-    testing3();
+    //testing3();
     //ratchet_testing();
     //skyrmionium_testing();
     //testing();

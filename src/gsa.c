@@ -64,7 +64,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     double t = 0.0;
     gpu_cl_fill_kernel_args(gpu, ret.energy_id, 0, 5, &g->gp_gpu, sizeof(cl_mem), &ret.swap_gpu, sizeof(cl_mem), &g->gi, sizeof(grid_info), &ret.energy_gpu, sizeof(cl_mem), &t, sizeof(double));
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.swap_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 5, &ret.swap_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
     gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 2, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem));

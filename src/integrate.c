@@ -30,7 +30,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
                                                  &ctx.time, sizeof(double),
                                                  &grid->gi, sizeof(grid_info));
 
-    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 4, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols), &ctx.g->gi.depth, sizeof(ctx.g->gi.depth));
+    gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 5, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols), &ctx.g->gi.depth, sizeof(ctx.g->gi.depth));
     ctx.global = grid->dimensions;
     ctx.global = ctx.global + (gpu_optimal_wg - ctx.global % gpu_optimal_wg);
     ctx.local = gpu_optimal_wg;
@@ -111,9 +111,6 @@ void integrate_context_close(integrate_context *ctx) {
 
     gpu_cl_release_memory(ctx->info_gpu);
     mfree(ctx->info);
-
-    gpu_cl_release_memory(ctx->rgb_gpu);
-    mfree(ctx->rgb);
 
     grid_release_from_gpu(ctx->g);
     gpu_cl_close(ctx->gpu);

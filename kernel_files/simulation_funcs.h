@@ -12,6 +12,7 @@ typedef struct {
     int cols;
     int depth;
     grid_site_params gs;
+    grid_info gi;
     v3d m;
     v3d temperature_effect;
     neighbors_set neigh;
@@ -44,7 +45,7 @@ static v3d dipolar_field(parameters param);
 #endif
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param, double dt);
-static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
+static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy, double dz);
 v3d step_llg(parameters param, double dt);
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);

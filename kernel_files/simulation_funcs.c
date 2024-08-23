@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 
-v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols) {
+v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int k, int rows, int cols, int depth) {
     if (row >= rows || row < 0) {
         if (!pbc.pbc_y)
             return pbc.m;
@@ -16,14 +16,20 @@ v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols
         col = ((col % cols) + cols) % cols;
     }
 
-    return v[row * cols + col];
+    if (k >= depth || k < 0) {
+        if (!pbc.pbc_z)
+            return pbc.m;
+        k = ((k % depth) + depth) % depth;
+    }
+
+    return v[k * rows * cols + row * cols + col];
 }
 
-void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int rows, int cols) {
+void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int k, int rows, int cols, int depth) {
     if (row >= rows || row < 0) {
         if (!pbc.pbc_y) {
             *out = pbc.m;
-            *gsout = gs[(row >= rows? rows - 1: 0) * cols + (col >= cols? cols - 1: col < 0? 0: col)];
+            *gsout = gs[(k >= depth? depth - 1: 0) * rows * cols + (row >= rows? rows - 1: 0) * cols + (col >= cols? cols - 1: col < 0? 0: col)];
             return;
         }
         row = ((row % rows) + rows) % rows;
@@ -32,19 +38,32 @@ void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, gr
     if (col >= cols || col < 0) {
         if (!pbc.pbc_x) {
             *out = pbc.m;
-            *gsout = gs[(row >= rows? rows - 1: row < 0? 0: row) * cols + (col >= cols? cols - 1: 0)];
+            *gsout = gs[(k >= depth? depth - 1: 0) * rows * cols + (row >= rows? rows - 1: 0) * cols + (col >= cols? cols - 1: col < 0? 0: col)];
             return;
         }
         col = ((col % cols) + cols) % cols;
     }
 
-    *out = v[row * cols + col];
-    *gsout = gs[row * cols + col];
+    if (k >= depth || k < 0) {
+        if (!pbc.pbc_z) {
+            *out = pbc.m;
+            *gsout = gs[(k >= depth? depth - 1: 0) * rows * cols + (row >= rows? rows - 1: 0) * cols + (col >= cols? cols - 1: col < 0? 0: col)];
+            return;
+        }
+        k = ((k % depth) + depth) % depth;
+    }
+
+    *out = v[k * rows * cols + row * cols + col];
+    *gsout = gs[k * rows * cols + row * cols + col];
 }
 
 double exchange_energy(parameters param) {
-    return -(v3d_dot(param.m, param.neigh.left) + v3d_dot(param.m, param.neigh.right) +
-             v3d_dot(param.m, param.neigh.up) + v3d_dot(param.m, param.neigh.down)) * param.gs.exchange;
+    return -(v3d_dot(param.m, param.neigh.left) * param.gs.exchange.J_left +
+             v3d_dot(param.m, param.neigh.right) * param.gs.exchange.J_right +
+             v3d_dot(param.m, param.neigh.up) * param.gs.exchange.J_up +
+             v3d_dot(param.m, param.neigh.down) * param.gs.exchange.J_down +
+             v3d_dot(param.m, param.neigh.front) * param.gs.exchange.J_front +
+             v3d_dot(param.m, param.neigh.back) * param.gs.exchange.J_back);
 }
 
 double dm_energy(parameters param) {
@@ -53,6 +72,8 @@ double dm_energy(parameters param) {
     ret += v3d_dot(param.gs.dm.dmv_left, v3d_cross(param.m, param.neigh.left));
     ret += v3d_dot(param.gs.dm.dmv_up, v3d_cross(param.m, param.neigh.up));
     ret += v3d_dot(param.gs.dm.dmv_down, v3d_cross(param.m, param.neigh.down));
+    ret += v3d_dot(param.gs.dm.dmv_front, v3d_cross(param.m, param.neigh.front));
+    ret += v3d_dot(param.gs.dm.dmv_back, v3d_cross(param.m, param.neigh.back));
     return -ret;
 }
 
@@ -82,8 +103,16 @@ double energy(parameters param) {
 v3d effective_field(parameters param) {
     v3d ret = v3d_s(0);
 
-    v3d exchange_field = v3d_sum(v3d_sum(param.neigh.right, param.neigh.left), v3d_sum(param.neigh.up, param.neigh.down));
-    exchange_field = v3d_scalar(exchange_field, param.gs.exchange);
+    v3d exchange_field_x = v3d_sum(v3d_scalar(param.neigh.left, param.gs.exchange.J_left),
+                                   v3d_scalar(param.neigh.right, param.gs.exchange.J_right));
+
+    v3d exchange_field_y = v3d_sum(v3d_scalar(param.neigh.up, param.gs.exchange.J_up),
+                                   v3d_scalar(param.neigh.down, param.gs.exchange.J_down));
+
+    v3d exchange_field_z = v3d_sum(v3d_scalar(param.neigh.front, param.gs.exchange.J_front),
+                                   v3d_scalar(param.neigh.back, param.gs.exchange.J_back));
+
+    v3d exchange_field = v3d_sum(exchange_field_x, v3d_sum(exchange_field_y, exchange_field_z));
     ret = v3d_sub(ret, exchange_field);
 
 
@@ -92,7 +121,11 @@ v3d effective_field(parameters param) {
 
     v3d dm_field_y = v3d_sum(v3d_cross(param.gs.dm.dmv_up, param.neigh.up),
                              v3d_cross(param.gs.dm.dmv_down, param.neigh.down));
-    v3d dm_field = v3d_sum(dm_field_x, dm_field_y);
+
+    v3d dm_field_z = v3d_sum(v3d_cross(param.gs.dm.dmv_front, param.neigh.front),
+                             v3d_cross(param.gs.dm.dmv_back, param.neigh.back));
+
+    v3d dm_field = v3d_sum(dm_field_x, v3d_sum(dm_field_y, dm_field_z));
 
     ret = v3d_sum(ret, dm_field);
 
@@ -112,16 +145,19 @@ v3d effective_field(parameters param) {
 }
 
 //@TODO: Add Z derivative
-static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
+static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy, double dz) {
     v3d ret = {0};
     ret.x = v.x * (neigh.right.x - neigh.left.x) / (2.0 * dx) +
-            v.y * (neigh.up.x - neigh.down.x) / (2.0 * dy);
+            v.y * (neigh.up.x - neigh.down.x) / (2.0 * dy) + 
+            v.z * (neigh.front.x - neigh.back.x) / (2.0 * dz);
 
     ret.y = v.x * (neigh.right.y - neigh.left.y) / (2.0 * dx) +
-            v.y * (neigh.up.y - neigh.down.y) / (2.0 * dy);
+            v.y * (neigh.up.y - neigh.down.y) / (2.0 * dy) +
+            v.z * (neigh.front.y - neigh.back.y) / (2.0 * dz);
 
     ret.z = v.x * (neigh.right.z - neigh.left.z) / (2.0 * dx) +
-            v.y * (neigh.up.z - neigh.down.z) / (2.0 * dy);
+            v.y * (neigh.up.z - neigh.down.z) / (2.0 * dy) +
+            v.z * (neigh.front.z - neigh.back.z) / (2.0 * dz);
 
     return ret;
 }
@@ -133,26 +169,26 @@ v3d dm_dt(parameters param, double dt) {
     current cur = generate_current(param.gs, param.time);
     switch (cur.type) {
         case CUR_STT: {
-            v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.gs.lattice, param.gs.lattice);
-            common = v3d_scalar(common, cur.stt.polarization * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * QE));
+            v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.gi.lattice, param.gi.lattice, param.gi.lattice);
+            common = v3d_scalar(common, cur.stt.polarization * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * QE));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(common, beta));
         }
         break;
         case CUR_SHE: {
-            v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * cur.she.thickness * QE));
+            v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * cur.she.thickness * QE));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
         }
         break;
         case CUR_BOTH: {
-            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.gs.lattice, param.gs.lattice);
-            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * QE));
+            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.gi.lattice, param.gi.lattice, param.gi.lattice);
+            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * QE));
             v3d stt_beta = v3d_scalar(v3d_cross(param.m, stt_common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(stt_common, stt_beta));
 
 
-            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * cur.she.thickness * QE));
+            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * cur.she.thickness * QE));
             v3d she_beta = v3d_scalar(v3d_cross(param.m, she_common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(she_common, param.m), she_beta));
         }

@@ -52,9 +52,7 @@ grid grid_init(unsigned int rows, unsigned int cols, unsigned int depth) {
     ret.gi.pbc = (pbc_rules){.pbc_x = true, .pbc_y = true, .pbc_z = true, .m = {0}};
     grid_allocate(&ret);
 
-    double dm = 0.2 * QE * 1.0e-3;
-
-    dm_interaction default_dm = dm_bulk(dm);
+    double dm = 0.6 * QE * 1.0e-3;
 
     grid_site_params default_grid = (grid_site_params){
             .exchange = isotropic_exchange(1.0e-3 * QE),
@@ -63,7 +61,7 @@ grid grid_init(unsigned int rows, unsigned int cols, unsigned int depth) {
             .mu = 1.856952954255053e-23,
             .alpha = 0.3,
             .gamma = 1.760859644000000e+11,
-            .ani = {{0}},
+            .ani = anisotropy_z_axis(0.05 * 1.0e-3 * QE),
             .pin = {{0}},
     };
 
@@ -74,7 +72,7 @@ grid grid_init(unsigned int rows, unsigned int cols, unsigned int depth) {
                 ret.gp[k * rows * cols + i * cols + j].i = i;
                 ret.gp[k * rows * cols + i * cols + j].j = j;
                 ret.gp[k * rows * cols + i * cols + j].k = k;
-                ret.m[k * rows * cols + i * cols + j] = v3d_normalize(v3d_s(shit_random(-1, 1), shit_random(-1, 1), shit_random(-1, 1)));
+                ret.m[k * rows * cols + i * cols + j] = v3d_normalize(v3d_c(shit_random(-1, 1), shit_random(-1, 1), shit_random(-1, 1)));
             }
         }
     }
@@ -541,7 +539,7 @@ static double default_metric(grid *g, uint64_t i0, uint64_t j0, uint64_t k0, uin
 
 static double default_weight(grid *g, uint64_t i, uint64_t j, uint64_t k, void *user_data) {
     UNUSED(user_data);
-    return V_AT(g->m, i, j, j, g->gi.rows, g->gi.cols).z;
+    return V_AT(g->m, i, j, k, g->gi.rows, g->gi.cols).z;
 }
 
 INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
@@ -635,7 +633,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                 if (metric(g, y, x, front, y, x, z, user_data_metric) < eps && !g->seen[fidx])
                     rb_append(&g->queue, fidx);
 
-            uint64_t back = ((((int64_t)z - 1) % (int64_t)back) + back) % back;
+            uint64_t back = ((((int64_t)z - 1) % (int64_t)depth) + depth) % depth;
             uint64_t bidx = back * rows * cols + y * cols + x;
 
             if (z > 0 || g->gi.pbc.pbc_z)

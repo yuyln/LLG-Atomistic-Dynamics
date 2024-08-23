@@ -68,7 +68,7 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
 kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d *m1, GLOBAL information_packed *info, double dt, double time, grid_info gi) {
     size_t id = get_global_id(0);
 
-    if (id >= (gi.rows * gi.cols))
+    if (id >= (gi.rows * gi.cols * gi.depth))
         return;
 
     int col = id % gi.cols;
@@ -82,13 +82,13 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     param.gs = gs[id];
     param.m = m0[id];
     v3d dm = v3d_sub(m1[id], param.m);
-    param.m = apply_pbc(input, gi.pbc, row, col, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.right = apply_pbc(input, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.up = apply_pbc(input, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.front = apply_pbc(input, gi.pbc, row, col, k + 1, gi.rows, gi.cols, gi.depth);
-    param.neigh.back = apply_pbc(input, gi.pbc, row, col, k - 1, gi.rows, gi.cols, gi.depth);
+    param.m = apply_pbc(m0, gi.pbc, row, col, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.left = apply_pbc(m0, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.right = apply_pbc(m0, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.front = apply_pbc(m0, gi.pbc, row, col, k + 1, gi.rows, gi.cols, gi.depth);
+    param.neigh.back = apply_pbc(m0, gi.pbc, row, col, k - 1, gi.rows, gi.cols, gi.depth);
     param.time = time;
 #ifdef INCLUDE_DIPOLAR
     param.dipolar_energy = 0.0;
@@ -212,18 +212,19 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
 
     int col = id % gi.cols;
     int row = id / gi.cols;
+    int k = id / (gi.rows * gi.cols);
 
     parameters param;
     param.rows = gi.rows;
     param.cols = gi.cols;
     param.gs = gs[id];
     param.m = v[id];
-    param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.right = apply_pbc(input, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.up = apply_pbc(input, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, k, gi.rows, gi.cols, gi.depth);
-    param.neigh.front = apply_pbc(input, gi.pbc, row, col, k + 1, gi.rows, gi.cols, gi.depth);
-    param.neigh.back = apply_pbc(input, gi.pbc, row, col, k - 1, gi.rows, gi.cols, gi.depth);
+    param.neigh.left = apply_pbc(v, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.right = apply_pbc(v, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.up = apply_pbc(v, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.down = apply_pbc(v, gi.pbc, row - 1, col, k, gi.rows, gi.cols, gi.depth);
+    param.neigh.front = apply_pbc(v, gi.pbc, row, col, k + 1, gi.rows, gi.cols, gi.depth);
+    param.neigh.back = apply_pbc(v, gi.pbc, row, col, k - 1, gi.rows, gi.cols, gi.depth);
     param.time = time;
 
 #ifdef INCLUDE_DIPOLAR
