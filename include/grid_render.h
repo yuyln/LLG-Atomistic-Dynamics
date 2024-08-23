@@ -31,6 +31,7 @@ typedef struct {
     uint64_t calc_energy_id;
     uint64_t calc_charge_id;
     uint64_t calc_electric_id;
+    uint64_t k;
 
     double *buffer_cpu;
     cl_mem buffer_gpu;
@@ -54,11 +55,4 @@ void grid_renderer_clustering(grid_renderer *gr);
 void grid_renderer_gsa(grid *g, gsa_params params, unsigned int width, unsigned int height);
 void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, unsigned int width, unsigned int height);
 void grid_renderer_integrate(grid *g, integrate_params params, unsigned int width, unsigned int height);
-
-/*void grid_renderer_exchange_energy(grid_renderer *gr);
-  void grid_renderer_eletric_field(grid_renderer *gr);
-void grid_renderer_dm_energy(grid_renderer *gr);
-void grid_renderer_field_energy(grid_renderer *gr);
-void grid_renderer_anisotropy_energy(grid_renderer *gr);
-void grid_renderer_cubic_anisotropy_energy(grid_renderer *gr);*/
 #endif

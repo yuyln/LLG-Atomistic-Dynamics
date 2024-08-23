@@ -12,9 +12,9 @@
 
 static double energy_from_gsa_context(gsa_context *ctx) {
     gpu_cl_enqueue_nd(ctx->gpu, ctx->energy_id, 1, &ctx->local, &ctx->global, NULL);
-    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->dimensions * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
     double ret = 0.0;
-    for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
+    for (uint64_t i = 0; i < ctx->g->dimensions; ++i)
         ret += ctx->energy_cpu[i];
     return ret;
 }
@@ -25,7 +25,7 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.g = g;
     ret.gpu = gpu;
 
-    ret.energy_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu));
+    ret.energy_cpu = mmalloc(g->dimensions * sizeof(*ret.energy_cpu));
     ret.outer_step = 0;
     ret.inner_step = 0;
     ret.step = 0;
@@ -37,14 +37,14 @@ gsa_context gsa_context_init_base(grid *g, gpu_cl *gpu, double qA, double qV, do
     ret.parameters.inner_steps = inner_steps;
     ret.parameters.outer_steps = outer_steps;
     ret.parameters.print_factor = print_factor;
-    ret.global = g->gi.rows * g->gi.cols;
+    ret.global = g->dimensions;
     ret.global = ret.global + (gpu_optimal_wg - ret.global % gpu_optimal_wg);
     ret.local = gpu_optimal_wg;
     grid_to_gpu(g, *gpu);
 
-    ret.energy_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu), CL_MEM_READ_WRITE);
-    ret.swap_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
-    ret.min_gpu = gpu_cl_create_gpu(gpu, g->gi.rows * g->gi.cols * sizeof(*g->m), CL_MEM_READ_WRITE);
+    ret.energy_gpu = gpu_cl_create_gpu(gpu, g->dimensions * sizeof(*ret.energy_cpu), CL_MEM_READ_WRITE);
+    ret.swap_gpu = gpu_cl_create_gpu(gpu, g->dimensions * sizeof(*g->m), CL_MEM_READ_WRITE);
+    ret.min_gpu = gpu_cl_create_gpu(gpu, g->dimensions * sizeof(*g->m), CL_MEM_READ_WRITE);
 
     ret.thermal_id = gpu_cl_append_kernel(gpu, "thermal_step_gsa");
     ret.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
@@ -139,7 +139,7 @@ void gsa_metropolis_step(gsa_context *ctx) {
         gpu_cl_set_kernel_arg(ctx->gpu, ctx->exchange_id, 0, sizeof(cl_mem), &ctx->g->m_gpu);
         gpu_cl_enqueue_nd(ctx->gpu, ctx->exchange_id, 1, &ctx->local, &ctx->global, NULL);
     } else {
-        double df = (new_energy - ctx->last_energy) / (ctx->g->gi.rows * ctx->g->gi.cols);// / fabs(ctx->g->gp->exchange);
+        double df = (new_energy - ctx->last_energy) / (ctx->g->dimensions);// / fabs(ctx->g->gp->exchange);
         double pqa = 1.0 / pow(1.0 + ctx->qA1 * df / (KB * ctx->T), ctx->oneqA1);
         if (shit_random(0.0, 1.0) < pqa) {
             ctx->last_energy = new_energy;
@@ -153,7 +153,7 @@ void gsa_metropolis_step(gsa_context *ctx) {
 }
 
 void gsa_context_close(gsa_context *ctx) {
-    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->dimensions * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
     mfree(ctx->energy_cpu);
     gpu_cl_release_memory(ctx->swap_gpu);
     gpu_cl_release_memory(ctx->min_gpu);
@@ -162,7 +162,7 @@ void gsa_context_close(gsa_context *ctx) {
 }
 
 void gsa_context_read_minimun_grid(gsa_context *ctx) {
-    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->dimensions * sizeof(*ctx->g->m), 0, ctx->g->m, ctx->min_gpu);
 }
 
 gsa_params gsa_params_init(void) {

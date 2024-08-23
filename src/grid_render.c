@@ -19,6 +19,7 @@ grid_renderer grid_renderer_init(grid *g, gpu_cl *gpu) {
     ret.height = window_height();
     ret.g = g;
     ret.gpu = gpu;
+    ret.k = 0;
     grid_to_gpu(g, *ret.gpu);
 
     ret.r_global = ret.width * ret.height;

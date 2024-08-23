@@ -26,8 +26,8 @@ typedef struct {
     const char *output_path;
 
     bool do_cluster;
-    double(*cluster_metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*);
-    double(*cluster_weight)(grid*, uint64_t, uint64_t, void*);
+    double(*cluster_metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void*);
+    double(*cluster_weight)(grid*, uint64_t, uint64_t, uint64_t, void*);
     void *cluster_metric_data;
     void *cluster_weight_data;
 

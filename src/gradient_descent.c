@@ -5,9 +5,9 @@
 
 static double energy_from_gradient_descent_context(gradient_descent_context *ctx) {
     gpu_cl_enqueue_nd(ctx->gpu, ctx->energy_id, 1, &ctx->local, &ctx->global, NULL);
-    gpu_cl_read_gpu(ctx->gpu, ctx->g->gi.rows * ctx->g->gi.cols * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
+    gpu_cl_read_gpu(ctx->gpu, ctx->g->dimensions * sizeof(*ctx->energy_cpu), 0, ctx->energy_cpu, ctx->energy_gpu);
     double ret = 0.0;
-    for (uint64_t i = 0; i < ctx->g->gi.rows * ctx->g->gi.cols; ++i)
+    for (uint64_t i = 0; i < ctx->g->dimensions; ++i)
         ret += ctx->energy_cpu[i];
     return ret;
 }
@@ -18,30 +18,30 @@ gradient_descent_context gradient_descent_context_init(grid *g, gpu_cl *gpu, gra
     ret.gpu = gpu;
     grid_to_gpu(ret.g, *ret.gpu);
 
-    ret.global = g->gi.rows * g->gi.cols;
+    ret.global = g->dimensions;
     ret.global = ret.global + (gpu_optimal_wg - ret.global % gpu_optimal_wg);
     ret.local = gpu_optimal_wg;
     ret.params = params;
     ret.T0 = params.T;
 
-    ret.before_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.min_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.after_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
-    ret.energy_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.energy_cpu) * g->gi.cols * g->gi.rows, CL_MEM_READ_WRITE);
+    ret.before_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->dimensions, CL_MEM_READ_WRITE);
+    ret.min_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->dimensions, CL_MEM_READ_WRITE);
+    ret.after_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*g->m) * g->dimensions, CL_MEM_READ_WRITE);
+    ret.energy_gpu = gpu_cl_create_gpu(ret.gpu, sizeof(*ret.energy_cpu) * g->dimensions, CL_MEM_READ_WRITE);
 
-    ret.energy_cpu = mmalloc(g->gi.rows * g->gi.cols * sizeof(*ret.energy_cpu));
+    ret.energy_cpu = mmalloc(g->dimensions * sizeof(*ret.energy_cpu));
 
     ret.step_id = gpu_cl_append_kernel(ret.gpu, "gradient_descent_step");
     ret.exchange_id = gpu_cl_append_kernel(ret.gpu, "exchange_grid");
     ret.energy_id = gpu_cl_append_kernel(ret.gpu, "calculate_energy");
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.before_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols), &ret.g->gi.depth, sizeof(ret.g->gi.depth));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.after_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols), &ret.g->gi.depth, sizeof(ret.g->gi.depth));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
-    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols));
+    gpu_cl_fill_kernel_args(gpu, ret.exchange_id, 0, 4, &ret.min_gpu, sizeof(cl_mem), &ret.g->m_gpu, sizeof(cl_mem), &ret.g->gi.rows, sizeof(ret.g->gi.rows), &ret.g->gi.cols, sizeof(ret.g->gi.cols), &ret.g->gi.depth, sizeof(ret.g->gi.depth));
     gpu_cl_enqueue_nd(gpu, ret.exchange_id, 1, &ret.local, &ret.global, NULL);
 
 
@@ -101,7 +101,7 @@ void gradient_descent_exchange(gradient_descent_context *ctx) {
 }
 
 void gradient_descent_read_mininum_grid(gradient_descent_context *ctx) {
-    v3d_from_gpu(ctx->g->m, ctx->min_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
+    v3d_from_gpu(ctx->g->m, ctx->min_gpu, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth, *ctx->gpu);
 }
 
 gradient_descent_params gradient_descent_params_init(void) {

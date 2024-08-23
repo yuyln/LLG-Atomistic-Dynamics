@@ -10,6 +10,7 @@
 typedef struct {
     int rows;
     int cols;
+    int depth;
     grid_site_params gs;
     v3d m;
     v3d temperature_effect;
@@ -22,8 +23,8 @@ typedef struct {
 #endif
 } parameters;
 
-v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int rows, int cols);
-void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int rows, int cols);
+v3d apply_pbc(GLOBAL v3d *v, pbc_rules pbc, int row, int col, int k, int rows, int cols, int depth);
+void apply_pbc_complete(GLOBAL grid_site_params *gs, GLOBAL v3d *v, v3d *out, grid_site_params *gsout, pbc_rules pbc, int row, int col, int k, int rows, int cols, int depth);
 v3d generate_magnetic_field(grid_site_params gs, double time);
 current generate_current(grid_site_params gs, double time);
 double generate_temperature(grid_site_params gs, double time);
