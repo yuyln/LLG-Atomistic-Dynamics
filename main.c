@@ -442,11 +442,13 @@ int Tc(void) {
 */
 
 int main(void) {
-    grid g = grid_init(32, 32, 32);
+    grid g = grid_init(272, 272, 32);
     //grid_uniform(&g, v3d_c(0, 0, 1));
     //grid_create_skyrmion_at(&g, 5, 3, g.gi.cols / 2, g.gi.rows / 2, -1, 1, M_PI / 2);
     integrate_params ip = integrate_params_init();
     ip.dt = 0.01 * HBAR / (1.0e-3 * QE);
+    ip.duration = 200 * NS;
+    ip.interval_for_raw_grid = 30000;
     g.gi.pbc.pbc_z = false;
     double dm = 0.8 * 1.0e-3 * QE;
     grid_set_dm(&g, dm_bulk(dm));

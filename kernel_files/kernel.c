@@ -293,7 +293,7 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
     parameters param1 = (parameters){};
     param1.rows = gi.rows;
     param1.cols = gi.cols;
-    param1.depth;
+    param1.depth = gi.depth;
     param1.time = 0.0;
     param1.m = v1[id];
     param1.gs = gs[id];
