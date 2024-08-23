@@ -166,7 +166,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             state = 'b';
 
         if (window_key_pressed('k'))
-            gr.k = (gr.k + 1) % g->gi.depth;
+            gr.k = (gr.k + 1) % g->gi.rows;
 
         for (unsigned int i = 0; i < steps_per_frame; ++i) {
             integrate_exchange_grids(&ctx);
