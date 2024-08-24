@@ -209,7 +209,7 @@ kernel void render_grid_hsl(GLOBAL v3d *v, grid_info gi, unsigned int k,
 kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_info gi, GLOBAL double *out, double time) {
     size_t id = get_global_id(0);
 
-    if (id >= (gi.rows * gi.cols))
+    if (id >= (gi.rows * gi.cols * gi.depth))
         return;
 
     int col = id % gi.cols;
@@ -219,6 +219,7 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
     parameters param;
     param.rows = gi.rows;
     param.cols = gi.cols;
+    param.depth = gi.depth;
     param.gs = gs[id];
     param.m = v[id];
     param.lattice = gi.lattice;

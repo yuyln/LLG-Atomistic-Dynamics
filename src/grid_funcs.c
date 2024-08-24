@@ -50,6 +50,7 @@ grid grid_init(unsigned int rows, unsigned int cols, unsigned int depth) {
     ret.gi.cols = cols;
     ret.gi.depth = depth;
     ret.gi.pbc = (pbc_rules){.pbc_x = true, .pbc_y = true, .pbc_z = true, .m = {0}};
+    ret.gi.lattice = 0.5e-9;
     grid_allocate(&ret);
 
     double dm = 0.6 * QE * 1.0e-3;
@@ -748,7 +749,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             if (z < depth - 1 || g->gi.pbc.pbc_z) {
                 if (metric(g, y, x, front, y, x, z, user_data_metric) < eps && !g->seen[fidx]) {
                     rb_append(&g->queue, fidx);
-                    g->points[fidx].z = qt->y + g->gi.lattice;
+                    g->points[fidx].z = qt->z + g->gi.lattice;
                     g->points[fidx].x = qt->x;
                     g->points[fidx].y = qt->y;
                 }
@@ -760,7 +761,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             if (z > 0 || g->gi.pbc.pbc_z) {
                 if (metric(g, y, x, back, y, x, z, user_data_metric) < eps && !g->seen[bidx]) {
                     rb_append(&g->queue, bidx);
-                    g->points[bidx].z = qt->y - g->gi.lattice;
+                    g->points[bidx].z = qt->z - g->gi.lattice;
                     g->points[bidx].x = qt->x;
                     g->points[bidx].y = qt->y;
                 }
