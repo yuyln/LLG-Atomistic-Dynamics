@@ -193,10 +193,10 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->clusters, "%.15e,", ctx->time);
 
         for (uint64_t i = 0; i < ctx->g->clusters.len - 1; ++i)
-            fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+            fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e,", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->dimensions));
 
         uint64_t i = ctx->g->clusters.len - 1;
-        fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->gi.rows * ctx->g->gi.cols));
+        fprintf(ctx->clusters, "%.15e,%.15e,%.15e,%.15e\n", ctx->g->clusters.items[i].x, ctx->g->clusters.items[i].y, ctx->g->clusters.items[i].z, ctx->g->clusters.items[i].count / ((double)ctx->g->dimensions));
     }
 
     ctx->integrate_step += 1;
