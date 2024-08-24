@@ -28,6 +28,7 @@ def CLOSE_ENOUGH(a: float, b: float, eps: float = EPS) -> bool:
 
 
 colors = ["#037fff", "white", "#f40501"]
+colors = ["#0000ff", "white", "#ff0000"]
 cmap = LinearSegmentedColormap.from_list("mcmp", colors)
 
 class v3d(ct.Structure):
@@ -38,7 +39,7 @@ class v3d(ct.Structure):
         return CLOSE_ENOUGH(self.x, other.x) and CLOSE_ENOUGH(self.y, other.y) and CLOSE_ENOUGH(self.z, other.z)
 
 class pbc_rules(ct.Structure):
-    _fields_ = [('m', v3d), ('pbc_x', ct.c_int), ('pbc_y', ct.c_int)]
+    _fields_ = [('m', v3d), ('pbc_x', ct.c_int), ('pbc_y', ct.c_int), ('pbc_z', ct.c_int)]
     def __str__(self):
         s = "("
         for n, t in self._fields_:
@@ -46,10 +47,10 @@ class pbc_rules(ct.Structure):
         s += ")"
         return s
     def __eq__(self, other):
-        return self.pbc_x == other.pbc.x and self.pbc.y == other.pbc_y and self.m == other.m
+        return self.pbc_x == other.pbc_x and self.pbc_y == other.pbc_y and self.pbc_z == other.pbc_z and self.m == other.m
 
 class grid_info(ct.Structure):
-    _fields_ = [('rows', ct.c_uint), ('cols', ct.c_uint), ('pbc', pbc_rules)]
+    _fields_ = [('rows', ct.c_uint), ('cols', ct.c_uint), ('depth', ct.c_uint), ('lattice', ct.c_double), ('pbc', pbc_rules)]
     def __str__(self):
         s = "("
         for n, t in self._fields_:
@@ -57,7 +58,7 @@ class grid_info(ct.Structure):
         s += ")"
         return s
     def __eq__(self, other):
-            return self.rows == other.rows and self.cols == other.cols and self.pbc == other.pbc
+            return self.rows == other.rows and self.cols == other.cols and self.depth == other.depth and CLOSE_ENOUGH(self.lattice, other.lattice) and self.pbc == other.pbc
 
 class anisotropy(ct.Structure):
     _fields_ = [('dir', v3d), ('ani', ct.c_double)]
@@ -82,7 +83,21 @@ class pinning(ct.Structure):
         return self.pinned == other.pinned and self.dir == other.dir
 
 class dm_interaction(ct.Structure):
-    _fields_ = [('dmv_left', v3d), ('dmv_right', v3d), ('dmv_up', v3d), ('dmv_down', v3d)]
+    _fields_ = [('dmv_left', v3d), ('dmv_right', v3d), ('dmv_up', v3d), ('dmv_down', v3d), ('dmv_front', v3d), ('dmv_back', v3d)]
+    def __str__(self):
+        s = "("
+        for n, t in self._fields_:
+            s += f"{n}: {getattr(self, n)}\n"
+        s += ")"
+        return s
+    def __eq__(self, other):
+        ret = True
+        for n, t in self._fields_:
+            ret = ret and getattr(self, n) == getattr(other, n)
+        return ret
+
+class exchange_interaction(ct.Structure):
+    _fields_ = [('J_left', ct.c_double), ('J_right', ct.c_double), ('J_up', ct.c_double), ('J_down', ct.c_double), ('J_front', ct.c_double), ('J_back', ct.c_double)]
     def __str__(self):
         s = "("
         for n, t in self._fields_:
@@ -96,10 +111,11 @@ class dm_interaction(ct.Structure):
         return ret
 
 class grid_site_params(ct.Structure):
-    _fields_ = [('row', ct.c_int), ('col', ct.c_int),
-                ('exchange', ct.c_double), ('lattice', ct.c_double), ('cubic_ani', ct.c_double),
+    _fields_ = [('i', ct.c_int), ('j', ct.c_int), ('k', ct.c_int),
+                ('cubic_ani', ct.c_double),
                 ('mu', ct.c_double), ('alpha', ct.c_double), ('gamma', ct.c_double),
-                ('ani', anisotropy), ('pin', pinning), ('dm', dm_interaction)]
+                ('ani', anisotropy), ('pin', pinning), ('dm', dm_interaction),
+                ('exchange', exchange_interaction)]
     def __str__(self):
         s = "gp: (\n"
         for n, t in self._fields_:
@@ -172,15 +188,16 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     gps = []
     for _ in range(gi.rows):
         for _ in range(gi.cols):
-            gp = grid_site_params()
-            file.readinto(gp)
-            gps.append(gp)
-    skip += ct.sizeof(gps[0]) * gi.rows * gi.cols
+            for _ in range(gi.depth):
+                gp = grid_site_params()
+                file.readinto(gp)
+                gps.append(gp)
+    skip += ct.sizeof(gps[0]) * gi.rows * gi.cols * gi.depth
     file.close()
     file = open(path, "rb")
 
     raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)[skip:]
-    frames = len(raw_data) / (gi.rows * gi.cols * VEC_SIZE)
+    frames = len(raw_data) / (gi.rows * gi.cols * gi.depth * VEC_SIZE)
     
     file.close()
     return int(frames), gi, gps, raw_data
@@ -194,16 +211,18 @@ def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], lis
     gps = []
     for _ in range(gi.rows):
         for _ in range(gi.cols):
-            gp = grid_site_params()
-            file.readinto(gp)
-            gps.append(gp)
+            for _ in range(gi.depth):
+                gp = grid_site_params()
+                file.readinto(gp)
+                gps.append(gp)
 
     ms = []
     for _ in range(gi.rows):
         for _ in range(gi.cols):
-            m = v3d()
-            file.readinto(m)
-            ms.append(m)
+            for _ in range(gi.depth):
+                m = v3d()
+                file.readinto(m)
+                ms.append(m)
 
     file.close()
     return gi, gps, ms 
@@ -211,7 +230,7 @@ def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], lis
 def GetFrameFromBinary(frames: int, gi: grid_info, raw_data: bytes, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if i < 0: i = 0
     elif i >= frames: i = frames - 1
-    lat_s = gi.rows * gi.cols * VEC_SIZE
+    lat_s = gi.rows * gi.cols * gi.depth * VEC_SIZE
     raw_vecs = array.array("d")
     raw_vecs.frombytes(raw_data[i * lat_s: (i + 1) * lat_s])
     M = np.array(raw_vecs)

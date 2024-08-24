@@ -12,7 +12,7 @@ typedef struct {
     int cols;
     int depth;
     grid_site_params gs;
-    grid_info gi;
+    double lattice;
     v3d m;
     v3d temperature_effect;
     neighbors_set neigh;

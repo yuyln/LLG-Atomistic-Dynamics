@@ -17,6 +17,7 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
     param.cols = gi.cols;
     param.depth = gi.depth;
     param.gs = gs[id];
+    param.lattice = gi.lattice;
     param.m = apply_pbc(input, gi.pbc, row, col, k, gi.rows, gi.cols, gi.depth);
     param.neigh.left = apply_pbc(input, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
     param.neigh.right = apply_pbc(input, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
@@ -81,6 +82,7 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     param.depth = gi.depth;
     param.gs = gs[id];
     param.m = m0[id];
+    param.lattice = gi.lattice;
     v3d dm = v3d_sub(m1[id], param.m);
     param.m = apply_pbc(m0, gi.pbc, row, col, k, gi.rows, gi.cols, gi.depth);
     param.neigh.left = apply_pbc(m0, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
@@ -219,6 +221,7 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
     param.cols = gi.cols;
     param.gs = gs[id];
     param.m = v[id];
+    param.lattice = gi.lattice;
     param.neigh.left = apply_pbc(v, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
     param.neigh.right = apply_pbc(v, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
     param.neigh.up = apply_pbc(v, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);
@@ -297,6 +300,7 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
     param1.time = 0.0;
     param1.m = v1[id];
     param1.gs = gs[id];
+    param1.lattice = gi.lattice;
     param1.neigh.left = apply_pbc(v1, gi.pbc, row, col - 1, k, gi.rows, gi.cols, gi.depth);
     param1.neigh.right = apply_pbc(v1, gi.pbc, row, col + 1, k, gi.rows, gi.cols, gi.depth);
     param1.neigh.up = apply_pbc(v1, gi.pbc, row + 1, col, k, gi.rows, gi.cols, gi.depth);

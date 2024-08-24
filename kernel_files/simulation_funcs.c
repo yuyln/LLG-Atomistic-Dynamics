@@ -169,26 +169,26 @@ v3d dm_dt(parameters param, double dt) {
     current cur = generate_current(param.gs, param.time);
     switch (cur.type) {
         case CUR_STT: {
-            v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.gi.lattice, param.gi.lattice, param.gi.lattice);
-            common = v3d_scalar(common, cur.stt.polarization * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * QE));
+            v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.lattice, param.lattice, param.lattice);
+            common = v3d_scalar(common, cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(common, beta));
         }
         break;
         case CUR_SHE: {
-            v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * cur.she.thickness * QE));
+            v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * cur.she.thickness * QE));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
         }
         break;
         case CUR_BOTH: {
-            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.gi.lattice, param.gi.lattice, param.gi.lattice);
-            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * QE));
+            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.lattice, param.lattice, param.lattice);
+            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE));
             v3d stt_beta = v3d_scalar(v3d_cross(param.m, stt_common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(stt_common, stt_beta));
 
 
-            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.gi.lattice * param.gi.lattice * param.gi.lattice / (2.0 * cur.she.thickness * QE));
+            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * cur.she.thickness * QE));
             v3d she_beta = v3d_scalar(v3d_cross(param.m, she_common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(she_common, param.m), she_beta));
         }
