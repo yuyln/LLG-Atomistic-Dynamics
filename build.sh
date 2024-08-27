@@ -12,15 +12,15 @@ if [ "`pkg-config --libs xext`" > /dev/null ]; then
     COMMON_CFLAGS="$COMMON_CFLAGS -DUSE_XEXT"
 fi
 
-if test -f ./libatomistic.a; then
-    rm ./libatomistic.a
+if test -f ./libatomistic3d.a; then
+    rm ./libatomistic3d.a
 fi
 
 if [ "$1" = "install" ]; then
-    if test -d $HOME/.local/lib/atomistic; then
-        rm -r $HOME/.local/lib/atomistic
+    if test -d $HOME/.local/lib/atomistic3d; then
+        rm -r $HOME/.local/lib/atomistic3d
     fi
-    mkdir --parents $HOME/.local/lib/atomistic
+    mkdir --parents $HOME/.local/lib/atomistic3d
     mkdir --parents $HOME/.local/bin
     CFLAGS="$COMMON_CFLAGS"
 
@@ -31,15 +31,15 @@ if [ "$1" = "install" ]; then
     $CC -fPIC $CFLAGS -c $FILES $LIBS
 
     FILES_OBJ="`find -type f -name "*.o"`"
-    ar cr libatomistic.a $FILES_OBJ
+    ar cr libatomistic3d.a $FILES_OBJ
 
     rm *.o
-    cp ./libatomistic.a $HOME/.local/lib/atomistic/
-    cp -r ./include $HOME/.local/lib/atomistic/include
-    cp ./run_atomistic $HOME/.local/bin/run_atomistic
+    cp ./libatomistic3d.a $HOME/.local/lib/atomistic3d/
+    cp -r ./include $HOME/.local/lib/atomistic3d/include
+    cp ./run_atomistic $HOME/.local/bin/run_atomistic3d
 
-    $CC -fPIC $CFLAGS -shared -o libatomistic.so $FILES $LIBS
-    cp ./libatomistic.so $HOME/.local/lib/atomistic/
+    $CC -fPIC $CFLAGS -shared -o libatomistic3d.so $FILES $LIBS
+    cp ./libatomistic3d.so $HOME/.local/lib/atomistic3d/
 else
     set -xe
     CFLAGS="$COMMON_CFLAGS -Wall -Wextra -pedantic -ggdb -g3 -Wno-overlength-strings -Wno-override-init"
@@ -51,9 +51,9 @@ else
     $CC $CFLAGS -c $FILES $LIBS
 
     FILES_OBJ="`find -type f -name "*.o"`"
-    ar cr libatomistic.a $FILES_OBJ
+    ar cr libatomistic3d.a $FILES_OBJ
 
     rm *.o
 
-    $CC -L./ $CFLAGS main.c -o main -l:libatomistic.a $LIBS
+    $CC -L./ $CFLAGS main.c -o main -l:libatomistic3d.a $LIBS
 fi
