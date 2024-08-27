@@ -53,7 +53,7 @@ grid grid_init(unsigned int rows, unsigned int cols, unsigned int depth) {
     ret.gi.lattice = 0.5e-9;
     grid_allocate(&ret);
 
-    double dm = 0.6 * QE * 1.0e-3;
+    double dm = 0.2 * QE * 1.0e-3;
 
     grid_site_params default_grid = (grid_site_params){
             .exchange = isotropic_exchange(1.0e-3 * QE),
@@ -270,6 +270,34 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, uns
     }
 }
 
+void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double ix, double iy, double iz) {
+    int dr = radius;
+    int dh = height;
+    for (int i = -dr; i <= dr; ++i) {
+        for (int j = -dr; j <= dr; ++j) {
+            for (int k = -dh; k <= dh; ++k) {
+                double r = sqrt(i * i + j * j);
+                if (r > dr)
+                    continue;
+                int x = ix + j;
+                int y = iy + i;
+                int z = iz + k;
+                x = ((x % (int)cols) + (int)cols) % (int)cols;
+                y = ((y % (int)rows) + (int)rows) % (int)rows;
+                z = ((z % (int)depth) + (int)depth) % (int)depth;
+                double phi = atan2(i, j) + M_PI;
+                v3d m = {0};
+                double rl = r / (0.5 * radius);
+                double kl = k / (double)height;
+                m.x = 4.0 * rl * (2.0 * cos(phi) * kl - sin(phi) * (rl * rl + kl * kl - 1.0)) / pow(1.0 + rl * rl + kl * kl, 2.0);
+                m.y = 4.0 * rl * (2.0 * sin(phi) * kl + cos(phi) * (rl * rl + kl * kl - 1.0)) / pow(1.0 + rl * rl + kl * kl, 2.0);
+                m.z = 1.0 - 8.0 * rl * rl / pow(1.0 + rl * rl + kl * kl, 2.0);
+                V_AT(v, y, x, z, rows, cols) = v3d_normalize(m);
+            }
+        }
+    }
+}
+
 void v3d_uniform(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, v3d dir) {
     for (unsigned int i = 0; i < rows * cols * depth; ++i)
         v[i] = v3d_normalize(dir);
@@ -293,6 +321,10 @@ void grid_create_biskyrmion_at(grid *g, double radius, double dw_width, double i
 
 void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma) {
     v3d_create_skyrmionium_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, dw_width, ix, iy, Q, vor, _gamma);
+}
+
+void grid_create_hopfion_at(grid *g, double radius, double height, double ix, double iy, double iz) {
+    v3d_create_hopfion_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, height, ix, iy, iz);
 }
 
 bool grid_free(grid *g) {

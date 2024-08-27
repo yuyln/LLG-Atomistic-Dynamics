@@ -222,7 +222,7 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.charge_lattice += ctx->info[i].charge_lattice;
         info_local.abs_charge_finite += ctx->info[i].abs_charge_finite;
         info_local.abs_charge_lattice += ctx->info[i].abs_charge_lattice;
-        info_local.avg_m = v3d_sum(info_local.avg_m, v3d_scalar(ctx->info[i].avg_m, 1.0 / (ctx->g->gi.rows * ctx->g->gi.cols)));
+        info_local.avg_m = v3d_sum(info_local.avg_m, v3d_scalar(ctx->info[i].avg_m, 1.0 / (ctx->g->dimensions)));
         info_local.eletric_field = v3d_sum(info_local.eletric_field , ctx->info[i].eletric_field);
         info_local.magnetic_field_lattice = v3d_sum(info_local.magnetic_field_lattice, ctx->info[i].magnetic_field_lattice);
         info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, ctx->info[i].magnetic_field_derivative);

@@ -6,6 +6,7 @@ import pandas as pd
 utils.FixPlot(8, 8)
 cmd = utils.CMDArgs("dummy", "dummy")
 frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
+data = pd.read_csv("./integrate_info.dat")
 
 fig, ax = plt.subplots()
 
@@ -29,6 +30,6 @@ for i in range(gi.rows):
     rgb[:, :, 0] = r.reshape((mx_.shape))
     rgb[:, :, 1] = g.reshape((mx_.shape))
     rgb[:, :, 2] = b.reshape((mx_.shape))
-    plt.imshow(my_, origin="lower", cmap=utils.cmap, vmax=1, vmin=-1, interpolation="bicubic")
+    plt.imshow(rgb, origin="lower", cmap=utils.cmap, vmax=1, vmin=-1)
     plt.show()
 

@@ -224,8 +224,8 @@ v3d step_llg(parameters param, double dt) {
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {
     return v3d_dot(m, v3d_cross(
-                v3d_scalar(v3d_sub(right, left), 0.5), //x derivative scaled by lattice
-                v3d_scalar(v3d_sub(up, down), 0.5)  //y derivative scaled by lattice
+                v3d_scalar(v3d_sub(right, left), 0.5),
+                v3d_scalar(v3d_sub(up, down), 0.5)
                 )) * 1.0 / (4.0 * M_PI);
 }
 
@@ -255,18 +255,23 @@ double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
     return 1.0 / (8.0 * M_PI) * (q_012 + q_023 + q_034 + q_041);
 }
 
-v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down) {
-    return v3d_c(0.0, 0.0, 4.0 * M_PI * HBAR / QE * charge_lattice(m, left, right, up, down));
+//yz, xz and xy mixed because of levi tensor
+v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back) {
+    return v3d_c(4.0 * M_PI * HBAR / QE * charge_lattice(m, down, up, front, back),  //yz plane
+                 4.0 * M_PI * HBAR / QE * charge_lattice(m, back, front, right, left),  //xz plane
+                 4.0 * M_PI * HBAR / QE * charge_lattice(m, left, right, up, down)); //xy plane
 }
 
-v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {
-    return v3d_c(0.0, 0.0, 4.0 * M_PI * HBAR / QE * charge_derivative(m, left, right, up, down));
+v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back) {
+    return v3d_c(HBAR / QE * 0.5 * v3d_dot(m, v3d_cross(v3d_sub(up, down), v3d_sub(front, back))),
+                 HBAR / QE * 0.5 * v3d_dot(m, v3d_cross(v3d_sub(front, back), v3d_sub(right, left))),
+                 HBAR / QE * 0.5 * v3d_dot(m, v3d_cross(v3d_sub(right, left), v3d_sub(up, down))));
 }
 
-v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy) {
+v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back, v3d dmdt, double dx, double dy, double dz) {
     return v3d_c(
             HBAR / QE * v3d_dot(m, v3d_cross(v3d_scalar(v3d_sub(right, left), 1.0 / (2.0 * dx)), dmdt)),
             HBAR / QE * v3d_dot(m, v3d_cross(v3d_scalar(v3d_sub(up, down), 1.0 / (2.0 * dy)), dmdt)),
-            0.0
+            HBAR / QE * v3d_dot(m, v3d_cross(v3d_scalar(v3d_sub(front, back), 1.0 / (2.0 * dz)), dmdt))
             );
 }

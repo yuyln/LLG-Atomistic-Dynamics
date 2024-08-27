@@ -51,7 +51,7 @@ v3d step_llg(parameters param, double dt);
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
 double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down);
 
-v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down);
-v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
-v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy);
+v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back);
+v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back);
+v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d front, v3d back, v3d dmdt, double dx, double dy, double dz);
 #endif
