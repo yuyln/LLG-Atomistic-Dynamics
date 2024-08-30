@@ -9,7 +9,7 @@ frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 data = pd.read_csv("./integrate_info.dat")
 time, x, y, z, _, _, _ = utils.GetClusterData("./")
 
-mx, my, mz = utils.GetFrameFromBinary(frames, gi, raw, frames - 1)
+mx, my, mz = utils.GetFrameFromBinary(frames, gi, raw, 0)
 mx = mx.reshape((gi.depth, gi.rows, gi.cols))
 my = my.reshape((gi.depth, gi.rows, gi.cols))
 mz = mz.reshape((gi.depth, gi.rows, gi.cols))

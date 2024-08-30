@@ -270,13 +270,13 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, uns
     }
 }
 
-void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double ix, double iy, double iz) {
-    int dr = radius;
+void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double c, double ix, double iy, double iz) {
     int dh = height;
+    int dr = 4.0 * dh;
     for (int i = -dr; i <= dr; ++i) {
         for (int j = -dr; j <= dr; ++j) {
             for (int k = -dh; k <= dh; ++k) {
-                double r = sqrt(i * i + j * j);
+                double r = sqrt(i * i + j * j + k * k) + EPS;
                 if (r > dr)
                     continue;
                 int x = ix + j;
@@ -285,13 +285,22 @@ void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigne
                 x = ((x % (int)cols) + (int)cols) % (int)cols;
                 y = ((y % (int)rows) + (int)rows) % (int)rows;
                 z = ((z % (int)depth) + (int)depth) % (int)depth;
-                double phi = atan2(i, j) + M_PI;
                 v3d m = {0};
-                double rl = r / (0.5 * radius);
-                double kl = k / (double)height;
-                m.x = 4.0 * rl * (2.0 * cos(phi) * kl - sin(phi) * (rl * rl + kl * kl - 1.0)) / pow(1.0 + rl * rl + kl * kl, 2.0);
-                m.y = 4.0 * rl * (2.0 * sin(phi) * kl + cos(phi) * (rl * rl + kl * kl - 1.0)) / pow(1.0 + rl * rl + kl * kl, 2.0);
-                m.z = 1.0 - 8.0 * rl * rl / pow(1.0 + rl * rl + kl * kl, 2.0);
+#if 0
+                double theta = atan2(i, j) + M_PI;
+                double phi = acos(k / r);
+                double xi = c * M_PI / sqrt((radius * radius / (r * r)) + c * c);
+                double t = acos(-2.0 * sin(theta) * sin(theta) * sin(xi) * sin(xi) + 1.0);
+                double f = phi - atan2(1.0, cos(theta) * tan(xi));
+                m.x = sin(t) * cos(f);
+                m.y = sin(t) * sin(f);
+                m.z = cos(t);
+#else
+                double f = exp(-r * r / (4.0 * height * height)) * M_PI;
+                m.x = j / r * sin(2 * f) + i * k / (r * r) * sin(f) * sin(f);
+                m.y = i / r * sin(2 * f) - j * k / (r * r) * sin(f) * sin(f);
+                m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
+#endif
                 V_AT(v, y, x, z, rows, cols) = v3d_normalize(m);
             }
         }
@@ -323,8 +332,8 @@ void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double 
     v3d_create_skyrmionium_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, dw_width, ix, iy, Q, vor, _gamma);
 }
 
-void grid_create_hopfion_at(grid *g, double radius, double height, double ix, double iy, double iz) {
-    v3d_create_hopfion_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, height, ix, iy, iz);
+void grid_create_hopfion_at(grid *g, double radius, double height, double c, double ix, double iy, double iz) {
+    v3d_create_hopfion_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, height, c, ix, iy, iz);
 }
 
 bool grid_free(grid *g) {

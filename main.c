@@ -10,8 +10,9 @@ int hopfion(void) {
     grid g = grid_init(64, 64, 64);
     double J = 1.0e-3 * QE;
     
-    double dm = -0.2 * J;
-    double ani = 0.03 * J;
+    double dm = 0.2 * J;
+    double ani = 0.01 * J;
+    grid_set_alpha(&g, 0.3);
 
     grid_set_dm(&g, dm_bulk(dm));
     grid_set_exchange(&g, isotropic_exchange(J));
@@ -25,7 +26,7 @@ int hopfion(void) {
     //}
 
     grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_hopfion_at(&g, 20, 5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
+    grid_create_hopfion_at(&g, 10, 6, 0.5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
 
     //for (uint64_t i = 0; i < g.gi.rows; ++i) {
     //    for (uint64_t j = 0; j < g.gi.cols; ++j) {
@@ -50,10 +51,11 @@ int hopfion(void) {
     gd.dt = 0.01;
     gd.T_factor = 0.9995;
 
-    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    //grid_renderer_integrate(&g, ip, 1000, 1000);
     //ip.current_func = create_current_stt_dc(10e10, 0, 0);
     ip.current_func = create_current_she_dc(1e10, v3d_c(1, 0, 0), 0);
-    //grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
 }
 
