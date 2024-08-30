@@ -115,7 +115,8 @@ class grid_site_params(ct.Structure):
                 ('cubic_ani', ct.c_double),
                 ('mu', ct.c_double), ('alpha', ct.c_double), ('gamma', ct.c_double),
                 ('ani', anisotropy), ('pin', pinning), ('dm', dm_interaction),
-                ('exchange', exchange_interaction)]
+                ('exchange', exchange_interaction),
+                ('lattice', ct.c_double)]
     def __str__(self):
         s = "gp: (\n"
         for n, t in self._fields_:
@@ -256,6 +257,20 @@ def _v(m1, m2, hue):
     ret[cond] = m1[cond] + (m2[cond] - m1[cond]) * hueL[cond] * 6.0
  
     return ret 
+
+def FixCluster(input_dir, output_dir, dx, dy, dz, cut) -> bool:
+    import ctypes
+    _structure = ctypes.CDLL("/home/jose/.local/lib/atomistic3d/libatomistic3d.so")
+    _structure.organize_clusters.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+    _structure.organize_clusters.restype = ctypes.c_bool
+    input_dir = input_dir + '\0'
+    output_dir = output_dir + '\0'
+    input_dir = ctypes.create_string_buffer(input_dir.encode("ascii"))
+    output_dir = ctypes.create_string_buffer(output_dir.encode("ascii"))
+    ret = _structure.organize_clusters(input_dir, output_dir, ctypes.c_double(dx), ctypes.c_double(dy), ctypes.c_double(dz), ctypes.c_double(cut))
+    if not ret:
+        raise FileNotFoundError
+    return ret
 
 def HSLtoRGB(h: np.ndarray, s: np.ndarray, l: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     r = np.empty_like(h)
@@ -460,6 +475,81 @@ def ClusterDefects(gp: list[grid_site_params]) -> list[grid_site_params]:
 
     return [sites[i][0] for i in range(len(sites))]
 
+
+def GetClusterData(bdir: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    frames, gi, gp, raw = ReadAnimationBinary(f"{bdir}integrate_evolution.dat")
+    lattice = gi.lattice
+    
+    try:
+        data = pd.read_csv(f"{bdir}clusters_org.dat", header=None)
+    except FileNotFoundError:
+        FixCluster(f"./{bdir}clusters.dat", f"./{bdir}clusters_org.dat", gi.cols * lattice, gi.rows * lattice, gi.depth * lattice, 1e8)
+        data = pd.read_csv(f"{bdir}clusters_org.dat", header=None)
+    
+    skip = 4 if (len(data.keys()) - 1) % 4 == 0 else 3
+    start = 5 if (len(data.keys()) - 1) % 4 == 0 else 4
+    xs = data.iloc[:, start::skip].to_numpy()
+    ys = data.iloc[:, (start + 1)::skip].to_numpy()
+    zs = data.iloc[:, (start + 2)::skip].to_numpy()
+    if (len(data.keys()) - 1) % 4 == 0:
+        ss = data.iloc[:, (start + 3)::skip].to_numpy()
+    else:
+        ss = np.ones_like(xs)
+    min_x, max_x = 0, gi.cols * lattice
+    min_y, max_y = 0, gi.rows * lattice
+
+    dt = data.iloc[1, 0] - data.iloc[0, 0]
+    vx = np.diff(xs, axis=0)
+    vy = np.diff(ys, axis=0)
+    vx = np.concatenate([vx, [vx[-1, :]]])
+    vy = np.concatenate([vy, [vy[-1, :]]])
+
+    bd_t, bd_p = np.where(vy > max_y / 2)
+    bu_t, bu_p = np.where(vy < -max_y / 2)
+
+    bl_t, bl_p = np.where(vx > max_x / 2)
+    br_t, br_p = np.where(vx < -max_x / 2)
+
+    factor = np.ones_like(vx[br_t, br_p]) * 2.0
+    before = br_t - 1
+    after = br_t + 1
+    factor[before < 0] = 1
+    factor[after >= xs.shape[1]] = 1
+    before[before < 0] = 0
+    after[after >= xs.shape[0]] = xs.shape[0] - 1
+    vx[br_t, br_p] = (xs[after, br_p] + max_x - xs[before, br_p]) / factor
+
+    factor = np.ones_like(vx[bl_t, bl_p]) * 2.0
+    before = bl_t - 1
+    after = bl_t + 1
+    factor[before < 0] = 1
+    factor[after >= xs.shape[1]] = 1
+    before[before < 0] = 0
+    after[after >= xs.shape[0]] = xs.shape[0] - 1
+    vx[bl_t, bl_p] = (xs[after, bl_p] - max_x - xs[before, bl_p]) / factor
+
+    factor = np.ones_like(vy[bu_t, bu_p]) * 2.0
+    before = bu_t - 1
+    after = bu_t + 1
+    factor[before < 0] = 1
+    factor[after >= ys.shape[1]] = 1
+    before[before < 0] = 0
+    after[after >= ys.shape[0]] = ys.shape[0] - 1
+    vy[bu_t, bu_p] = (ys[after, bu_p] + max_y - ys[before, bu_p]) / factor
+
+    factor = np.ones_like(vy[bd_t, bd_p]) * 2.0
+    before = bd_t - 1
+    after = bd_t + 1
+    factor[before < 0] = 1
+    factor[after >= ys.shape[1]] = 1
+    before[before < 0] = 0
+    after[after >= ys.shape[0]] = ys.shape[0] - 1
+    vy[bd_t, bd_p] = (ys[after, bd_p] - max_y - ys[before, bd_p]) / factor
+
+    #vx[bl_t, bl_p] = 0#-((xs[bl_t - 1, bl_p] + max_x) - xs[bl_t, bl_p]) / 1
+    #vy[bu_t, bu_p] = 0#-((ys[bu_t - 1, bu_p] - max_y) - ys[bu_t, bu_p]) / 1
+    #vy[bd_t, bd_p] = 0#-((ys[bd_t - 1, bd_p] + max_y) - ys[bd_t, bd_p]) / 1
+    return data[0].to_numpy(), xs, ys, zs, vx / dt, vy / dt, ss
 
 def FixPlot(lx: float, ly: float):
     from matplotlib import rcParams, cycler

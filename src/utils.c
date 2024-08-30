@@ -6,6 +6,7 @@
 typedef struct {
     double x;
     double y;
+    double z;
     double size;
     double vx; //TODO
     double vy; //TODO
@@ -17,11 +18,11 @@ typedef struct {
     uint64_t cap;
 } centers;
 
-bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double d2_threshold) {
-    return organize_clusters(in_path, in_path, sample_x, sample_y, d2_threshold);
+bool organize_clusters_inplace(const char *in_path, double sample_x, double sample_y, double sample_z, double d2_threshold) {
+    return organize_clusters(in_path, in_path, sample_x, sample_y, sample_z, d2_threshold);
 }
 
-bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double d2_threshold) {
+bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double sample_z, double d2_threshold) {
     FILE *f_in = mfopen(in_path, "rb");
     char *buffer = NULL;
 
@@ -44,8 +45,8 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             n = 0;
         }
     }
-    bool has_size = max_n % 3 == 0;
-    uint64_t div_fac = has_size? 3: 2;
+    bool has_size = max_n % 4 == 0;
+    uint64_t div_fac = has_size? 4: 3;
 
     if (max_n % div_fac) {
         logging_log(LOG_ERROR, "Number of commas is not a multiple of %llu. \"%s\" is probably corrupted", div_fac, in_path);
@@ -57,9 +58,9 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
     centers cs[3] = {0};
 
     for (uint64_t i = 0; i < max_n; ++i) {
-        da_append(&cs[0], ((center){.x = -1, .y = -1}));
-        da_append(&cs[1], ((center){.x = -1, .y = -1}));
-        da_append(&cs[2], ((center){.x = -1, .y = -1}));
+        da_append(&cs[0], ((center){.x = -1, .y = -1, .z = -1}));
+        da_append(&cs[1], ((center){.x = -1, .y = -1, .z = -1}));
+        da_append(&cs[2], ((center){.x = -1, .y = -1, .z = -1}));
     }
 
     char *ptr = buffer;
@@ -83,6 +84,10 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             cs[0].items[counter].y = strtod(data, &aux);
             data = aux + 1;
 
+            aux = NULL;
+            cs[0].items[counter].z = strtod(data, &aux);
+            data = aux + 1;
+
             if (has_size) {
                 aux = NULL;
                 cs[0].items[counter].size = strtod(data, &aux);
@@ -93,16 +98,16 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
 
         fprintf(fout, "%.15e,", time);
         for (uint64_t i = 0; i < cs[0].len - 1; ++i) {
-            fprintf(fout, "%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y);
+            fprintf(fout, "%.15e,%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
             if (has_size) {
                 fprintf(fout, "%.15e,", cs[0].items[i].size);
             }
         }
         uint64_t i = cs[0].len - 1;
         if (has_size) {
-            fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+            fprintf(fout, "%.15e,%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
         } else {
-            fprintf(fout, "%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y);
+            fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
         }
 
     }
@@ -126,6 +131,10 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                 aux = NULL;
                 cs[1].items[counter].y = strtod(data, &aux);
                 data = aux + 1;
+
+                aux = NULL;
+                cs[1].items[counter].z = strtod(data, &aux);
+                data = aux + 1;
                 
                 if (has_size) {
                     aux = NULL;
@@ -143,20 +152,24 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             for (uint64_t j = 0; j < cs[0].len; ++j) {
                 for (int di = -1; di <= 1; ++di) {
                     for (int dj = -1; dj <= 1; ++dj) {
-                        double dx = cs[1].items[i].x - cs[0].items[j].x - dj * sample_x;
-                        double dy = cs[1].items[i].y - cs[0].items[j].y - di * sample_y;
-                        double d2 = dx * dx + dy * dy;
-                        min_idx = d2 < min_d2? j: min_idx;
-                        min_d2 = d2 < min_d2? d2: min_d2;
+                        for (int dk = -1; dk <= 1; ++dk) {
+                            double dx = cs[1].items[i].x - cs[0].items[j].x - dj * sample_x;
+                            double dy = cs[1].items[i].y - cs[0].items[j].y - di * sample_y;
+                            double dz = cs[1].items[i].z - cs[0].items[j].z - dk * sample_z;
+                            double d2 = dx * dx + dy * dy + dz * dz;
+                            min_idx = d2 < min_d2? j: min_idx;
+                            min_d2 = d2 < min_d2? d2: min_d2;
+                        }
                     }
                 }
             }
             cs[2].items[min_idx] = cs[1].items[i];
-            cs[0].items[min_idx] = (center){.x = -1, .y = -1};
+            cs[0].items[min_idx] = (center){.x = -1, .y = -1, .z = -1};
 
             if (min_d2 >= d2_threshold) {
                 cs[2].items[min_idx].x = -1;
                 cs[2].items[min_idx].y = -1;
+                cs[2].items[min_idx].z = -1;
                 cs[2].items[min_idx].size = 0;
             }
         }
@@ -165,7 +178,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             for (uint64_t i = 0; i < cs[2].len - 1; ++i) {
                 cs[0].items[i] = cs[2].items[i];
                 cs[1].items[i] = cs[2].items[i];
-                fprintf(fout, "%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y);
+                fprintf(fout, "%.15e,%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
                 if (has_size) {
                     fprintf(fout, "%.15e,", cs[0].items[i].size);
                 }
@@ -174,9 +187,9 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             cs[0].items[i] = cs[2].items[i];
             cs[1].items[i] = cs[2].items[i];
             if (has_size) {
-                fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
+                fprintf(fout, "%.15e,%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
             } else {
-                fprintf(fout, "%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y);
+                fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
             }
         }
     }

@@ -58,6 +58,7 @@ typedef struct {
     pinning pin;
     dm_interaction dm;
     exchange_interaction exchange; //really necessary?
+    double lattice; //so fucking dumb, just to use in generating fields and stuff. It is exactly the same as the one below
 } grid_site_params;
 
 typedef struct {

@@ -145,7 +145,7 @@ char *create_current_she_dc_ac(double j_dc, v3d p_dc, double j_ac, v3d p_ac, dou
     p_ac = v3d_normalize(p_ac);
     p_ac = v3d_scalar(p_ac, j_ac);
 
-    int written = snprintf(buffer, sizeof(buffer) - 1, "return (current){.type = CUR_SHE, .she.p = v3d_c(%.15e + %.15e * cos(2.0 * M_PI * %.15e * time), %.15e + %.15e * sin(2.0 * M_PI * %.15e * time), %.15e + %.15e * sin(2.0 * M_PI * %.15e * time)), .she.theta_sh = -1, .she.thickness = gs.lattice, .she.beta= %.15e};", p_dc.x, p_ac.x, omega, p_dc.y, p_ac.y, omega, p_dc.z, p_ac.z, omega, beta);
+    int written = snprintf(buffer, sizeof(buffer) - 1, "return (current){.type = CUR_SHE, .she.p = v3d_c(%.15e + %.15e * cos(2.0 * M_PI * %.15e * time), %.15e + %.15e * sin(2.0 * M_PI * %.15e * time), %.15e + %.15e * sin(2.0 * M_PI * %.15e * time)), .she.theta_sh = -1, .she.thickness = gs.lattice, .she.beta = %.15e};", p_dc.x, p_ac.x, omega, p_dc.y, p_ac.y, omega, p_dc.z, p_ac.z, omega, beta);
 
     if (written < 0)
         logging_log(LOG_FATAL, "Something went wrong during `snprintf`. This should never happen, there is something very wrong with your machine");

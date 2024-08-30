@@ -1,5 +1,6 @@
 main
 create_kernel
+*.bak
 *.exe
 *.dll
 *.txt
