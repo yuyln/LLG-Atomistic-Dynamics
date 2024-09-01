@@ -297,8 +297,8 @@ void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigne
                 m.z = cos(t);
 #else
                 double f = exp(-r * r / (4.0 * height * height)) * M_PI;
-                m.x = j / r * sin(2 * f) + i * k / (r * r) * sin(f) * sin(f);
-                m.y = i / r * sin(2 * f) - j * k / (r * r) * sin(f) * sin(f);
+                m.x = j / r * sin(2 * f) + 2.0 * i * k / (r * r) * sin(f) * sin(f);
+                m.y = i / r * sin(2 * f) - 2.0 * j * k / (r * r) * sin(f) * sin(f);
                 m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
 #endif
                 V_AT(v, y, x, z, rows, cols) = v3d_normalize(m);
@@ -454,6 +454,7 @@ bool grid_from_file(const char *path, grid *g) {
     }
 
     g->gi = *((grid_info*)data);
+    g->dimensions = g->gi.rows * g->gi.cols * g->gi.depth;
     ptr += sizeof(grid_info);
 
     grid_allocate(g);
@@ -484,14 +485,50 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
         ret = false;
         goto defer;
     }
-    frame = ((frame % (int64_t)frames) + frames) % frames;
 
     if (fread(&g->gi, 1, sizeof(g->gi), f) != sizeof(g->gi)) {
         logging_log(LOG_ERROR, "Reading data from \"%s\" failed: %s", path, strerror(errno));
         ret = false;
         goto defer;
     }
-    
+    g->dimensions = g->gi.rows * g->gi.cols * g->gi.depth;
+
+    long where_to_come_back = ftell(f);
+    if (where_to_come_back < 0) {
+        logging_log(LOG_ERROR, "Getting current position from \"%s\" failed: %s", path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (fseek(f, 0, SEEK_END) < 0) {
+        logging_log(LOG_ERROR, "Seeking to end of \"%s\" failed: %s", path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    long end_of_file = ftell(f);
+    if (end_of_file < 0) {
+        logging_log(LOG_ERROR, "Getting current position from \"%s\" failed: %s", path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    uint64_t frames_size = end_of_file - sizeof(frames) - sizeof(g->gi) - sizeof(*g->gp) * g->dimensions;
+    if (frames_size % (sizeof(*g->m) * g->dimensions)) {
+        logging_log(LOG_ERROR, "Size of file isn't multiple of size of grid, probably corrupted");
+        ret = false;
+        goto defer;
+    }
+
+    frames = frames_size / (sizeof(*g->m) * g->dimensions);
+    frame = ((frame % (int64_t)frames) + frames) % frames;
+
+    if (fseek(f, where_to_come_back, SEEK_SET) < 0) {
+        logging_log(LOG_ERROR, "Seeking to beginning of \"%s\" failed: %s", path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
     grid_allocate(g);
 
     if (fread(g->gp, 1, sizeof(*g->gp) * g->dimensions, f) != (sizeof(*g->gp) * g->dimensions)) {

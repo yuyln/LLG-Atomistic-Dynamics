@@ -24,7 +24,7 @@ def make_frame(t):
     mx = mx.reshape(rgb.shape[:3])
     my = my.reshape(rgb.shape[:3])
     mz = mz.reshape(rgb.shape[:3])
-    zero = np.where(mz > 0.9)
+    zero = np.where(mz > 0.0)
     mx[zero] = 0
     my[zero] = 0
     mz[zero] = 0
