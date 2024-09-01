@@ -207,7 +207,7 @@ const char *str_fmt_tmp(const char *fmt, ...) {
 
     va_end(arg_list);
     idx += 1;
-    if (idx >= MAX_STR_LEN) {
+    if (idx >= MAX_STRS) {
         idx = 0;
         logging_log(LOG_WARNING, "Surpassed MAX_STRS limit. Strings are going to be overwritten, starting with %s", strs[0]);
     }
