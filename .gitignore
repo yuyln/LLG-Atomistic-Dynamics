@@ -10,7 +10,7 @@ create_kernel
 *.dat
 *.bin
 paper_funcs.c
-*test*
+test*
 *.data
 *.mp4
 *.jpg
