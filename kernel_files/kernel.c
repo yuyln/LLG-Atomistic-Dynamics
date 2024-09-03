@@ -8,9 +8,9 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
     if (id >= (gi.rows * gi.cols * gi.depth))
         return;
 
-    int k = id / (gi.rows * gi.cols);
     int col = id % gi.cols;
-    int row = id / gi.cols;
+    int row = ((id - col) / gi.cols % gi.rows);
+    int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param = (parameters){};
     param.rows = gi.rows;
@@ -74,8 +74,8 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
         return;
 
     int col = id % gi.cols;
-    int row = id / gi.cols;
-    int k = id / (gi.rows * gi.cols);
+    int row = ((id - col) / gi.cols % gi.rows);
+    int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param;
     param.rows = gi.rows;
@@ -207,10 +207,9 @@ kernel void render_grid_hsl(GLOBAL v3d *v, grid_info gi, unsigned int k,
     //rendering inverts the grid, need to invert back
     vrow = gi.rows - 1 - vrow;
 
-    if (vrow >= gi.rows || vcol >= gi.cols || k >= gi.depth)
-        return;
-
-    v3d m = v[k * gi.rows * gi.cols + vrow * gi.cols + vcol];
+    v3d m = v3d_c(-1, 0, 0);
+    if (!(vrow >= gi.rows || vcol >= gi.cols || k >= gi.depth))
+        m = v[k * gi.rows * gi.cols + vrow * gi.cols + vcol];
 
     rgba[id] = m_to_hsl(m);
 }
@@ -222,8 +221,8 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
         return;
 
     int col = id % gi.cols;
-    int row = id / gi.cols;
-    int k = id / (gi.rows * gi.cols);
+    int row = ((id - col) / gi.cols % gi.rows);
+    int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param;
     param.rows = gi.rows;
@@ -301,8 +300,8 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
         return;
 
     int col = id % gi.cols;
-    int row = id / gi.cols;
-    int k = id / (gi.rows * gi.cols);
+    int row = ((id - col) / gi.cols % gi.rows);
+    int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param1 = (parameters){};
     param1.rows = gi.rows;

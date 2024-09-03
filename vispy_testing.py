@@ -10,9 +10,9 @@ from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge, BayesianRidge
 
-frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat.bak")
+frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 
-mx, my, mz = utils.GetFrameFromBinary(frames, gi, raw, 0)
+mx, my, mz = utils.GetFrameFromBinary(frames, gi, raw, frames - 1)
 mx = np.transpose(mx.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
 my = np.transpose(my.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
 mz = np.transpose(mz.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
