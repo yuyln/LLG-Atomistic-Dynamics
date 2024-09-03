@@ -8,11 +8,11 @@
 
 int hopfion(void) {
     steps_per_frame = 10;
-    grid g = grid_init(64, 64, 32);
+    grid g = grid_init(64, 64, 64);
 
     double J = 1.0e-3 * QE;
-    double dm = 0.5 * J;
-    double ani = 0.05 * J;
+    double dm = 0.18 * J;
+    double ani = 0.00 * J;
     double mu = g.gp->mu;//2.03525765452477683879 * MU_B;
 
     grid_set_alpha(&g, 0.3);
@@ -23,45 +23,22 @@ int hopfion(void) {
     grid_set_mu(&g, mu);
     g.gi.pbc.pbc_x = 0;
     g.gi.pbc.pbc_y = 0;
-
-    //{
-    //    dm_interaction dmi = dm_bulk(dm);
-    //    dmi.dmv_front = v3d_s(0);
-    //    dmi.dmv_back = v3d_s(0);
-    //    grid_set_dm(&g, dmi);
-    //}
+    g.gi.pbc.pbc_z = 0;
 
     grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_hopfion_at(&g, 10, 6, 0.5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
-
-    //for (uint64_t i = 0; i < g.gi.rows; ++i) {
-    //    for (uint64_t j = 0; j < g.gi.cols; ++j) {
-    //        grid_set_anisotropy_loc(&g, i, j, 0, anisotropy_z_axis(2 * J));
-    //        grid_set_anisotropy_loc(&g, i, j, g.gi.depth - 1, anisotropy_z_axis(2 * J));
-    //        V_AT(g.m, i, j, 0, g.gi.rows, g.gi.cols) = v3d_c(0, 0, 1);
-    //        V_AT(g.m, i, j, g.gi.depth - 1, g.gi.rows, g.gi.cols) = v3d_c(0, 0, 1);
-    //    }
-    //}
-
-    for (int k = 0; k < g.gi.depth; ++k) {
-        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, 1)};
-        V_AT(g.gp, g.gi.rows / 2 + 1, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, 1)};
-        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2 + 1, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, 1)};
-        V_AT(g.gp, g.gi.rows / 2 - 1, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, 1)};
-        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2 - 1, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, 1)};
-    }
+    grid_create_hopfion_at(&g, 10, 10, 0.5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
 
     integrate_params ip = integrate_params_init();
-    ip.dt = 0.05* HBAR / J;
+    ip.dt = 0.05 * HBAR / J;
     ip.interval_for_raw_grid = 500;
     ip.interval_for_information = 100;
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, g.gp->mu);
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.7), J, dm, g.gp->mu);
     logging_log(LOG_INFO, "%s", ip.field_func);
 
     gradient_descent_params gd = gradient_descent_params_init();
     gd.field_func = ip.field_func;
     gd.T = 0;
-    gd.damping = 1;
+    gd.damping = 2;
     gd.dt = 0.01;
     gd.T_factor = 0.9995;
 
@@ -71,6 +48,10 @@ int hopfion(void) {
     grid_renderer_integrate(&g, ip, 1000, 1000);
     //ip.current_func = create_current_stt_dc(1e10 * 0.12, 0, 0);
     ip.current_func = create_current_she_dc(1e10 * 0.12, v3d_c(1, 0, 0), 0.0);
+
+    g.gi.pbc.pbc_x = 1;
+    g.gi.pbc.pbc_y = 1;
+    g.gi.pbc.pbc_z = 1;
 
     grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
@@ -168,6 +149,29 @@ int aaa(void) {
 
 int main(void) {
     return hopfion();
+    steps_per_frame = 10;
+    grid g = {0};
+    if (!grid_from_animation_bin("./hopfion.bin", &g, -1))
+        logging_log(LOG_FATAL, "A");
+
+    for (uint64_t i = 0; i < g.dimensions; ++i)
+        g.gp[i].pin = (pinning){0};
+
+    double J = g.gp->exchange.J_up;
+    double dm = fabs(g.gp->dm.dmv_up.y);
+    double mu = g.gp->mu;
+    integrate_params ip = integrate_params_init();
+    ip.dt = 0.05 * HBAR / J;
+    ip.interval_for_raw_grid = 500;
+    ip.interval_for_information = 100;
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, g.gp->mu);
+    logging_log(LOG_INFO, "%s", ip.field_func);
+    ip.current_func = create_current_stt_dc(1e10 * 0.12, 0, 0);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    return 0;
+
+    return hopfion();
+#if 0
     grid g = grid_init(32, 32, 16);
     double J = 1.0e-3 * QE;
     double dm = 0.5 * J;
@@ -223,4 +227,5 @@ int main(void) {
     //logging_log(LOG_INFO, ip.current_func);
     //grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
+#endif
 }

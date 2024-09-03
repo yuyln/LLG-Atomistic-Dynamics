@@ -9,7 +9,7 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
         return;
 
     int col = id % gi.cols;
-    int row = ((id - col) / gi.cols % gi.rows);
+    int row = ((id - col) / gi.cols) % gi.rows;
     int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param = (parameters){};
@@ -74,7 +74,7 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
         return;
 
     int col = id % gi.cols;
-    int row = ((id - col) / gi.cols % gi.rows);
+    int row = ((id - col) / gi.cols) % gi.rows;
     int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param;
@@ -221,7 +221,7 @@ kernel void calculate_energy(GLOBAL grid_site_params *gs, GLOBAL v3d *v, grid_in
         return;
 
     int col = id % gi.cols;
-    int row = ((id - col) / gi.cols % gi.rows);
+    int row = ((id - col) / gi.cols) % gi.rows;
     int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param;
@@ -300,7 +300,7 @@ kernel void gradient_descent_step(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, G
         return;
 
     int col = id % gi.cols;
-    int row = ((id - col) / gi.cols % gi.rows);
+    int row = ((id - col) / gi.cols) % gi.rows;
     int k = ((id - col) / gi.cols - row) / gi.rows;
 
     parameters param1 = (parameters){};
