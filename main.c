@@ -6,6 +6,7 @@
 #include <assert.h>
 #include "stb_image_write.h"
 
+//ignore
 int hopfion(void) {
     steps_per_frame = 10;
     grid g = grid_init(64, 64, 64);
