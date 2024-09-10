@@ -8,13 +8,13 @@
 
 //ignore
 int hopfion(void) {
-    steps_per_frame = 10;
+    steps_per_frame = 5;
     grid g = grid_init(64, 64, 64);
 
     double J = 1.0e-3 * QE;
     double dm = 0.18 * J;
     double ani = 0.00 * J;
-    double mu = g.gp->mu;//2.03525765452477683879 * MU_B;
+    double mu = g.gp->mu;
 
     grid_set_alpha(&g, 0.3);
 
@@ -22,39 +22,56 @@ int hopfion(void) {
     grid_set_exchange(&g, isotropic_exchange(J));
     grid_set_anisotropy(&g, anisotropy_z_axis(ani));
     grid_set_mu(&g, mu);
-    g.gi.pbc.pbc_x = 0;
-    g.gi.pbc.pbc_y = 0;
     g.gi.pbc.pbc_z = 0;
 
-    grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_hopfion_at(&g, 10, 10, 0.5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
+    for (uint64_t i = 0; i < g.gi.rows; ++i) {
+        for (uint64_t j = 0; j < g.gi.cols; ++j) {
+            for (uint64_t k = 0; k < g.gi.depth; ++k) {
+                double kl = (double)k / g.gi.depth;
+                v3d m = v3d_c(cos(2.0 * M_PI * 3.0 * kl), sin(2.0 * M_PI * 3.0 * kl), 0.5);
+                V_AT(g.m, i, j, k, g.gi.rows, g.gi.cols) = v3d_normalize(m);
+            }
+        }
+    }
+
+    for (uint64_t i = 0; i < g.gi.rows; ++i) {
+        for (uint64_t j = 0; j < g.gi.cols; ++j) {
+            grid_set_dm_loc(&g, i, j, 0, dm_interfacial(dm));
+            grid_set_dm_loc(&g, i, j, g.gi.depth - 1, dm_interfacial(dm));
+        }
+    }
 
     integrate_params ip = integrate_params_init();
     ip.dt = 0.05 * HBAR / J;
     ip.interval_for_raw_grid = 500;
     ip.interval_for_information = 100;
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.7), J, dm, g.gp->mu);
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.9), J, dm, g.gp->mu);
     logging_log(LOG_INFO, "%s", ip.field_func);
 
     gradient_descent_params gd = gradient_descent_params_init();
     gd.field_func = ip.field_func;
     gd.T = 0;
-    gd.damping = 2;
+    gd.damping = 1;
     gd.dt = 0.01;
     gd.T_factor = 0.9995;
 
-    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    //grid_renderer_gradient_descent(&g, gd, 1000, 1000);
     //grid_renderer_integrate(&g, ip, 1000, 1000);
     //ip.current_func = create_current_she_dc(1e10, v3d_c(1, 0, 0), 0);
+    //
+    for (uint64_t k = 0; k < g.gi.depth; ++k) {
+        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+        V_AT(g.gp, g.gi.rows / 2 + 1, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2 + 1, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+        V_AT(g.gp, g.gi.rows / 2 - 1, g.gi.cols / 2, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+        V_AT(g.gp, g.gi.rows / 2, g.gi.cols / 2 - 1, k, g.gi.rows, g.gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+    }
+    gd.T = 500;
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+
     grid_renderer_integrate(&g, ip, 1000, 1000);
     //ip.current_func = create_current_stt_dc(1e10 * 0.12, 0, 0);
     ip.current_func = create_current_she_dc(1e10 * 0.12, v3d_c(1, 0, 0), 0.0);
-
-    g.gi.pbc.pbc_x = 1;
-    g.gi.pbc.pbc_y = 1;
-    g.gi.pbc.pbc_z = 1;
-
-    grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
 }
 

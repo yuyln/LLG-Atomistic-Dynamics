@@ -119,4 +119,8 @@ anisotropy anisotropy_z_axis(double value);
 
 void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight);
 
+double exchange_from_micromagnetic(double A, double lattice, double atoms_per_cell);
+double dm_from_micromagnetic(double D, double lattice, double atoms_per_cell);
+double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_cell);
+double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell);
 #endif

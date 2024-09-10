@@ -875,3 +875,19 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
         }
     }
 }
+
+double exchange_from_micromagnetic(double A, double lattice, double atoms_per_cell) {
+    return lattice * A * atoms_per_cell;
+}
+
+double dm_from_micromagnetic(double D, double lattice, double atoms_per_cell) {
+    return D * (lattice * atoms_per_cell) * (lattice * atoms_per_cell);
+}
+
+double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_cell) {
+    return K * (lattice * atoms_per_cell) * (lattice * atoms_per_cell) * (lattice * atoms_per_cell);
+}
+
+double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell) {
+    return Ms * (lattice * atoms_per_cell) * (lattice * atoms_per_cell) * (lattice * atoms_per_cell);
+}

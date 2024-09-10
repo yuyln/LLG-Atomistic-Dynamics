@@ -5,14 +5,14 @@ import utils
 from tvtk.api import tvtk
 from vispy import app, scene, geometry, visuals, io
 
-frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat.bak")
+frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 
 mx, my, mz = utils.GetFrameFromBinary(frames, gi, raw, frames - 1)
 mx = np.transpose(mx.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
 my = np.transpose(my.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
 mz = np.transpose(mz.reshape((gi.depth, gi.rows, gi.cols)), (2, 1, 0))
 
-mlab.figure(1, fgcolor=(1, 1, 1), bgcolor=(0, 0, 0))
+mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1))
 x, y, z = np.meshgrid(np.arange(gi.cols), np.arange(gi.rows), np.arange(gi.depth), indexing="ij")
 
 angle = np.arctan2(my, mx)
