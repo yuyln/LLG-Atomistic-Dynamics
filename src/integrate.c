@@ -43,7 +43,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 
     sb_free(&output_info_path);
 
-    fprintf(ctx.integrate_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),");
+    fprintf(ctx.integrate_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),dipolar_energy(J),");
     fprintf(ctx.integrate_info, "charge_finite,charge_lattice,");
     fprintf(ctx.integrate_info, "avg_mx,avg_my,avg_mz,");
     fprintf(ctx.integrate_info, "eletric_x(V/m),eletric_y(V/m),eletric_z(V/m),");
@@ -184,7 +184,7 @@ void integrate_step(integrate_context *ctx) {
 
     if (ctx->integrate_step % ctx->params.interval_for_information == 0) {
         information_packed info = integrate_get_info(ctx);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", ctx->time, info.energy, info.exchange_energy, info.dm_energy, info.field_energy, info.anisotropy_energy, info.cubic_energy);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", ctx->time, info.energy, info.exchange_energy, info.dm_energy, info.field_energy, info.anisotropy_energy, info.cubic_energy, info.dipolar_energy);
         fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_finite, info.charge_lattice);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.avg_m.x, info.avg_m.y, info.avg_m.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.eletric_field.x, info.eletric_field.y, info.eletric_field.z);
