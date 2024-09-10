@@ -114,10 +114,16 @@ void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, vo
 void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_triangle(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_line(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t thickness, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data);
-#endif
 
 dm_interaction dm_interfacial(double value);
 dm_interaction dm_bulk(double value);
 anisotropy anisotropy_z_axis(double value);
 
 void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight);
+
+double exchange_from_micromagnetic(double A, double lattice, double atoms_per_cell);
+double dm_from_micromagnetic(double D, double lattice, double atoms_per_cell);
+double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_cell);
+double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell);
+
+#endif
