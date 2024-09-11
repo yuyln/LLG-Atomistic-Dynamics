@@ -428,6 +428,13 @@ bool grid_dump(FILE *f, grid *g) {
     return ret;
 }
 
+bool grid_dump_path(const char *path, grid *g) {
+    FILE *f = mfopen(path, "wb");
+    bool ret = grid_dump(f, g);
+    mfclose(f);
+    return ret;
+}
+
 bool grid_from_file(const char *path, grid *g) {
     if (!g)
         logging_log(LOG_FATAL, "NULL pointer to grid provided");
