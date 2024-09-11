@@ -47,42 +47,146 @@ int antiskyrmion(void) {
     return 0;
 }
 
-/*
-int circular(void) {
-    grid g = grid_init(60, 60);
-    int rows = g.gi.rows;
-    int cols = g.gi.cols;
-    double lattice = g.gp->lattice;
-    double J = g.gp->exchange;
-    double dm = 0.5 * J;
+int skyrminonium(void) {
+    int rows = 128;
+    int cols = 128;
+    grid g = grid_init(rows, cols);
+    double J = 1.0e-3 * QE;
+    double dm = 0.2 * J;
     double ani = 0.02 * J;
     double mu = g.gp->mu;
-
-    grid_set_dm(&g, dm_interfacial(dm));
+    grid_set_exchange(&g, J);
+    grid_set_dm(&g, dm_bulk(dm));
     grid_set_anisotropy(&g, anisotropy_z_axis(ani));
- 
-    double dt = 0.01 * HBAR / (J * SIGN(J));
-    double ratio = (double)rows / cols;
 
-    for (int64_t i = 0; i < g.gi.rows; ++i)
-        for (int64_t j = 0; j < g.gi.cols; ++j)
-            if (((i - 30) * (i - 30) + (j - 30) * (j - 30)) > (25 * 25))
-                g.gp[i * g.gi.cols + j].pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, 1)};
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_target_skyrmion_at(&g, 20, 10, cols / 2, rows / 2, -1, 1, -M_PI / 2.0, 2);
+
+    integrate_params ip = integrate_params_init();
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.3), J, dm, mu);
+    ip.current_func = create_current_stt_dc(20e10, 0, 0);
 
     gradient_descent_params gd = gradient_descent_params_init();
-    gd.damping = 0.1;
-    gd.T = 500;
-    gd.T_factor = 0.99999;
-    gd.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
+    gd.field_func = ip.field_func;
+    gd.T = 0;
+    gd.damping = 1;
+
     grid_renderer_gradient_descent(&g, gd, 1000, 1000);
-
+    grid_renderer_integrate(&g, ip, 1000, 1000);
     grid_free(&g);
-
     return 0;
 }
-*/
+
+int target(void) {
+    int rows = 272;
+    int cols = 272;
+    grid g = grid_init(rows, cols);
+    double J = 1.0e-3 * QE;
+    double dm = 0.2 * J;
+    double ani = 0.02 * J;
+    double mu = g.gp->mu;
+    grid_set_exchange(&g, J);
+    grid_set_dm(&g, dm_bulk(dm));
+    grid_set_anisotropy(&g, anisotropy_z_axis(ani));
+
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_target_skyrmion_at(&g, 80, 20, cols / 2, rows / 2, -1, 1, -M_PI / 2.0, 9);
+
+    integrate_params ip = integrate_params_init();
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.3), J, dm, mu);
+    ip.current_func = create_current_stt_dc(20e10, 0, 0);
+
+    gradient_descent_params gd = gradient_descent_params_init();
+    gd.field_func = ip.field_func;
+    gd.T = 0;
+    gd.damping = 1;
+
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_free(&g);
+    return 0;
+}
+
+int temp(void) {
+    int rows = 64;
+    int cols = 64;
+    grid g = grid_init(rows, cols);
+    double lattice = 0.4689e-9;
+    double J = exchange_from_micromagnetic(8.78e-12, lattice, 1);
+    double dm = dm_from_micromagnetic(2e-3, lattice, 1);
+    double ani = anisotropy_from_micromagnetic(800e3, lattice, 1);
+    double mu = mu_from_micromagnetic(385e3, lattice, 1);
+    grid_set_exchange(&g, J);
+    grid_set_dm(&g, dm_bulk(dm));
+    grid_set_anisotropy(&g, anisotropy_z_axis(ani));
+    grid_set_mu(&g, mu);
+    grid_set_lattice(&g, lattice);
+
+    logging_log(LOG_INFO, "J = %e eV", J / QE);
+    logging_log(LOG_INFO, "D/J = %e", dm / J);
+    logging_log(LOG_INFO, "K/J = %e", ani / J);
+    logging_log(LOG_INFO, "mu = %e mu_B", mu / MU_B);
+    logging_log(LOG_INFO, "mu/hbar gamma = %e", mu / (HBAR * g.gp->gamma));
+    logging_log(LOG_INFO, "gamma = %e", g.gp->gamma);
+
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_skyrmion_at(&g, 10, 5, cols / 2, rows / 2, -1, 1, -M_PI / 2.0);
+
+    integrate_params ip = integrate_params_init();
+    //ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
+    ip.field_func = create_field_tesla(v3d_c(0, 0, 0.32));
+    ip.temperature_func = create_temperature(100);
+
+    gradient_descent_params gd = gradient_descent_params_init();
+    gd.field_func = ip.field_func;
+    gd.T = 0;
+    gd.damping = 1;
+
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_free(&g);
+    return 0;
+}
+
+int test_ddi(void) {
+    int rows = 64;
+    int cols = 64;
+    grid g = grid_init(rows, cols);
+    double lattice = 0.5e-9;
+    double J = 1.0e-3 * QE;
+    double dm = 0.2 * J;
+    double ani = 0.02 * J;
+    double mu = g.gp->mu;
+    grid_set_exchange(&g, J);
+    grid_set_dm(&g, dm_bulk(dm));
+    grid_set_anisotropy(&g, anisotropy_z_axis(ani));
+    grid_set_mu(&g, mu);
+    grid_set_lattice(&g, lattice);
+
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_skyrmion_at(&g, 10, 5, cols / 2, rows / 2, -1, 1, -M_PI / 2.0);
+
+    integrate_params ip = integrate_params_init();
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
+    ip.interval_for_information = 1;
+    ip.compile_augment = "-DINCLUDE_DIPOLAR";
+
+    gradient_descent_params gd = gradient_descent_params_init();
+    gd.field_func = ip.field_func;
+    gd.T = 0;
+    gd.damping = 1;
+
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_free(&g);
+    return 0;
+
+}
 
 int main(void) {
+    return temp();
+    return target();
+    return skyrminonium();
     return antiskyrmion();
 }
 
