@@ -561,8 +561,8 @@ void grid_do_in_rect(grid *g, int64_t x0, int64_t y0, int64_t x1, int64_t y1, vo
 }
 
 void grid_do_in_ellipse(grid *g, int64_t x0, int64_t y0, int64_t a, int64_t b, void(*fun)(grid*, uint64_t, uint64_t, void*), void *user_data) {
-    for (int64_t y = y0 - b; y < y0 + b; ++y)
-        for (int64_t x = x0 - a; x < x0 + a; ++x)
+    for (int64_t y = y0 - b; y <= y0 + b; ++y)
+        for (int64_t x = x0 - a; x <= x0 + a; ++x)
             if (((x - x0) * (x - x0) / (double)(a * a) + (y - y0) * (y - y0) / (double)(b * b)) <= 1) {
                 int64_t xl = ((x % (int64_t)g->gi.cols) + (int64_t)g->gi.cols) % g->gi.cols;
                 int64_t yl = ((y % (int64_t)g->gi.rows) + (int64_t)g->gi.rows) % g->gi.rows;

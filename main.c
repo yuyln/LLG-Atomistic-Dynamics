@@ -1,35 +1,49 @@
 #include "atomistic_simulation.h"
+#include "render.h"
 
-int main(void) {
-    grid g = grid_init(130, 130);
-    int rows = g.gi.rows;
-    int cols = g.gi.cols;
-    double J = 1.0e-3 * QE;
-    double dm = 0.2 * J;
-    double ani = 0.02 * J;
-    double mu = g.gp->mu;
-    grid_set_exchange(&g, J);
-    grid_set_dm(&g, dm_interfacial(dm));
-    grid_set_anisotropy(&g, anisotropy_z_axis(ani));
-    grid_set_mu(&g, mu);
-
-    gradient_descent_params gd = gradient_descent_params_init();
-    gd.T = 500;
-    gd.steps = 300000;
-    gd.outer_steps = 10;
-    gd.damping = 0;
-    gd.T_factor = pow(1.0e-5 / gd.T, 1.0 / gd.steps);
-    gd.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
-
-    for (int i = 0; i < rows; ++i)
-        for (int j = 0; j < cols; ++j)
-            if ((i - rows / 2) * (i - rows / 2) + (j - cols / 2) * (j - cols / 2) >= 64 * 64)
-                g.gp[i * cols + j].pin = (pinning){.dir = v3d_c(0, 0, 1), .pinned = 1};
-
-    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
-
-    bool ret = grid_dump_path("lattice.bin", &g);
-    grid_free(&g);
-    return 0;
+void apply(grid *g, uint64_t row, uint64_t col, void *d) {
+    g->gp[row * g->gi.cols + col].ani.ani = g->gp[row * g->gi.cols + col].exchange * 0.1;
 }
 
+void apply_current(double cur) {
+    grid g = {0};
+    if (!grid_from_animation_bin("./input.bin", &g, -1))
+        logging_log(LOG_FATAL, "Could not open file");
+
+    double J = g.gp->exchange;
+    double dm = sqrt(v3d_dot(g.gp->dm.dmv_up, g.gp->dm.dmv_up));
+    double mu = g.gp->mu;
+
+    const char *base_path = str_fmt_tmp("./data/%.5e", cur);
+    const char *command = str_fmt_tmp("mkdir -p %s", base_path);
+    system(command);
+
+    integrate_params int_params = integrate_params_init();
+    int_params.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
+    int_params.dt = 0.01 * HBAR / fabs(J);
+    int_params.output_path = base_path;
+    int_params.interval_for_information = 1000;
+    int_params.interval_for_raw_grid = 0;
+    int_params.interval_for_rgb_grid = 50000;
+    int_params.current_func = create_current_she_dc(cur, v3d_c(1, 0, 0), 0);
+    int_params.duration = 200 * NS;
+
+    srand(111);
+    for (int i = 0; i < 30; ++i) {
+        int x = shit_random(0, 1) * g.gi.cols;
+        int y = shit_random(0, 1) * g.gi.rows;
+        //g.gp[y * g.gi.cols + x].ani.ani = 0.1 * J;
+        grid_do_in_ellipse(&g, x, y, 2, 2, apply, NULL);
+    }
+    integrate(&g, int_params);
+
+    grid_free(&g);
+}
+
+int main(void) {
+    double currents[] = {0.05e10, 0.075e10, 0.1e10, 0.35e10, 0.5e10};
+    int currents_size = sizeof(currents) / sizeof(currents[0]);
+    for (int i = 0; i < currents_size; ++i)
+        apply_current(currents[i]);
+    return 0;
+}

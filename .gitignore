@@ -5,6 +5,7 @@ create_kernel
 *.txt
 *.cl
 *.a
+*.so
 *.csv
 *.dat
 *.bin
