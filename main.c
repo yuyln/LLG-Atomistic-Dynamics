@@ -26,7 +26,7 @@ int main(void) {
             if ((i - rows / 2) * (i - rows / 2) + (j - cols / 2) * (j - cols / 2) >= 64 * 64)
                 g.gp[i * cols + j].pin = (pinning){.dir = v3d_c(0, 0, 1), .pinned = 1};
 
-    gradient_descent(&g, gd);
+    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
 
     bool ret = grid_dump_path("lattice.bin", &g);
     grid_free(&g);
