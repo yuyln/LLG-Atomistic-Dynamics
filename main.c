@@ -1,11 +1,7 @@
 #include "atomistic_simulation.h"
 #include "render.h"
 
-void apply(grid *g, uint64_t row, uint64_t col, void *d) {
-    g->gp[row * g->gi.cols + col].ani.ani = g->gp[row * g->gi.cols + col].exchange * 0.1;
-}
-
-void apply_current(double cur) {
+void apply_current(double cur, int n_defects) {
     grid g = {0};
     if (!grid_from_animation_bin("./input.bin", &g, -1))
         logging_log(LOG_FATAL, "Could not open file");
@@ -25,17 +21,16 @@ void apply_current(double cur) {
     int_params.interval_for_information = 1000;
     int_params.interval_for_raw_grid = 0;
     int_params.interval_for_rgb_grid = 50000;
-    int_params.current_func = create_current_she_dc(cur, v3d_c(1, 0, 0), 0);
+    int_params.current_func = create_current_stt_dc(cur, 0, 1);
     int_params.duration = 200 * NS;
 
     srand(111);
-    for (int i = 0; i < 30; ++i) {
+    for (int i = 0; i < n_defects; ++i) {
         int x = shit_random(0, 1) * g.gi.cols;
         int y = shit_random(0, 1) * g.gi.rows;
-        //g.gp[y * g.gi.cols + x].ani.ani = 0.1 * J;
-        grid_do_in_ellipse(&g, x, y, 2, 2, apply, NULL);
+        g.gp[y * g.gi.cols + x].ani.ani = 0.05 * J;
     }
-    integrate(&g, int_params);
+    grid_renderer_integrate(&g, int_params, 1000, 1000);
 
     grid_free(&g);
 }
