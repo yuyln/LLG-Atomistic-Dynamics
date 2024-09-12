@@ -109,6 +109,7 @@ void v3d_from_gpu(v3d *g, cl_mem buffer, unsigned int rows, unsigned int cols, u
 
 bool v3d_dump(FILE *f, v3d *v, unsigned int rows, unsigned int cols, unsigned int depth);
 bool grid_dump(FILE *f, grid *g);
+bool grid_dump_path(const char *path, grid *g);
 bool grid_from_file(const char *path, grid *g);
 bool grid_from_animation_bin(const char *path, grid *g, int64_t frame);
 

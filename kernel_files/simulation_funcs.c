@@ -177,7 +177,7 @@ v3d dm_dt(parameters param, double dt) {
         break;
         case CUR_SHE: {
             v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * cur.she.thickness * QE));
-            v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
+            v3d beta = v3d_scalar(common, cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
         }
         break;
@@ -189,7 +189,7 @@ v3d dm_dt(parameters param, double dt) {
 
 
             v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * cur.she.thickness * QE));
-            v3d she_beta = v3d_scalar(v3d_cross(param.m, she_common), cur.stt.beta);
+            v3d she_beta = v3d_scalar(she_common, cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(she_common, param.m), she_beta));
         }
         break;

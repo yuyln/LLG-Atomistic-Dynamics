@@ -203,7 +203,7 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     file.close()
     return int(frames), gi, gps, raw_data
 
-def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], list[v3d]]:
+def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], np.ndarray, np.ndarray, np.ndarray]:
     file = open(path, "rb")
 
     gi = grid_info()
@@ -217,16 +217,20 @@ def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], lis
                 file.readinto(gp)
                 gps.append(gp)
 
-    ms = []
-    for _ in range(gi.rows):
-        for _ in range(gi.cols):
-            for _ in range(gi.depth):
+    mx = np.zeros((gi.depth, gi.rows, gi.cols))
+    my = np.zeros((gi.depth, gi.rows, gi.cols))
+    mz = np.zeros((gi.depth, gi.rows, gi.cols))
+    for k in range(gi.depth):
+        for i in range(gi.rows):
+            for j in range(gi.cols):
                 m = v3d()
                 file.readinto(m)
-                ms.append(m)
+                mx[k, i, j] = m.x
+                my[k, i, j] = m.y
+                mz[k, i, j] = m.z
 
     file.close()
-    return gi, gps, ms 
+    return gi, gps, mx, my, mz
 
 def GetFrameFromBinary(frames: int, gi: grid_info, raw_data: bytes, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if i < 0: i = 0
