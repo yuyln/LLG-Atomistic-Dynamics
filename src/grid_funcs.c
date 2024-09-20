@@ -501,14 +501,14 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
 
     uint64_t frames = 0;
     if (fread(&frames, 1, sizeof(frames), f) != sizeof(frames)) {
-        logging_log(LOG_ERROR, "Reading data from \"%s\" failed: %s", path, strerror(errno));
+        logging_log(LOG_ERROR, "Reading `frames` from \"%s\" failed: %s", path, strerror(errno));
         ret = false;
         goto defer;
     }
     frame = ((frame % (int64_t)frames) + frames) % frames;
 
     if (fread(&g->gi, 1, sizeof(g->gi), f) != sizeof(g->gi)) {
-        logging_log(LOG_ERROR, "Reading data from \"%s\" failed: %s", path, strerror(errno));
+        logging_log(LOG_ERROR, "Reading `gi` from \"%s\" failed: %s", path, strerror(errno));
         ret = false;
         goto defer;
     }
@@ -516,7 +516,7 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
     grid_allocate(g);
 
     if (fread(g->gp, 1, sizeof(*g->gp) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->gp) * g->gi.rows * g->gi.cols)) {
-        logging_log(LOG_ERROR, "Reading data from \"%s\" failed: %s", path, strerror(errno));
+        logging_log(LOG_ERROR, "Reading data `gp` \"%s\" failed: %s", path, strerror(errno));
         ret = false;
         goto defer;
     }
@@ -528,7 +528,7 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
     }
 
     if (fread(g->m, 1, sizeof(*g->m) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->m) * g->gi.rows * g->gi.cols)) {
-        logging_log(LOG_ERROR, "Reading data from \"%s\" failed: %s", path, strerror(errno));
+        logging_log(LOG_ERROR, "Reading `m` from \"%s\" failed: %s", path, strerror(errno));
         ret = false;
         goto defer;
     }
