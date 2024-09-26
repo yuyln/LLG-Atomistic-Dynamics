@@ -162,7 +162,7 @@ void integrate(grid *g, integrate_params params) {
     for (unsigned int t = 0; t < expected_steps; ++t) {
         integrate_step(&ctx);
 
-        if (ctx.integrate_step % (expected_steps / 100) == 0)
+        if (ctx.integrate_step % (expected_steps / 100 + 1) == 0)
             logging_log(LOG_INFO, "%.3es - %.2f%%", ctx.time, ctx.time / params.duration * 100.0);
 
         integrate_exchange_grids(&ctx);
