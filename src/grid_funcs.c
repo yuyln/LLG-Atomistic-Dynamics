@@ -297,7 +297,7 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, dou
     }
 }
 
-void v3d_create_target_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma, int turns) {
+void v3d_create_target_skyrmion_at(v3d *v, unsigned int rows, unsigned int cols, double radius, double dw_width, double ix, double iy, double Q, double vor, double _gamma, double turns) {
     int dr = radius + dw_width;
     for (int i = -dr; i <= dr; ++i) {
         for (int j = -dr; j <= dr; ++j) {
@@ -346,7 +346,7 @@ void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double 
     v3d_create_skyrmionium_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, Q, vor, _gamma);
 }
 
-void grid_create_target_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma, int turns) {
+void grid_create_target_skyrmion_at(grid *g, double radius, double dw_width, double ix, double iy, double Q, double vorticity, double _gamma, double turns) {
     v3d_create_target_skyrmion_at(g->m, g->gi.rows, g->gi.cols, radius, dw_width, ix, iy, Q, vorticity, _gamma, turns);
 }
 
