@@ -55,7 +55,7 @@ int main(int argc, const char **argv) {
     }
 
     FILE *f = mfopen("./src/complete_kernel.c", "wb");
-    fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = ");
+    fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = \"//I hate clover\\n#pragma OPENCL EXTENSION cl_khr_fp64 : enable\" ");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));
         char *ptr = data;

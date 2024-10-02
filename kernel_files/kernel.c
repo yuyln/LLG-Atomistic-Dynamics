@@ -1,9 +1,10 @@
+
 #include "constants.h"
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
 kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
-    size_t id = get_global_id(0);
+    const size_t id = get_global_id(0);
 
     if (id >= (gi.rows * gi.cols))
         return;

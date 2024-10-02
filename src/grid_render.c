@@ -98,7 +98,6 @@ void grid_renderer_hsl(grid_renderer *gr) {
 
 void grid_renderer_pinning(grid_renderer *gr) {
     gpu_cl_enqueue_nd(gr->gpu, gr->pinning_id, 1, &gr->local, &gr->r_global, NULL);
-
     gpu_cl_read_gpu(gr->gpu, gr->width * gr->height * sizeof(*gr->rgba_cpu), 0, gr->rgba_cpu, gr->rgba_gpu);
     window_draw_from_bytes(gr->rgba_cpu, 0, 0, gr->width, gr->height);
 }

@@ -40,7 +40,7 @@ void apply_current(double cur, int n_defects) {
 }
 
 int main(void) {
-    grid g = grid_init(64, 64);
+    grid g = grid_init(272, 272);
 
     double J = g.gp->exchange;
     double dm = 0.5 * J;
@@ -55,7 +55,6 @@ int main(void) {
     for (uint64_t i = g.gi.cols / 2; i < g.gi.cols; ++i) {
         for (uint64_t j = 0; j < g.gi.rows; ++j) {
             double d = (i - g.gi.cols / 2.0) * (i - g.gi.cols / 2.0) + (j - g.gi.rows / 2.0) * (j - g.gi.rows / 2.0);
-            logging_log(LOG_INFO, "%e", d);
             if (d >= 20 * 20 && d <= 25 * 25) {
                 g.m[j * g.gi.cols + i] = v3d_c(0, 0, -1);
             }

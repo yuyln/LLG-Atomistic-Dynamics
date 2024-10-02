@@ -30,7 +30,7 @@ typedef struct {
 
 typedef struct {
     v3d p;
-    double thickness, theta_sh, beta;
+    double theta_sh, beta;
 } she_current;
 
 typedef struct {

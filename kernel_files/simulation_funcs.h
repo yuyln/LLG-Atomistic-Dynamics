@@ -39,11 +39,11 @@ double dipolar_energy(parameters param);
 double energy(parameters param);
 
 #ifdef INCLUDE_DIPOLAR
-static v3d dipolar_field(parameters param);
+v3d dipolar_field(parameters param);
 #endif
 v3d effective_field(parameters param);
 v3d dm_dt(parameters param, double dt);
-static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
+v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
 v3d step_llg(parameters param, double dt);
 
 double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
