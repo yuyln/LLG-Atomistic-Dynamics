@@ -9,7 +9,7 @@ from vispy import app, scene, geometry, visuals, io
 frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 
 
-mlab.options.offscreen = True
+mlab.options.offscreen = False
 mlab.figure(fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2000, 2000))
 mlab.view(azimuth=45, elevation=45, distance=gi.cols / 2)
 def draw_stuff(i):
@@ -64,7 +64,7 @@ def draw_stuff(i):
     mlab.plot3d([0, 0], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
     mlab.plot3d([gi.cols, gi.cols], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
 
-if 1:
+if mlab.options.offscreen:
     duration = 2
     def make_frame(t):
         i = int(t / duration * frames)

@@ -18,7 +18,7 @@ typedef struct {
 int main(void) {
     const char *name = "test.vtk";
     grid g = {0};
-    if (!grid_from_animation_bin("./integrate_evolution.dat.bak", &g, -1))
+    if (!grid_from_animation_bin("./integrate_evolution.dat", &g, -1))
         logging_log(LOG_FATAL, "Could not read integration file");
 
     points ps = {0};
