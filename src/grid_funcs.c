@@ -436,13 +436,19 @@ bool grid_dump_path(const char *path, grid *g) {
 }
 
 bool grid_from_file(const char *path, grid *g) {
-    if (!g)
-        logging_log(LOG_FATAL, "NULL pointer to grid provided");
+    if (!g) {
+        logging_log(LOG_ERROR, "NULL pointer to grid provided");
+        return false;
+    }
 
-    if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows)
-        logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
+    if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows) {
+        logging_log(LOG_ERROR, "Trying to initialize grid from file with grid already initialized");
+        return false;
+    }
 
     FILE *f = mfopen(path, "rb");
+    if (!f)
+        return false;
     char *data = NULL;
     bool ret = true;
 

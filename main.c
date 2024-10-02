@@ -40,6 +40,7 @@ void apply_current(double cur, int n_defects) {
 }
 
 int main(void) {
+    p_id = 1;
     grid g = grid_init(272, 272);
 
     double J = g.gp->exchange;

@@ -74,10 +74,10 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     ctx.info = mmalloc(grid->gi.rows * grid->gi.cols * sizeof(*ctx.info));
     ctx.info_gpu = gpu_cl_create_gpu(gpu, grid->gi.rows * grid->gi.cols * sizeof(*ctx.info), CL_MEM_READ_WRITE);
 
-    gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_gpu, sizeof(cl_mem),
-                                                     &grid->m_gpu, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(gpu, ctx.info_id, 0, 7, &grid->gp_gpu,  sizeof(cl_mem),
+                                                     &grid->m_gpu,  sizeof(cl_mem),
                                                      &ctx.swap_gpu, sizeof(cl_mem),
-                                                     &ctx.info_gpu, sizeof(cl_mem),
+                                                     &ctx.info_gpu,  sizeof(cl_mem),
                                                      &ctx.params.dt, sizeof(double),
                                                      &ctx.time, sizeof(double),
                                                      &grid->gi, sizeof(grid_info));
