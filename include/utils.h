@@ -66,5 +66,5 @@ typedef uint64_t xorshift64_state;
 uint64_t xorshift64_u64(xorshift64_state *state);
 double xorshift64_double(xorshift64_state *state);
 double xorshift64_range(xorshift64_state *state, double from, double to);
-double normal_distribution(xorshift64_state *state);
+double xorshift64_normal_distribution(xorshift64_state *state);
 #endif

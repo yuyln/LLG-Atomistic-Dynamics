@@ -239,7 +239,7 @@ double xorshift64_range(xorshift64_state *state, double from, double to) {
     return from + r * (to - from);
 }
 
-double normal_distribution(xorshift64_state *state) {
+double xorshift64_normal_distribution(xorshift64_state *state) {
     for (;;) {
         double U = xorshift64_double(state);
         double V = xorshift64_double(state);
