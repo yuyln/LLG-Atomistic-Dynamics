@@ -697,7 +697,7 @@ void grid_cluster(grid *g, double eps, double background_size, uint64_t min_pts,
             avg_m = v3d_sum(avg_m, g->m[i * cols + j]);
         }
     }
-    avg_m = v3d_scalar(avg_m, 1.0 / (rows * cols));
+    avg_m = v3d_normalize(avg_m);
 
     for (uint64_t i = 0; i < rows * cols; ++i) {
         cluster_point *it = &g->points[i];
@@ -867,7 +867,7 @@ void grid_cluster(grid *g, double eps, double background_size, uint64_t min_pts,
             it->y = it->y - floor(it->y / (rows * g->gp->lattice)) * rows * g->gp->lattice;
         }
 
-        if (it->count >= (background_size * rows * cols)) {
+        if (CLOSE_ENOUGH(avg_m.x, it->avg_m.x, 0.1) && CLOSE_ENOUGH(avg_m.y, it->avg_m.y, 0.1) && CLOSE_ENOUGH(avg_m.z, it->avg_m.z, 0.1)) {
             it->x = -1;
             it->y = -1;
         }
