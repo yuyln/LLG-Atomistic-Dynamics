@@ -4,6 +4,7 @@
 #include "kernel_funcs.h"
 #include "logging.h"
 #include "allocator.h"
+#include "utils.h"
 
 #include <math.h>
 #include <stdlib.h>

@@ -22,11 +22,6 @@
     col = ((col % (int)cols) + (int)cols) % (int)cols; \
 }} while(0)
 
-double shit_random(double from, double to) {
-    double r = (double)rand() / (double)RAND_MAX;
-    return from + r * (to - from);
-}
-
 static void grid_allocate(grid *g) {
     g->gp = mmalloc(sizeof(*g->gp) * g->gi.rows * g->gi.cols);
     g->m = mmalloc(sizeof(*g->m) * g->gi.rows * g->gi.cols);

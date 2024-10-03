@@ -59,7 +59,6 @@ typedef struct {
     bool *seen;
 } grid;
 
-double shit_random(double from, double to);
 grid grid_init(unsigned int rows, unsigned int cols);
 
 void grid_set_exchange_loc(grid *g, int row, int col, double exchange);

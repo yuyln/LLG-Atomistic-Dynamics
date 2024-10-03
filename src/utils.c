@@ -1,5 +1,5 @@
 #include "utils.h"
-#include <stdint.h>
+
 #include <float.h>
 #include <math.h>
 
@@ -214,4 +214,42 @@ const char *str_fmt_tmp(const char *fmt, ...) {
     }
 end:
     return strs[ret_idx];
+}
+
+double shit_random(double from, double to) {
+    double r = (double)rand() / (double)RAND_MAX;
+    return from + r * (to - from);
+}
+
+uint64_t xorshift64_u64(xorshift64_state *state) {
+	uint64_t x = *state;
+	x ^= x << 13;
+	x ^= x >> 7;
+	x ^= x << 17;
+	return *state = x;
+}
+
+double xorshift64_double(xorshift64_state *state) {
+    uint64_t rng = xorshift64_u64(state);
+    return rng / (double)UINT64_MAX;
+}
+
+double xorshift64_range(xorshift64_state *state, double from, double to) {
+    double r = xorshift64_double(state);
+    return from + r * (to - from);
+}
+
+double normal_distribution(xorshift64_state *state) {
+    for (;;) {
+        double U = xorshift64_double(state);
+        double V = xorshift64_double(state);
+        double X = sqrt(8.0 / M_E) * (V - 0.5) / U;
+        double X2 = X * X;
+        if (X2 <= (5.0 - 4.0 * exp(0.25) * U))
+            return X;
+        else if (X2 >= (4.0 * exp(-1.35) / U + 1.4))
+            continue;
+        else if (X2 <= (-4.0 * log(U)))
+            return X;
+    }
 }

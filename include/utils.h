@@ -1,7 +1,14 @@
 #ifndef __UTILS_H
 #define __UTILS_H
-#include "grid_funcs.h"
 #include "allocator.h"
+#include "logging.h"
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdarg.h>
+
 
 #ifndef MAX_STRS
 #define MAX_STRS 256
@@ -53,4 +60,11 @@ bool organize_clusters_inplace(const char *clusters_file_path, double sample_dx,
 bool organize_clusters(const char *clusters_file_path, const char *clusters_output_path, double sample_dx, double sample_dy, double distance_square_invalid);
 
 const char *str_fmt_tmp(const char *fmt, ...);
+
+double shit_random(double from, double to);
+typedef uint64_t xorshift64_state;
+uint64_t xorshift64_u64(xorshift64_state *state);
+double xorshift64_double(xorshift64_state *state);
+double xorshift64_range(xorshift64_state *state, double from, double to);
+double normal_distribution(xorshift64_state *state);
 #endif
