@@ -145,6 +145,7 @@ integrate_params integrate_params_init(void) {
 
     ret.cluster_eps = 0.1;
     ret.cluster_min_pts = 5;
+    ret.cluster_background_size = 0.5;
     ret.do_cluster = true;
 
     ret.current_func = "return (current){.type = CUR_NONE};";
@@ -216,7 +217,7 @@ void integrate_step(integrate_context *ctx) {
         if (!read_grid_from_gpu)
             v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, *ctx->gpu);
 
-        grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
+        grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_background_size, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
 
         fprintf(ctx->clusters, "%.15e,", ctx->time);
 

@@ -678,7 +678,7 @@ static double default_weight(grid *g, uint64_t i, uint64_t j, void *user_data) {
 INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
 INCEPTION("RB -> [ CLUSTER ] -> 3.818874674e-03 sec")
 INCEPTION("RB with custom metric etc -> [ CLUSTER ] -> 4.142878783e-03 sec")
-void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight) {
+void grid_cluster(grid *g, double eps, double background_size, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight) {
     uint64_t rows = g->gi.rows;
     uint64_t cols = g->gi.cols;
 
@@ -867,7 +867,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             it->y = it->y - floor(it->y / (rows * g->gp->lattice)) * rows * g->gp->lattice;
         }
 
-        if (it->count >= (0.6 * rows * cols)) {
+        if (it->count >= (background_size * rows * cols)) {
             it->x = -1;
             it->y = -1;
         }

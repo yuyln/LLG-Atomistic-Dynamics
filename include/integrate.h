@@ -32,6 +32,7 @@ typedef struct {
     void *cluster_weight_data;
 
     double cluster_eps;
+    double cluster_background_size;
     uint64_t cluster_min_pts;
 } integrate_params;
 
