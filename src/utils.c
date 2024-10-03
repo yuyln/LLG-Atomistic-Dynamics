@@ -166,21 +166,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
         }
 
         {
-            for (uint64_t i = 0; i < cs[2].len - 1; ++i) {
+            for (uint64_t i = 0; i < cs[2].len; ++i) {
                 cs[0].items[i] = cs[2].items[i];
                 cs[1].items[i] = cs[2].items[i];
-                fprintf(fout, "%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y);
+
+                fprintf(fout, "%.15e,%.15e", cs[0].items[i].x, cs[0].items[i].y);
                 if (has_size) {
-                    fprintf(fout, "%.15e,", cs[0].items[i].size);
+                    fprintf(fout, ",%.15e", cs[0].items[i].size);
                 }
-            }
-            uint64_t i = cs[2].len - 1;
-            cs[0].items[i] = cs[2].items[i];
-            cs[1].items[i] = cs[2].items[i];
-            if (has_size) {
-                fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].size);
-            } else {
-                fprintf(fout, "%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y);
+                if (i == cs[2].len - 1)
+                    fprintf(fout, "\n");
+                else
+                    fprintf(fout, ",");
             }
         }
     }
