@@ -85,7 +85,7 @@ char *create_current_she_dc(double j, v3d p, double beta) {
     static char buffer[2048];
     p = v3d_normalize(p);
     p = v3d_scalar(p, j);
-    int written = snprintf(buffer, sizeof(buffer) - 1, "return (current){.type = CUR_SHE, .she.p = v3d_c(%.15e, %.15e, %.15e), .she.theta_sh = -1, .she.beta= %.15e};", p.x, p.y, p.z, beta);
+    int written = snprintf(buffer, sizeof(buffer) - 1, "return (current){.type = CUR_SHE, .she.p = v3d_c(%.15e, %.15e, %.15e), .she.theta_sh = 1, .she.beta= %.15e};", p.x, p.y, p.z, beta);
 
     if (written < 0)
         logging_log(LOG_FATAL, "Something went wrong during `snprintf`. This should never happen, there is something very wrong with your machine");
