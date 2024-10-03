@@ -3,6 +3,7 @@
 #include <stdio.h>
 #define mfopen(file, mode) mfopen_loc(file, mode, __FILE__, __LINE__)
 #define mfclose(file) mfclose_loc(file, __FILE__, __LINE__)
+#define massert(cond) do {if (!(cond)) {logging_log(LOG_FATAL, "%s:%d Assertion \""#cond"\" failed", __FILE__, __LINE__); *((volatile int*)0) = 0;} } while(0)
 
 typedef enum {
     LOG_FATAL,

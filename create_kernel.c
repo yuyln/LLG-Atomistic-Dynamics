@@ -19,6 +19,8 @@ char *shift_args(int *argc, const char ***argv) {
 
 char *read_file(const char *path) {
     FILE *f = mfopen(path, "rb");
+    massert(f);
+
     fseek(f, 0, SEEK_END);
     uint64_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -54,7 +56,9 @@ int main(int argc, const char **argv) {
         return 1;
     }
 
-    FILE *f = mfopen("./src/complete_kernel.c", "wb");
+    const char *path = "./src/complete_kernel.c";
+    FILE *f = mfopen(path, "wb");
+    massert(f);
     fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = \"//I hate clover\\n#pragma OPENCL EXTENSION cl_khr_fp64 : enable\" ");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));

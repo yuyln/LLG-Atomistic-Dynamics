@@ -40,6 +40,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     sb_cat_cstr(&output_info_path, "/integrate_info.dat");
 
     ctx.integrate_info = mfopen(sb_as_cstr(&output_info_path), "w");
+    massert(ctx.integrate_info);
 
     sb_free(&output_info_path);
 
@@ -59,6 +60,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
         sb_cat_cstr(&output_cluster_path, "/clusters.dat");
 
         ctx.clusters = mfopen(sb_as_cstr(&output_cluster_path), "w");
+        massert(ctx.clusters);
 
         sb_free(&output_cluster_path);
     }
@@ -68,6 +70,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     sb_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
     ctx.integrate_evolution = mfopen(sb_as_cstr(&output_grid_path), "wb");
+    massert(ctx.integrate_info);
     sb_free(&output_grid_path);
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");

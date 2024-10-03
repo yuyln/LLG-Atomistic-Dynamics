@@ -430,6 +430,8 @@ bool grid_dump(FILE *f, grid *g) {
 
 bool grid_dump_path(const char *path, grid *g) {
     FILE *f = mfopen(path, "wb");
+    if (!f)
+        return false;
     bool ret = grid_dump(f, g);
     mfclose(f);
     return ret;
@@ -503,6 +505,8 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
         logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
 
     FILE *f = mfopen(path, "rb");
+    if (!f)
+        return false;
     bool ret = true;
 
     uint64_t frames = 0;
