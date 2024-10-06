@@ -185,7 +185,7 @@ int main(void) {
     //return bilayer();
     //return conical_skyrmion();
     //return hopfion();
-    steps_per_frame = 1;
+    steps_per_frame = 10;
     grid g = {0};
     if (!grid_from_animation_bin("./hopfion.bin", &g, -1))
         logging_log(LOG_FATAL, "A");
@@ -204,7 +204,7 @@ int main(void) {
     ip.interval_for_information = 100;
     ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.0), J, dm, g.gp->mu);
     logging_log(LOG_INFO, "%s", ip.field_func);
-    ip.current_func = create_current_she_dc(10e10 * 0.1, v3d_c(0, 1, 0), 0);
+    ip.current_func = create_current_stt_dc(10e10 * 0.1, 0, 0);
     grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
 }
