@@ -510,7 +510,6 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
         ret = false;
         goto defer;
     }
-    frame = ((frame % (int64_t)frames) + frames) % frames;
 
     if (fread(&g->gi, 1, sizeof(g->gi), f) != sizeof(g->gi)) {
         logging_log(LOG_ERROR, "Reading `gi` from \"%s\" failed: %s", path, strerror(errno));
@@ -526,14 +525,45 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
         goto defer;
     }
 
+    long current = 0;
+    if ((current = ftell(f)) < 0) {
+	logging_log(LOG_ERROR, "Getting position from \"%s\" failed: %s", frame, path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    if (fseek(f, 0, SEEK_END) < 0) {
+        logging_log(LOG_ERROR, "Advancing to the end of from \"%s\" failed: %s", frame, path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    long final = 0;
+    if ((final = ftell(f)) < 0) {
+	logging_log(LOG_ERROR, "Getting final position from \"%s\" failed: %s", frame, path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
+    frames = (final - current) / (sizeof(*g->m) * g->gi.rows * g->gi.cols);
+    frame = ((frame % (int64_t)frames) + frames) % frames;
+    logging_log(LOG_INFO, "%d %d", frames, frame);
+    
+    if (fseek(f, current, SEEK_SET) < 0) {
+        logging_log(LOG_ERROR, "Coming back to %l from \"%s\" failed: %s", current, path, strerror(errno));
+        ret = false;
+        goto defer;
+    }
+
     if (fseek(f, frame * g->gi.rows * g->gi.cols * sizeof(*g->m), SEEK_CUR) < 0) {
         logging_log(LOG_ERROR, "Advancing to %"PRIi64" from \"%s\" failed: %s", frame, path, strerror(errno));
         ret = false;
         goto defer;
     }
 
-    if (fread(g->m, 1, sizeof(*g->m) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->m) * g->gi.rows * g->gi.cols)) {
-        logging_log(LOG_ERROR, "Reading `m` from \"%s\" failed: %s", path, strerror(errno));
+    int read = 0;
+    if (read = fread(g->m, 1, sizeof(*g->m) * g->gi.rows * g->gi.cols, f) != (sizeof(*g->m) * g->gi.rows * g->gi.cols)) {
+        logging_log(LOG_ERROR, "Reading `m` (%d) from \"%s\" failed: %s", read, path, strerror(errno));
         ret = false;
         goto defer;
     }
