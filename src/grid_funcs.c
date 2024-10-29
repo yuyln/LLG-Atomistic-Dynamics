@@ -288,6 +288,7 @@ void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigne
                 v3d m = {0};
 #if 0
                 double theta = atan2(i, j) + M_PI;
+		theta += M_PI;
                 double phi = acos(k / r);
                 double xi = c * M_PI / sqrt((radius * radius / (r * r)) + c * c);
                 double t = acos(-2.0 * sin(theta) * sin(theta) * sin(xi) * sin(xi) + 1.0);
