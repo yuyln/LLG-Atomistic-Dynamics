@@ -270,7 +270,7 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, uns
     }
 }
 
-void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double c, double ix, double iy, double iz) {
+void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double ix, double iy, double iz, double factor) {
     int dh = height;
     int dr = 4.0 * dh;
     for (int i = -dr; i <= dr; ++i) {
@@ -286,22 +286,14 @@ void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigne
                 y = ((y % (int)rows) + (int)rows) % (int)rows;
                 z = ((z % (int)depth) + (int)depth) % (int)depth;
                 v3d m = {0};
-#if 0
-                double theta = atan2(i, j) + M_PI;
-		theta += M_PI;
-                double phi = acos(k / r);
-                double xi = c * M_PI / sqrt((radius * radius / (r * r)) + c * c);
-                double t = acos(-2.0 * sin(theta) * sin(theta) * sin(xi) * sin(xi) + 1.0);
-                double f = phi - atan2(1.0, cos(theta) * tan(xi));
-                m.x = sin(t) * cos(f);
-                m.y = sin(t) * sin(f);
-                m.z = cos(t);
-#else
                 double f = exp(-r * r / (4.0 * height * height)) * M_PI;
                 m.x = j / r * sin(2 * f) + 2.0 * i * k / (r * r) * sin(f) * sin(f);
                 m.y = i / r * sin(2 * f) - 2.0 * j * k / (r * r) * sin(f) * sin(f);
+		double omx = m.x;
+		double omy = m.y;
+		m.x = cos(factor) * omx - sin(factor) * omy;
+		m.y = sin(factor) * omx + cos(factor) * omy;
                 m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
-#endif
                 V_AT(v, y, x, z, rows, cols) = v3d_normalize(m);
             }
         }
@@ -333,8 +325,8 @@ void grid_create_skyrmionium_at(grid *g, double radius, double dw_width, double 
     v3d_create_skyrmionium_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, dw_width, ix, iy, Q, vor, _gamma);
 }
 
-void grid_create_hopfion_at(grid *g, double radius, double height, double c, double ix, double iy, double iz) {
-    v3d_create_hopfion_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, height, c, ix, iy, iz);
+void grid_create_hopfion_at(grid *g, double radius, double height, double ix, double iy, double iz, double factor) {
+    v3d_create_hopfion_at(g->m, g->gi.rows, g->gi.cols, g->gi.depth, radius, height, ix, iy, iz, factor);
 }
 
 bool grid_free(grid *g) {
