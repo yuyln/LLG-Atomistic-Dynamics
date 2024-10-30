@@ -14,5 +14,5 @@ fi
 
 $CC $CFLAGS -x c $NAME -o $NAME.out $LIBS
 shift
-./$NAME.out "$@" &
+./$NAME.out "$@"
 rm ./$NAME.out

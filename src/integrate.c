@@ -118,6 +118,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
     gpu_cl_release_memory(ctx->swap_gpu);
+    
     mfclose(ctx->integrate_info);
     mfclose(ctx->integrate_evolution);
 
