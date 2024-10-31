@@ -515,9 +515,8 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
 
     uint64_t frames_size = end_of_file - sizeof(frames) - sizeof(g->gi) - sizeof(*g->gp) * g->dimensions;
     if (frames_size % (sizeof(*g->m) * g->dimensions)) {
-        logging_log(LOG_ERROR, "Size of file isn't multiple of size of grid, probably corrupted");
-        ret = false;
-        goto defer;
+        logging_log(LOG_WARNING, "Size of file isn't multiple of size of grid, probably corrupted.");
+	frames_size -= frames_size % (sizeof(*g->m) * g->dimensions);
     }
 
     frames = frames_size / (sizeof(*g->m) * g->dimensions);
