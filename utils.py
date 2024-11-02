@@ -203,7 +203,7 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     file.close()
     return int(frames), gi, gps, raw_data
 
-def ReadAnimationBinaryF(path: str) -> tuple[int, grid_info, list[grid_site_params], _io.BufferedReader]:
+def ReadAnimationBinaryF(path: str) -> tuple[int, grid_info, list[grid_site_params]]:
     import os
     file = open(path, "rb")
     class dummy(ct.Structure):
@@ -236,7 +236,7 @@ def ReadAnimationBinaryF(path: str) -> tuple[int, grid_info, list[grid_site_para
     
     return int(frames), gi, gps, file
 
-def GetFrameFromBinaryF(frames: int, gi: grid_info, raw_file: _io.BufferedReader, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def GetFrameFromBinaryF(frames: int, gi: grid_info, raw_file, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if i < 0: i = 0
     elif i >= frames: i = frames - 1
     lat_s = gi.rows * gi.cols * gi.depth * VEC_SIZE
