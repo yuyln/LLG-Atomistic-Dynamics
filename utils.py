@@ -203,6 +203,50 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
     file.close()
     return int(frames), gi, gps, raw_data
 
+def ReadAnimationBinaryF(path: str) -> tuple[int, grid_info, list[grid_site_params], _io.BufferedReader]:
+    import os
+    file = open(path, "rb")
+    class dummy(ct.Structure):
+        _fields_ = [('frames', ct.c_uint64)]
+
+    frames = dummy()
+    file.readinto(frames)
+    skip = ct.sizeof(frames)
+
+    gi = grid_info()
+    file.readinto(gi)
+    skip += ct.sizeof(gi)
+
+    gps = []
+    for _ in range(gi.rows):
+        for _ in range(gi.cols):
+            for _ in range(gi.depth):
+                gp = grid_site_params()
+                file.readinto(gp)
+                gps.append(gp)
+    skip += ct.sizeof(gps[0]) * gi.rows * gi.cols * gi.depth
+    file.close()
+    
+    file_size = os.stat(path).st_size
+    file = open(path, "rb")
+    file.seek(skip, 0)
+    
+    grid_size = file_size - skip
+    frames = grid_size / (gi.rows * gi.cols * gi.depth * VEC_SIZE)
+    
+    return int(frames), gi, gps, file
+
+def GetFrameFromBinaryF(frames: int, gi: grid_info, raw_file: _io.BufferedReader, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if i < 0: i = 0
+    elif i >= frames: i = frames - 1
+    lat_s = gi.rows * gi.cols * gi.depth * VEC_SIZE
+    raw_data = raw_file.read(lat_s)
+    raw_vecs = array.array("d")
+    raw_vecs.frombytes(raw_data[i * lat_s: (i + 1) * lat_s])
+    M = np.array(raw_vecs)
+    mx, my, mz = M[0::3], M[1::3], M[2::3]
+    return mx, my, mz
+    
 def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], np.ndarray, np.ndarray, np.ndarray]:
     file = open(path, "rb")
 

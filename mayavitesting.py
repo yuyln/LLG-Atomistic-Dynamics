@@ -6,8 +6,7 @@ import utils
 from tvtk.api import tvtk
 from vispy import app, scene, geometry, visuals, io
 
-frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
-
+frames, gi, gp, raw = utils.ReadAnimationBinaryF("integrate_evolution.dat")
 
 mlab.options.offscreen = False
 mlab.figure(fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2000, 2000))
