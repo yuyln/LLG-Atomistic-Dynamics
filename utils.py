@@ -240,9 +240,10 @@ def GetFrameFromBinaryF(frames: int, gi: grid_info, raw_file, i: int) -> tuple[n
     if i < 0: i = 0
     elif i >= frames: i = frames - 1
     lat_s = gi.rows * gi.cols * gi.depth * VEC_SIZE
+    raw_file_skip = ct.sizeof(ct.uint64_t) + ct.sizeof(grid_info) + ct.sizeof(grid_site_params) * gi.rows * gi.cols * gi.depth + lat_s * i
     raw_data = raw_file.read(lat_s)
     raw_vecs = array.array("d")
-    raw_vecs.frombytes(raw_data[i * lat_s: (i + 1) * lat_s])
+    raw_vecs.frombytes(raw_data)
     M = np.array(raw_vecs)
     mx, my, mz = M[0::3], M[1::3], M[2::3]
     return mx, my, mz
