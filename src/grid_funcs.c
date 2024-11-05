@@ -272,28 +272,32 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, uns
 
 void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double ix, double iy, double iz, double factor) {
     int dh = height;
-    int dr = 4.0 * dh;
+    int dr = radius;
     for (int i = -dr; i <= dr; ++i) {
         for (int j = -dr; j <= dr; ++j) {
             for (int k = -dh; k <= dh; ++k) {
                 double r = sqrt(i * i + j * j + k * k) + EPS;
-                if (r > dr)
-                    continue;
+		double fac = dr / 2.0;
+		double phi = atan2(i, j);
+		double theta = atan2(sqrt(i * i + j * j), k);
+                v3d m = {0};
+
+		double f = exp(-r * r / (2 * fac * fac)) * M_PI;
+
+		m.x = j / r * sin(2.0 * f) + 2 * i * k / (r * r) * sin(f) * sin(f);
+		m.y = i / r * sin(2.0 * f) - 2 * j * k / (r * r) * sin(f) * sin(f);
+		m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
+
                 int x = ix + j;
                 int y = iy + i;
                 int z = iz + k;
                 x = ((x % (int)cols) + (int)cols) % (int)cols;
                 y = ((y % (int)rows) + (int)rows) % (int)rows;
                 z = ((z % (int)depth) + (int)depth) % (int)depth;
-                v3d m = {0};
-                double f = exp(-r * r / (4.0 * height * height)) * M_PI;
-                m.x = j / r * sin(2 * f) + 2.0 * i * k / (r * r) * sin(f) * sin(f);
-                m.y = i / r * sin(2 * f) - 2.0 * j * k / (r * r) * sin(f) * sin(f);
 		double omx = m.x;
 		double omy = m.y;
 		m.x = cos(factor) * omx - sin(factor) * omy;
 		m.y = sin(factor) * omx + cos(factor) * omy;
-                m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
                 V_AT(v, y, x, z, rows, cols) = v3d_normalize(m);
             }
         }
