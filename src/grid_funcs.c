@@ -271,23 +271,39 @@ void v3d_create_skyrmionium_at(v3d *v, unsigned int rows, unsigned int cols, uns
 }
 
 void v3d_create_hopfion_at(v3d *v, unsigned int rows, unsigned int cols, unsigned int depth, double radius, double height, double ix, double iy, double iz, double factor) {
+    double R = radius;
+    double r = height / 2.0;
     int dh = height;
-    int dr = radius;
+    int dr = R + r;
     for (int i = -dr; i <= dr; ++i) {
         for (int j = -dr; j <= dr; ++j) {
             for (int k = -dh; k <= dh; ++k) {
+                v3d m = {0};
+#if 1
+		//https://arxiv.org/pdf/2410.22058
+		double psi = atan2(i, j);
+		double phi = atan2(k, j * cos(psi) + i * sin(psi) - R);
+		double p = sqrt(k * k + pow(j * cos(psi) + i * sin(psi) - R, 2.0));
+		double Phi = psi - phi;
+		double Theta = M_PI * exp(1.0 - 1.0 / (1.0 - pow(p / r, 2.0)));
+		if (p >= r)
+		    continue;
+		m.x = cos(Phi) * sin(Theta);
+		m.y = sin(Phi) * sin(Theta);
+		m.z = cos(Theta);
+#else
+		//https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.124.127204
                 double r = sqrt(i * i + j * j + k * k) + EPS;
 		double fac = dr / 2.0;
 		double phi = atan2(i, j);
 		double theta = atan2(sqrt(i * i + j * j), k);
-                v3d m = {0};
 
 		double f = exp(-r * r / (2 * fac * fac)) * M_PI;
 
 		m.x = j / r * sin(2.0 * f) + 2 * i * k / (r * r) * sin(f) * sin(f);
 		m.y = i / r * sin(2.0 * f) - 2 * j * k / (r * r) * sin(f) * sin(f);
 		m.z = cos(2.0 * f) + 2.0 * k * k / (r * r) * sin(f) * sin(f);
-
+#endif
                 int x = ix + j;
                 int y = iy + i;
                 int z = iz + k;

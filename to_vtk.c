@@ -7,6 +7,7 @@ typedef struct {
     v3d m;
     double angle;
     double x, y, z;
+    v3d field;
 } point;
 
 typedef struct {
@@ -18,30 +19,36 @@ typedef struct {
 int main(void) {
     const char *name = "test.vtk";
     grid g = {0};
-    if (!grid_from_animation_bin("./integrate_evolution.dat", &g, -1))
+    if (!grid_from_file("./hopfion.bin.bak", &g))
         logging_log(LOG_FATAL, "Could not read integration file");
+
+    p_id = 1;
+    gpu_cl gpu = gpu_cl_init(NULL, NULL, NULL, NULL, NULL);
+    integrate_params ip = integrate_params_init();
+    integrate_context ctx = integrate_context_init(&g, &gpu, ip);
+    integrate_step(&ctx);
+    integrate_get_info(&ctx);
 
     points ps = {0};
     for (int64_t z = 0; z < g.gi.depth; ++z) {
-        for (int dz = 0; dz <= 0; ++dz) {
-            for (int64_t y = 0; y < g.gi.rows; ++y) {
-                for (int dy = 0; dy <= 0; ++dy) {
-                    for (int64_t x = 0; x < g.gi.cols; ++x) {
-                        for (int dx = 0; dx <= 0; ++dx) {
-                            point p = {0};
-                            p.idx = ps.len;
-                            p.m = V_AT(g.m, y, x, z, g.gi.rows, g.gi.cols);
-                            p.angle = atan2(p.m.y, p.m.x);
-                            p.x = x + 0.5 * dx - 0.01 * SIGN(dx);
-                            p.y = y + 0.5 * dy - 0.01 * SIGN(dy);
-                            p.z = z + 0.5 * dz - 0.01 * SIGN(dz);
-                            da_append(&ps, p);
-                        }
-                    }
-                }
-            }
+	for (int64_t y = 0; y < g.gi.rows; ++y) {
+	    for (int64_t x = 0; x < g.gi.cols; ++x) {
+		point p = {0};
+		p.idx = ps.len;
+		p.m = V_AT(g.m, y, x, z, g.gi.rows, g.gi.cols);
+		p.angle = atan2(p.m.y, p.m.x);
+		p.x = x;
+		p.y = y;
+		p.z = z;
+		V_AT(ctx.info, y, x, z, g.gi.rows, g.gi.cols).magnetic_field_lattice = v3d_scalar(V_AT(ctx.info, y, x, z, g.gi.rows, g.gi.cols).magnetic_field_lattice, QE / (4.0 * M_PI * HBAR));
+		p.field.x = V_AT(ctx.info, y, x, z, g.gi.rows, g.gi.cols).magnetic_field_lattice.x;
+		p.field.y = V_AT(ctx.info, y, x, z, g.gi.rows, g.gi.cols).magnetic_field_lattice.y;
+		p.field.z = V_AT(ctx.info, y, x, z, g.gi.rows, g.gi.cols).magnetic_field_lattice.z;
+		da_append(&ps, p);
+	    }
         }
     }
+    
     FILE *f = mfopen(name, "wb");
     fprintf(f, "# vtk DataFile Version 2.0\n");
     fprintf(f, "Lattice\n");
@@ -59,6 +66,17 @@ int main(void) {
     fprintf(f, "VECTORS spins float\n");
     for (uint64_t i = 0; i < ps.len; ++i)
         fprintf(f, "%f %f %f\n", ps.items[i].m.x, ps.items[i].m.y, ps.items[i].m.z);
+    fprintf(f, "\n");
+
+    fprintf(f, "VECTORS field float\n");
+    double max_f = -FLT_MAX;
+    for (uint64_t i = 0; i < ps.len; ++i) {
+        fprintf(f, "%f %f %f\n", ps.items[i].field.x, ps.items[i].field.y, ps.items[i].field.z);
+	max_f = fabs(ps.items[i].field.x) > max_f? fabs(ps.items[i].field.x): max_f;
+	max_f = fabs(ps.items[i].field.y) > max_f? fabs(ps.items[i].field.y): max_f;
+	max_f = fabs(ps.items[i].field.z) > max_f? fabs(ps.items[i].field.z): max_f;
+    }
+    logging_log(LOG_INFO, "%.15e", max_f);
     fprintf(f, "\n");
 
     fprintf(f, "FIELD mz_field 1\n");
