@@ -910,3 +910,38 @@ double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_
 double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell) {
     return Ms * lattice * lattice * lattice * atoms_per_cell;
 }
+
+static bool inside_prism(v3d p0, v3d p1, v3d p2, v3d p3, double x, double y, double z) {
+    double l0 = (-(p1.x*(p2.y*p3.z-p3.y*p2.z))+p2.x*(p1.y*p3.z-p3.y*p1.z)-p3.x*(p1.y*p2.z-p2.y*p1.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p1.x*(p2.z-p3.z))+p2.x*(p1.z-p3.z)-p3.x*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p1.x*(p2.y-p3.y)-p2.x*(p1.y-p3.y)+p3.x*(p1.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
+    
+    double l1 = (p0.x*(p2.y*p3.z-p3.y*p2.z)-p2.x*(p0.y*p3.z-p3.y*p0.z)+p3.x*(p0.y*p2.z-p2.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(p0.x*(p2.z-p3.z)-p2.x*(p0.z-p3.z)+p3.x*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((-(p0.x*(p2.y-p3.y))+p2.x*(p0.y-p3.y)-p3.x*(p0.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
+
+    double l2 = (-(p0.x*(p1.y*p3.z-p3.y*p1.z))+p1.x*(p0.y*p3.z-p3.y*p0.z)-p3.x*(p0.y*p1.z-p1.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p0.x*(p1.z-p3.z))+p1.x*(p0.z-p3.z)-p3.x*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p0.x*(p1.y-p3.y)-p1.x*(p0.y-p3.y)+p3.x*(p0.y-p1.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
+
+    double l3 = (p0.x*(p1.y*p2.z-p2.y*p1.z)-p1.x*(p0.y*p2.z-p2.y*p0.z)+p2.x*(p0.y*p1.z-p1.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(p0.x*(p1.z-p2.z)-p1.x*(p0.z-p2.z)+p2.x*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((-(p0.x*(p1.y-p2.y))+p1.x*(p0.y-p2.y)-p2.x*(p0.y-p1.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
+
+    return l0 >= 0 && l1 >= 0 && l2 >= 0 && l3 >= 0;
+}
+
+void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    if (!func)
+	return;
+    int mx = min_double(min_double(p0.x, p1.x), min_double(p2.x, p3.x));
+    int my = min_double(min_double(p0.y, p1.y), min_double(p2.y, p3.y));
+    int mz = min_double(min_double(p0.z, p1.z), min_double(p2.z, p3.z));
+
+    int Mx = max_double(max_double(p0.x, p1.x), max_double(p2.x, p3.x));
+    int My = max_double(max_double(p0.y, p1.y), max_double(p2.y, p3.y));
+    int Mz = max_double(max_double(p0.z, p1.z), max_double(p2.z, p3.z));
+
+    for (int z = mz; z <= Mz; ++z) {
+	for (int y = my; y <= My; ++y) {
+	    for (int x = mx; x <= Mx; ++x) {
+		if (!inside_prism(p0, p1, p2, p3, x, y, z))
+		    continue;
+		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, y, x, z);
+		func(g, (uint64_t)z, (uint64_t)y, (uint64_t)x, user_data);
+	    }
+	}
+    }
+}

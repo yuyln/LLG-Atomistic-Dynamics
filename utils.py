@@ -341,9 +341,10 @@ def HSLtoRGB(h: np.ndarray, s: np.ndarray, l: np.ndarray) -> tuple[np.ndarray, n
 
 def GetHSL(mx: np.ndarray, my: np.ndarray, mz: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     angle = np.arctan2(my, mx) / np.pi
+    angle[angle < 0] += 2
     #angle += np.pi
     #angle *= 180 / np.pi
-    angle = (angle + 1) / 2.0
+    angle = (angle + 0) / 2.0
     L = (mz + 1) / 2.0
     S = np.ones_like(L)
     return HSLtoRGB(angle, S, L)

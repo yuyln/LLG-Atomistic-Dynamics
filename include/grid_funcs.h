@@ -126,4 +126,6 @@ double exchange_from_micromagnetic(double A, double lattice, double atoms_per_ce
 double dm_from_micromagnetic(double D, double lattice, double atoms_per_cell);
 double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_cell);
 double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell);
+
+void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
 #endif

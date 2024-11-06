@@ -53,4 +53,7 @@ bool organize_clusters_inplace(const char *clusters_file_path, double sample_dx,
 bool organize_clusters(const char *clusters_file_path, const char *clusters_output_path, double sample_dx, double sample_dy, double sample_dz, double distance_square_invalid);
 
 const char *str_fmt_tmp(const char *fmt, ...);
+
+double min_double(double a, double b);
+double max_double(double a, double b);
 #endif

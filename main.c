@@ -71,7 +71,7 @@ int hopfion(void) {
     //double lattice = 0.5e-9;
     double J   = 1.0e-3 * QE;//exchange_from_micromagnetic(0.16e-12, lattice, 1);
     double dm  = 0.2 * J;//dm_from_micromagnetic(0.115e-3, lattice, 1);
-    double ani = 0.02 * J;//anisotropy_from_micromagnetic(40e3, lattice, 1);
+    double ani = 0.01 * J;//anisotropy_from_micromagnetic(40e3, lattice, 1);
     double mu  = g.gp->mu;//mu_from_micromagnetic(1.51e5, lattice, 1);
     logging_log(LOG_INFO, "J = %e eV", J / QE);
     logging_log(LOG_INFO, "D/J = %e", dm / J);
@@ -81,14 +81,14 @@ int hopfion(void) {
     logging_log(LOG_INFO, "gamma = %e", g.gp->gamma);
 
     grid_set_alpha(&g, 0.3);
-    grid_set_dm(&g, dm_bulk(dm));
+    grid_set_dm(&g, dm_interfacial(dm));
     grid_set_exchange(&g, isotropic_exchange(J));
     grid_set_anisotropy(&g, anisotropy_z_axis(ani));
     grid_set_mu(&g, mu);
     grid_set_lattice(&g, lattice);
 
     grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_hopfion_at(&g, 20, 20, 0.5, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2);
+    grid_create_hopfion_at(&g, 20, 32, g.gi.cols / 2, g.gi.rows / 2, g.gi.depth / 2, M_PI / 2);
 
     g.gi.pbc.pbc_z = 0;
 
@@ -103,21 +103,12 @@ int hopfion(void) {
     }
 
     integrate_params ip = integrate_params_init();
-    ip.dt = 0.05 * HBAR / J;
-    ip.interval_for_raw_grid = 500;
-    ip.interval_for_information = 100;
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.0), J, dm, g.gp->mu);
-    logging_log(LOG_INFO, "%s", ip.field_func);
-
-    gradient_descent_params gd = gradient_descent_params_init();
-    gd.field_func = ip.field_func;
-    gd.T = 0;
-    gd.damping = 0;
-    gd.dt = 0.1;
-    gd.T_factor = 0.9995;
-    grid_renderer_gradient_descent(&g, gd, 1000, 1000);
+    ip.dt = 0.01 * HBAR / J;
+    ip.interval_for_raw_grid = 10000;
+    ip.duration = 15e-9;
 
     grid_renderer_integrate(&g, ip, 1000, 1000);
+    //grid_dump_path("./hopfion.bin", &g);
     return 0;
 }
 
@@ -181,14 +172,12 @@ int conical_skyrmion(void) {
 
 }
 
-int main(void) {
-    p_id = 1;
-    //return bilayer();
-    //return conical_skyrmion();
-    return hopfion();
+int main2(void) {
     steps_per_frame = 1;
+    p_id = 1;
+    return hopfion();
     grid g = {0};
-    if (!grid_from_animation_bin("./hopfion.bin", &g, -1))
+    if (!grid_from_file("./hopfion.bin", &g))
         logging_log(LOG_FATAL, "A");
 
     for (uint64_t i = 0; i < g.dimensions; ++i)
@@ -210,4 +199,19 @@ int main(void) {
     ip.current_func = create_current_she_dc(1e10 * 0.1, v3d_c(1, 0, 0), 0);
     grid_renderer_integrate(&g, ip, 1000, 1000);
     return 0;
+}
+
+void test_func(grid *g, uint64_t k, uint64_t i, uint64_t j, void *dummy) {
+    V_AT(g->gp, i, j, k, g->gi.rows, g->gi.depth).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, -1)};
+}
+
+int main(void) {
+    grid g = grid_init(200, 200, 200);
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_do_in_prism(&g, v3d_c(0, 0, 0), v3d_c(50, 0, 0), v3d_c(50, 50, 0), v3d_c(50, 50, 100), test_func, NULL);
+    p_id = 1;
+    steps_per_frame = 1;
+    integrate_params ip = integrate_params_init();
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_free(&g);
 }

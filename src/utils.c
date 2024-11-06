@@ -227,3 +227,11 @@ const char *str_fmt_tmp(const char *fmt, ...) {
 end:
     return strs[ret_idx];
 }
+
+double min_double(double a, double b) {
+    return a < b? a: b;
+}
+
+double max_double(double a, double b) {
+    return a > b? a: b;
+}
