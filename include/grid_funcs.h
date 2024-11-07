@@ -120,12 +120,18 @@ anisotropy anisotropy_z_axis(double value);
 
 void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void*), double(*weight_f)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data_metric, void *user_data_weight);
 
-void grid_do_in_triangle(grid *g, v3d p0, v3d p1, v3d p2, void(*f)(grid*, uint64_t, uint64_t, void*), void *user_data);
-
 double exchange_from_micromagnetic(double A, double lattice, double atoms_per_cell);
 double dm_from_micromagnetic(double D, double lattice, double atoms_per_cell);
 double anisotropy_from_micromagnetic(double K, double lattice, double atoms_per_cell);
 double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell);
 
 void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
+void grid_do_in_triangle(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
+//you may be wondering: why the heck this rect function takes 3 positions instead of 4?
+//To which I respond: 4 points do not define a plane. This should be obvious, since I used 4 points to create a prism. Therefore this can not accept 4 points. Well, in reality this function does accept 4 points, but the 4 point is created by (0-index) p3=(p1-p0)+(p2-p0), this way a plane is defined and everything is fine.
+//Graphics programming goes burrrr /j
+void grid_do_in_rect(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
+void grid_do_in_ellipsoid(grid *g, v3d center, v3d size, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
+void grid_do_in_8pts(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data); //TODO: Better name
+
 #endif

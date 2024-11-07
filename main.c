@@ -208,7 +208,8 @@ void test_func(grid *g, uint64_t k, uint64_t i, uint64_t j, void *dummy) {
 int main(void) {
     grid g = grid_init(200, 200, 200);
     grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_do_in_prism(&g, v3d_c(0, 0, 0), v3d_c(50, 0, 0), v3d_c(50, 50, 0), v3d_c(50, 50, 100), test_func, NULL);
+    grid_do_in_triangle(&g, v3d_c(0, 0, 0), v3d_c(25, 0, 0), v3d_c(25, 25, 25), test_func, NULL);
+    grid_do_in_rect(&g, v3d_c(50, 50, 50), v3d_c(50, 100, 50), v3d_c(50, 50, 100), test_func, NULL);
     p_id = 1;
     steps_per_frame = 1;
     integrate_params ip = integrate_params_init();

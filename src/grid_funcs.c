@@ -911,21 +911,11 @@ double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell) {
     return Ms * lattice * lattice * lattice * atoms_per_cell;
 }
 
-static bool inside_prism(v3d p0, v3d p1, v3d p2, v3d p3, double x, double y, double z) {
-    double l0 = (-(p1.x*(p2.y*p3.z-p3.y*p2.z))+p2.x*(p1.y*p3.z-p3.y*p1.z)-p3.x*(p1.y*p2.z-p2.y*p1.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p1.x*(p2.z-p3.z))+p2.x*(p1.z-p3.z)-p3.x*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p1.x*(p2.y-p3.y)-p2.x*(p1.y-p3.y)+p3.x*(p1.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
-    
-    double l1 = (p0.x*(p2.y*p3.z-p3.y*p2.z)-p2.x*(p0.y*p3.z-p3.y*p0.z)+p3.x*(p0.y*p2.z-p2.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(p0.x*(p2.z-p3.z)-p2.x*(p0.z-p3.z)+p3.x*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((-(p0.x*(p2.y-p3.y))+p2.x*(p0.y-p3.y)-p3.x*(p0.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
-
-    double l2 = (-(p0.x*(p1.y*p3.z-p3.y*p1.z))+p1.x*(p0.y*p3.z-p3.y*p0.z)-p3.x*(p0.y*p1.z-p1.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p0.x*(p1.z-p3.z))+p1.x*(p0.z-p3.z)-p3.x*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p0.x*(p1.y-p3.y)-p1.x*(p0.y-p3.y)+p3.x*(p0.y-p1.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
-
-    double l3 = (p0.x*(p1.y*p2.z-p2.y*p1.z)-p1.x*(p0.y*p2.z-p2.y*p0.z)+p2.x*(p0.y*p1.z-p1.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(p0.x*(p1.z-p2.z)-p1.x*(p0.z-p2.z)+p2.x*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((-(p0.x*(p1.y-p2.y))+p1.x*(p0.y-p2.y)-p2.x*(p0.y-p1.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
-
-    return l0 >= 0 && l1 >= 0 && l2 >= 0 && l3 >= 0;
-}
-
 void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
-    if (!func)
+    if (!func) {
+	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");
 	return;
+    }
     int mx = min_double(min_double(p0.x, p1.x), min_double(p2.x, p3.x));
     int my = min_double(min_double(p0.y, p1.y), min_double(p2.y, p3.y));
     int mz = min_double(min_double(p0.z, p1.z), min_double(p2.z, p3.z));
@@ -934,10 +924,84 @@ void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*
     int My = max_double(max_double(p0.y, p1.y), max_double(p2.y, p3.y));
     int Mz = max_double(max_double(p0.z, p1.z), max_double(p2.z, p3.z));
 
-    for (int z = mz; z <= Mz; ++z) {
-	for (int y = my; y <= My; ++y) {
-	    for (int x = mx; x <= Mx; ++x) {
-		if (!inside_prism(p0, p1, p2, p3, x, y, z))
+    for (int z = mz - 1; z <= Mz + 1; ++z) {
+	for (int y = my - 1; y <= My + 1; ++y) {
+	    for (int x = mx - 1; x <= Mx + 1; ++x) {
+		if (!barycentric_4pts(p0, p1, p2, p3, x, y, z, NULL, NULL, NULL, NULL))
+		    continue;
+		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, y, x, z);
+		func(g, (uint64_t)z, (uint64_t)y, (uint64_t)x, user_data);
+	    }
+	}
+    }
+}
+
+void grid_do_in_triangle(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    v3d p01 = v3d_sub(p1, p0);
+    v3d p02 = v3d_sub(p2, p0);
+    v3d normal = v3d_cross(p01, p02);
+    normal = v3d_normalize(normal);
+    normal = v3d_scalar(normal, 0.5);
+    grid_do_in_8pts(g, p0, p1, p2, v3d_sum(p2, normal), v3d_sum(p0, normal), v3d_sum(p1, normal), v3d_sum(p2, normal), p2, func, user_data);
+}
+
+void grid_do_in_rect(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    v3d p01 = v3d_sub(p1, p0);
+    v3d p02 = v3d_sub(p2, p0);
+    v3d p3 = v3d_sum(p01, p02);
+    p3 = v3d_sum(p0, p3);
+    grid_do_in_triangle(g, p0, p1, p3, func, user_data);
+    grid_do_in_triangle(g, p0, p3, p2, func, user_data);
+}
+
+void grid_do_in_ellipsoid(grid *g, v3d center, v3d size, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    if (!func) {
+	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");
+	return;
+    }
+    int mx = center.x - size.x;
+    int my = center.y - size.y;
+    int mz = center.z - size.z;
+
+    int Mx = center.x + size.x;
+    int My = center.y + size.y;
+    int Mz = center.z + size.z;
+
+    for (int z = mz - 1; z <= Mz + 1; ++z) {
+	for (int y = my - 1; y <= My + 1; ++y) {
+	    for (int x = mx - 1; x <= Mx + 1; ++x) {
+		v3d V = v3d_c(x, y, z);
+		V = v3d_sub(V, center);
+		V.x /= size.x;
+		V.y /= size.y;
+		V.z /= size.z;
+		double V2 = v3d_dot(V, V);
+		if (V2 > 1.0)
+		    continue;
+		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, y, x, z);
+		func(g, (uint64_t)z, (uint64_t)y, (uint64_t)x, user_data);
+	    }
+	}
+    }
+}
+
+void grid_do_in_8pts(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    if (!func) {
+	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");
+	return;
+    }
+    int mx = min_double(min_double(min_double(p0.x, p1.x), min_double(p2.x, p3.x)), min_double(min_double(p4.x, p5.x), min_double(p6.x, p7.x)));
+    int my = min_double(min_double(min_double(p0.y, p1.y), min_double(p2.y, p3.y)), min_double(min_double(p4.y, p5.y), min_double(p6.y, p7.y)));
+    int mz = min_double(min_double(min_double(p0.z, p1.z), min_double(p2.z, p3.z)), min_double(min_double(p4.z, p5.z), min_double(p6.z, p7.z)));
+
+    int Mx = max_double(max_double(max_double(p0.x, p1.x), max_double(p2.x, p3.x)), max_double(max_double(p4.x, p5.x), max_double(p6.x, p7.x)));
+    int My = max_double(max_double(max_double(p0.y, p1.y), max_double(p2.y, p3.y)), max_double(max_double(p4.y, p5.y), max_double(p6.y, p7.y)));
+    int Mz = max_double(max_double(max_double(p0.z, p1.z), max_double(p2.z, p3.z)), max_double(max_double(p4.z, p5.z), max_double(p6.z, p7.z)));
+
+    for (int z = mz - 1; z <= Mz + 1; ++z) {
+	for (int y = my - 1; y <= My + 1; ++y) {
+	    for (int x = mx - 1; x <= Mx + 1; ++x) {
+		if (!barycentric_8pts(p0, p1, p2, p3, p4, p5, p6, p7, x, y, z, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL))
 		    continue;
 		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, y, x, z);
 		func(g, (uint64_t)z, (uint64_t)y, (uint64_t)x, user_data);

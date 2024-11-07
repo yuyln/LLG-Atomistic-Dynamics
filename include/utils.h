@@ -56,4 +56,6 @@ const char *str_fmt_tmp(const char *fmt, ...);
 
 double min_double(double a, double b);
 double max_double(double a, double b);
+bool barycentric_4pts(v3d p0, v3d p1, v3d p2, v3d p3, double x, double y, double z, double *b0, double *b1, double *b2, double *b3);
+bool barycentric_8pts(v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, double x, double y, double z, double *b0, double *b1, double *b2, double *b3, double *b4, double *b5, double *b6, double *b7);
 #endif
