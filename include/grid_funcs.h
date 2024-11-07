@@ -127,8 +127,8 @@ double mu_from_micromagnetic(double Ms, double lattice, double atoms_per_cell);
 
 void grid_do_in_prism(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_triangle(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
-//you may be wondering: why the heck this rect function takes 3 positions instead of 4?
-//To which I respond: 4 points do not define a plane. This should be obvious, since I used 4 points to create a prism. Therefore this can not accept 4 points. Well, in reality this function does accept 4 points, but the 4 point is created by (0-index) p3=(p1-p0)+(p2-p0), this way a plane is defined and everything is fine.
+//you may be wondering: why the heck does this rect function take 3 positions instead of 4?
+//To which I respond: 4 points do not define a plane. This should be obvious, since I used 4 points to create a prism. Therefore this function can not accept 4 points. Well, in reality this function does accept 4 points, but the 4 point is created by (0-index) p3=p0+(p1-p0)+(p2-p0), this way a plane is defined and everything is fine.
 //Graphics programming goes burrrr /j
 void grid_do_in_rect(grid *g, v3d p0, v3d p1, v3d p2, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
 void grid_do_in_ellipsoid(grid *g, v3d center, v3d size, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data);
