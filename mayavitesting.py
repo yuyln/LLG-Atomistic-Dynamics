@@ -78,7 +78,7 @@ def draw_stuff(i):
     mlab.plot3d([0, 0], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
     mlab.plot3d([gi.cols, gi.cols], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
     if len(pinnings_idx) > 0:
-        mlab.points3d(pinnings_idx[:, 1], pinnings_idx[:, 0], pinnings_idx[:, 2], color=(0, 0, 0), scale_factor=1, mode="cube")
+        mlab.points3d(pinnings_idx[:, 1], pinnings_idx[:, 0], pinnings_idx[:, 2], color=(0, 0, 0), scale_factor=1, mode="cube", opacity=0.1)
         
 if mlab.options.offscreen:
     duration = 2

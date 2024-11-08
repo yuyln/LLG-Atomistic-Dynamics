@@ -26,7 +26,6 @@ if BYTEORDER == "little": UBO = "<"
 def CLOSE_ENOUGH(a: float, b: float, eps: float = EPS) -> bool:
     return (a-b) ** 2.0 < eps ** 2.0
 
-
 colors = ["#037fff", "white", "#f40501"]
 colors = ["#0000ff", "white", "#ff0000"]
 cmap = LinearSegmentedColormap.from_list("mcmp", colors)
@@ -135,8 +134,14 @@ class grid_site_params(ct.Structure):
         return ret
 
 class CMDArgs:
-    def __init__(self, inp, out):
+    def __init__(self, *args):
         parser = argparse.ArgumentParser(description="Configure plots parameters via CLI")
+        for param in args:
+            stuff = args[param]
+            parser.add_argument(param, default=stuff["default"],
+                                       nargs=stuff["nargs"],
+                                       action=stuff["action"],
+                                       type=stuff["type"])
         parser.add_argument("-DPI", default=275, nargs="?", type=int)
         parser.add_argument("-arrows", action="store_true")
         parser.add_argument("-factor", default=1, nargs="?", type=int)

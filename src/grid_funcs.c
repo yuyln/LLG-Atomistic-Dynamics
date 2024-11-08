@@ -985,6 +985,22 @@ void grid_do_in_ellipsoid(grid *g, v3d center, v3d size, void(*func)(grid*, uint
     }
 }
 
+void grid_do_in_cubish(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    v3d p01 = v3d_sub(p1, p0);
+    v3d p02 = v3d_sub(p2, p0);
+    v3d p03 = v3d_sub(p3, p0);
+    v3d p4 = v3d_sum(p0, v3d_sum(p01, p02));
+    v3d p5 = v3d_sum(p0, v3d_sum(p01, p03));
+    v3d p6 = v3d_sum(p0, v3d_sum(p02, p03));
+    v3d p7 = v3d_sum(v3d_sum(p0, p01), v3d_sum(p02, p03));
+    grid_do_in_prism(g, p0, p1, p2, p3, func, user_data);
+    grid_do_in_prism(g, p1, p2, p7, p4, func, user_data);
+    grid_do_in_prism(g, p2, p3, p6, p7, func, user_data);
+    grid_do_in_prism(g, p1, p2, p7, p5, func, user_data);
+    grid_do_in_prism(g, p2, p3, p5, p7, func, user_data);
+    grid_do_in_prism(g, p1, p2, p3, p5, func, user_data);
+}
+
 void grid_do_in_8pts(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
     if (!func) {
 	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");
