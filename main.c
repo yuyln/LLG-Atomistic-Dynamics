@@ -172,12 +172,11 @@ int conical_skyrmion(void) {
 
 }
 
-int main2(void) {
+int main(void) {
     steps_per_frame = 1;
     p_id = 1;
-    return hopfion();
     grid g = {0};
-    if (!grid_from_file("./hopfion.bin", &g))
+    if (!grid_from_file("./hopfion.bin.bak", &g))
         logging_log(LOG_FATAL, "A");
 
     for (uint64_t i = 0; i < g.dimensions; ++i)
@@ -205,7 +204,10 @@ void test_func(grid *g, uint64_t k, uint64_t i, uint64_t j, void *dummy) {
     V_AT(g->gp, i, j, k, g->gi.rows, g->gi.depth).pin = (pinning){.pinned = 1, .dir=v3d_c(0, 0, -1)};
 }
 
-int main(void) {
+//TODO: Add more rendering options
+//TODO: Include hopf index calculation?
+//TODO: redo utils script better
+int main2(void) {
     grid g = grid_init(30, 30, 30);
     grid_uniform(&g, v3d_c(0, 0, 1));
     grid_do_in_cubish(&g, v3d_c(0, 0, 0), v3d_c(10, 15, 3), v3d_c(5, 0, 15), v3d_c(10, 10, 10), test_func, NULL);
