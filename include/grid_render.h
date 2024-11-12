@@ -56,7 +56,7 @@ void grid_renderer_gradient_descent(grid *g, gradient_descent_params params, uns
 void grid_renderer_integrate(grid *g, integrate_params params, unsigned int width, unsigned int height);
 
 /*void grid_renderer_exchange_energy(grid_renderer *gr);
-  void grid_renderer_eletric_field(grid_renderer *gr);
+  void grid_renderer_electric_field(grid_renderer *gr);
 void grid_renderer_dm_energy(grid_renderer *gr);
 void grid_renderer_field_energy(grid_renderer *gr);
 void grid_renderer_anisotropy_energy(grid_renderer *gr);

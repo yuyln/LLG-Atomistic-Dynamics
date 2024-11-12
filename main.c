@@ -49,20 +49,18 @@ int main(void) {
 
     grid_set_mu(&g, mu);
     grid_set_exchange(&g, J);
-    grid_set_dm(&g, dm_interfacial(0));
-    grid_set_anisotropy(&g, anisotropy_z_axis(-0.05 * J));
+    grid_set_dm(&g, dm_interfacial(dm));
+    grid_set_anisotropy(&g, anisotropy_z_axis(0.01 * J));
 
     grid_uniform(&g, v3d_c(0, 0, 1));
-
-    grid_create_biskyrmion_at(&g, 15, 5, 16, 16, 15, M_PI / 2, -1, 1, M_PI);
+    grid_create_skyrmion_at(&g, 12, 5, g.gi.cols / 2, g.gi.rows / 2, -1, 1, M_PI);
 
     integrate_params ip = integrate_params_init();
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, -0.4), J, dm, mu);
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);
     ip.dt = 0.01 * HBAR / J;
     grid_renderer_integrate(&g, ip, 1000, 1000);
 
-    ip.field_func = str_fmt_tmp("return v3d_c(0, 0, (gs.col / %.15e + 1) * 0.5 * %.15e);", (double)g.gi.cols, dm * dm / J * 1.0 / mu);
-    logging_log(LOG_INFO, ip.field_func);
+    ip.current_func = create_current_stt_dc(5e10, 0, 0);
     grid_renderer_integrate(&g, ip, 1000, 1000);
 
     return 0;

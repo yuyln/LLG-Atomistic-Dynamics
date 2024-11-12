@@ -112,13 +112,13 @@ kernel void extract_info(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOBAL v3d
     local_info.dipolar_energy = param.dipolar_energy;
 #endif
     local_info.energy = 0.5 * local_info.exchange_energy + 0.5 * local_info.dm_energy + local_info.field_energy + local_info.anisotropy_energy + local_info.cubic_energy + 0.5 * local_info.dipolar_energy;
-    local_info.charge_finite = charge_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.charge_finite = charge_finite(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.charge_lattice = charge_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.abs_charge_finite = fabs(local_info.charge_finite);
     local_info.abs_charge_lattice = fabs(local_info.charge_lattice);
     local_info.avg_m = param.m;
-    local_info.eletric_field = v3d_scalar(emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
-    local_info.magnetic_field_derivative = emergent_magnetic_field_derivative(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
+    local_info.electric_field = v3d_scalar(emergent_electric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
+    local_info.magnetic_field_finite = emergent_magnetic_field_finite(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.magnetic_field_lattice = emergent_magnetic_field_lattice(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down);
     local_info.charge_center_x = col * param.gs.lattice * local_info.charge_finite;
     local_info.charge_center_y = row * param.gs.lattice * local_info.charge_finite;
@@ -430,7 +430,7 @@ kernel void calculate_electric(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOB
     param.neigh.up = apply_pbc(m0, gi.pbc, row + 1, col, gi.rows, gi.cols);
     param.neigh.down = apply_pbc(m0, gi.pbc, row - 1, col, gi.rows, gi.cols);
 
-    out[id] = v3d_scalar(emergent_eletric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
+    out[id] = v3d_scalar(emergent_electric_field(param.m, param.neigh.left, param.neigh.right, param.neigh.up, param.neigh.down, v3d_scalar(dm, 1.0 / dt), param.gs.lattice, param.gs.lattice), param.gs.lattice * param.gs.lattice);
 }
 
 kernel void render_electric(GLOBAL v3d *field, unsigned int rows, unsigned int cols, double max_mod,
@@ -452,7 +452,9 @@ kernel void render_electric(GLOBAL v3d *field, unsigned int rows, unsigned int c
         return;
 
     v3d f = field[vrow * cols + vcol];
-    RGBA32 color = m_to_hsl(v3d_normalize(f));
+    double angle = atan2(f.y, f.x) / M_PI;
+    angle = (angle + 1.0) / 2.0;
+    RGBA32 color = hsl_to_rgb(angle, sqrt(v3d_dot(f, f)) / max_mod, 0.5);
 
     rgba[id] = color;
 }

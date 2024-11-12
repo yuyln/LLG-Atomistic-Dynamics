@@ -47,9 +47,9 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "time(s),energy(J),exchange_energy(J),dm_energy(J),field_energy(J),anisotropy_energy(J),cubic_anisotropy_energy(J),dipolar_energy(J),");
     fprintf(ctx.integrate_info, "charge_finite,charge_lattice,");
     fprintf(ctx.integrate_info, "avg_mx,avg_my,avg_mz,");
-    fprintf(ctx.integrate_info, "eletric_x(V/m),eletric_y(V/m),eletric_z(V/m),");
+    fprintf(ctx.integrate_info, "electric_x(V/m),electric_y(V/m),electric_z(V/m),");
     fprintf(ctx.integrate_info, "magnetic_lattice_x(T),magnetic_lattice_y(T),magnetic_lattice_z(T),");
-    fprintf(ctx.integrate_info, "magnetic_derivative_x(T),magnetic_derivative_y(T),magnetic_derivative_z(T),");
+    fprintf(ctx.integrate_info, "magnetic_finite_x(T),magnetic_finite_y(T),magnetic_finite_z(T),");
     fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),");
     fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),");
     fprintf(ctx.integrate_info, "D_xx,D_yy,D_xy\n");
@@ -192,9 +192,9 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,", ctx->time, info.energy, info.exchange_energy, info.dm_energy, info.field_energy, info.anisotropy_energy, info.cubic_energy, info.dipolar_energy);
         fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_finite, info.charge_lattice);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.avg_m.x, info.avg_m.y, info.avg_m.z);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.eletric_field.x, info.eletric_field.y, info.eletric_field.z);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.electric_field.x, info.electric_field.y, info.electric_field.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_lattice.x, info.magnetic_field_lattice.y, info.magnetic_field_lattice.z);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_derivative.x, info.magnetic_field_derivative.y, info.magnetic_field_derivative.z);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_finite.x, info.magnetic_field_finite.y, info.magnetic_field_finite.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite);
         fprintf(ctx->integrate_info, "%.15e,%.15e,", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_xy);
@@ -255,9 +255,9 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.abs_charge_finite += ctx->info[i].abs_charge_finite;
         info_local.abs_charge_lattice += ctx->info[i].abs_charge_lattice;
         info_local.avg_m = v3d_sum(info_local.avg_m, v3d_scalar(ctx->info[i].avg_m, 1.0 / (ctx->g->gi.rows * ctx->g->gi.cols)));
-        info_local.eletric_field = v3d_sum(info_local.eletric_field , ctx->info[i].eletric_field);
+        info_local.electric_field = v3d_sum(info_local.electric_field , ctx->info[i].electric_field);
         info_local.magnetic_field_lattice = v3d_sum(info_local.magnetic_field_lattice, ctx->info[i].magnetic_field_lattice);
-        info_local.magnetic_field_derivative = v3d_sum(info_local.magnetic_field_derivative, ctx->info[i].magnetic_field_derivative);
+        info_local.magnetic_field_finite = v3d_sum(info_local.magnetic_field_finite, ctx->info[i].magnetic_field_finite);
         info_local.charge_center_x += ctx->info[i].charge_center_x;
         info_local.charge_center_y += ctx->info[i].charge_center_y;
         info_local.abs_charge_center_x += ctx->info[i].abs_charge_center_x;

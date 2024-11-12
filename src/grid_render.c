@@ -160,11 +160,12 @@ void grid_renderer_electric_field(grid_renderer *gr) {
     gpu_cl_read_gpu(gr->gpu, gr->g->gi.rows * gr->g->gi.cols * sizeof(*gr->v3d_buffer_cpu), 0, gr->v3d_buffer_cpu, gr->v3d_buffer_gpu);
 
     double max_electric = -FLT_MAX;
-   // for (uint64_t i = 0; i < global; ++i) {
-   //     double value = v3d_dot(gr->v3d_buffer_cpu[i], gr->v3d_buffer_cpu[i]);
-   //     v3d v = gr->v3d_buffer_cpu[i];
-   //     if (value > max_electric) max_electric = value;
-   // }
+    for (uint64_t i = 0; i < gr->g->gi.cols * gr->g->gi.rows; ++i) {
+        double value = v3d_dot(gr->v3d_buffer_cpu[i], gr->v3d_buffer_cpu[i]);
+        v3d v = gr->v3d_buffer_cpu[i];
+        if (value > max_electric) max_electric = value;
+    }
+    max_electric = sqrt(max_electric);
 
     gpu_cl_set_kernel_arg(gr->gpu, gr->electric_id, 3, sizeof(max_electric), &max_electric);
     gpu_cl_enqueue_nd(gr->gpu, gr->electric_id, 1, &gr->local, &gr->r_global, NULL);

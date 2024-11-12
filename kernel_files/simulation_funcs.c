@@ -111,7 +111,7 @@ v3d effective_field(parameters param) {
     return v3d_scalar(ret, -1.0 / param.gs.mu);
 }
 
-//@TODO: Add Z derivative
+//@TODO: Add Z finite
 v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy) {
     v3d ret = {0};
     ret.x = v.x * (neigh.right.x - neigh.left.x) / (2.0 * dx) +
@@ -186,10 +186,10 @@ v3d step_llg(parameters param, double dt) {
     return v3d_scalar(v3d_sum(v3d_sum(rk1, v3d_scalar(rk2, 2.0)), v3d_sum(v3d_scalar(rk3, 2.0), rk4)), 1.0 / 6.0);
 }
 
-double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {
+double charge_finite(v3d m, v3d left, v3d right, v3d up, v3d down) {
     return v3d_dot(m, v3d_cross(
-                v3d_scalar(v3d_sub(right, left), 0.5), //x derivative scaled by lattice
-                v3d_scalar(v3d_sub(up, down), 0.5)  //y derivative scaled by lattice
+                v3d_scalar(v3d_sub(right, left), 0.5), //x finite scaled by lattice
+                v3d_scalar(v3d_sub(up, down), 0.5)  //y finite scaled by lattice
                 )) * 1.0 / (4.0 * M_PI);
 }
 
@@ -223,11 +223,11 @@ v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down
     return v3d_c(0.0, 0.0, 4.0 * M_PI * HBAR / QE * charge_lattice(m, left, right, up, down));
 }
 
-v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down) {
-    return v3d_c(0.0, 0.0, 4.0 * M_PI * HBAR / QE * charge_derivative(m, left, right, up, down));
+v3d emergent_magnetic_field_finite(v3d m, v3d left, v3d right, v3d up, v3d down) {
+    return v3d_c(0.0, 0.0, 4.0 * M_PI * HBAR / QE * charge_finite(m, left, right, up, down));
 }
 
-v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy) {
+v3d emergent_electric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy) {
     return v3d_c(
             HBAR / QE * v3d_dot(m, v3d_cross(v3d_scalar(v3d_sub(right, left), 1.0 / (2.0 * dx)), dmdt)),
             HBAR / QE * v3d_dot(m, v3d_cross(v3d_scalar(v3d_sub(up, down), 1.0 / (2.0 * dy)), dmdt)),

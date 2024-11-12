@@ -46,10 +46,10 @@ v3d dm_dt(parameters param, double dt);
 v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy);
 v3d step_llg(parameters param, double dt);
 
-double charge_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
+double charge_finite(v3d m, v3d left, v3d right, v3d up, v3d down);
 double charge_lattice(v3d m, v3d left, v3d right, v3d up, v3d down);
 
 v3d emergent_magnetic_field_lattice(v3d m, v3d left, v3d right, v3d up, v3d down);
-v3d emergent_magnetic_field_derivative(v3d m, v3d left, v3d right, v3d up, v3d down);
-v3d emergent_eletric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy);
+v3d emergent_magnetic_field_finite(v3d m, v3d left, v3d right, v3d up, v3d down);
+v3d emergent_electric_field(v3d m, v3d left, v3d right, v3d up, v3d down, v3d dmdt, double dx, double dy);
 #endif
