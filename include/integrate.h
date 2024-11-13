@@ -33,6 +33,10 @@ typedef struct {
 
     double cluster_eps;
     uint64_t cluster_min_pts;
+
+    bool compute_hopf_index;
+    v3d(*hopf_index_A)(grid*, uint64_t, uint64_t, uint64_t, information_packed*, void*);
+    void *hopf_index_A_data;
 } integrate_params;
 
 typedef struct {

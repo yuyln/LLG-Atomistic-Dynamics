@@ -91,6 +91,8 @@ typedef struct {
     double abs_charge_lattice;
     double abs_charge_finite;
 
+    double hopf_index;
+
     double exchange_energy;
     double dm_energy;
     double field_energy;

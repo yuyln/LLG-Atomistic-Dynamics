@@ -51,7 +51,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     fprintf(ctx.integrate_info, "magnetic_finite_x(T),magnetic_finite_y(T),magnetic_finite_z(T),");
     fprintf(ctx.integrate_info, "charge_center_x(m),charge_center_y(m),charge_center_z(m),");
     fprintf(ctx.integrate_info, "abs_charge_center_x(m),abs_charge_center_y(m),abs_charge_center_z(m),");
-    fprintf(ctx.integrate_info, "D_xx,D_yy,D_zz,D_xy,D_xz,D_yz\n");
+    fprintf(ctx.integrate_info, "D_xx,D_yy,D_zz,D_xy,D_xz,D_yz,hopf_index\n");
 
     if (params.do_cluster) {
         string_builder output_cluster_path = {0};
@@ -116,6 +116,15 @@ void integrate_context_close(integrate_context *ctx) {
     gpu_cl_close(ctx->gpu);
 }
 
+static v3d default_hopf_A(grid *g, uint64_t row, uint64_t col, uint64_t k, information_packed *data, void *dummy) {
+    v3d A = {0};
+    for (uint64_t i = 0; i < row; ++i) {
+	A.x += V_AT(data, i, col, k, g->gi.rows, g->gi.cols).magnetic_field_lattice.z * QE / (4.0 * M_PI * HBAR);
+	A.z -= V_AT(data, i, col, k, g->gi.rows, g->gi.cols).magnetic_field_lattice.x * QE / (4.0 * M_PI * HBAR);
+    }
+    return A;
+}
+
 integrate_params integrate_params_init(void) {
     integrate_params ret = {0};
     ret.dt = 1.0e-15;
@@ -128,6 +137,10 @@ integrate_params integrate_params_init(void) {
     ret.cluster_eps = 0.1;
     ret.cluster_min_pts = 5;
     ret.do_cluster = true;
+
+    ret.compute_hopf_index = true;
+    ret.hopf_index_A = default_hopf_A;
+    ret.hopf_index_A_data = NULL;
 
     ret.current_func = "return (current){.type = CUR_NONE};";
     ret.field_func = "return v3d_s(0);";
@@ -175,7 +188,7 @@ void integrate_step(integrate_context *ctx) {
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.magnetic_field_finite.x, info.magnetic_field_finite.y, info.magnetic_field_finite.z);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.charge_center_x / info.charge_finite, info.charge_center_y / info.charge_finite, info.charge_center_z / info.charge_finite);
         fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,", info.abs_charge_center_x / info.abs_charge_finite, info.abs_charge_center_y / info.abs_charge_finite, info.abs_charge_center_z / info.abs_charge_finite);
-        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_zz, info.D_xy, info.D_xz, info.D_yz);
+        fprintf(ctx->integrate_info, "%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e\n", info.D_xx, info.D_yy, info.D_zz, info.D_xy, info.D_xz, info.D_yz, info.hopf_index);
     }
 
     if (ctx->integrate_step % ctx->params.interval_for_raw_grid == 0) {
@@ -239,6 +252,13 @@ information_packed integrate_get_info(integrate_context *ctx) {
         info_local.D_xy += ctx->info[i].D_xy;
         info_local.D_xz += ctx->info[i].D_xz;
         info_local.D_yz += ctx->info[i].D_yz;
+	if (ctx->params.compute_hopf_index) {
+	    int col = i % ctx->g->gi.cols;
+	    int row = ((i - col) / ctx->g->gi.cols) % ctx->g->gi.rows;
+	    int k = ((i - col) / ctx->g->gi.cols - row) / ctx->g->gi.rows;
+	    v3d A = ctx->params.hopf_index_A(ctx->g, row, col, k, ctx->info, NULL);
+	    info_local.hopf_index += v3d_dot(A, ctx->info[i].magnetic_field_lattice) * QE / (4.0 * M_PI * HBAR);
+	}
     }
     return info_local;
 }

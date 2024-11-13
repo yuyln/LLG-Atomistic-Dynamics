@@ -176,7 +176,7 @@ int main(void) {
     steps_per_frame = 1;
     p_id = 1;
     grid g = {0};
-    if (!grid_from_file("./hopfion.bin.bak", &g))
+    if (!grid_from_file("./hopfion.bin", &g))
         logging_log(LOG_FATAL, "A");
 
     for (uint64_t i = 0; i < g.dimensions; ++i)
