@@ -36,7 +36,7 @@ def draw_stuff(i):
     angle = (angle - angle.min()) / (angle.max() - angle.min())
     colors = mpl.colormaps["hsv"](angle)
 
-    for (m, l) in [(mx, 0.9), (mx, -0.9)]:
+    for (m, l) in [(mx, 0.9), (mx, -0.9), (my, 0.9), (my, -0.9)]:
         vertex, idx = geometry.isosurface.isosurface(m, level=l)
         
         vx_idx = vertex[:, 0].astype(int)

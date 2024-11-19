@@ -68,11 +68,10 @@ int hopfion(void) {
     grid g = grid_init(256, 256, 32);
 
     double lattice = 0.5e-9;
-    //double lattice = 0.5e-9;
-    double J   = 1.0e-3 * QE;//exchange_from_micromagnetic(0.16e-12, lattice, 1);
-    double dm  = 0.2 * J;//dm_from_micromagnetic(0.115e-3, lattice, 1);
-    double ani = 0.01 * J;//anisotropy_from_micromagnetic(40e3, lattice, 1);
-    double mu  = g.gp->mu;//mu_from_micromagnetic(1.51e5, lattice, 1);
+    double J   = 1.0e-3 * QE;
+    double dm  = 0.2 * J;
+    double ani = 0.01 * J;
+    double mu  = g.gp->mu;
     logging_log(LOG_INFO, "J = %e eV", J / QE);
     logging_log(LOG_INFO, "D/J = %e", dm / J);
     logging_log(LOG_INFO, "K/J = %e", ani / J);
@@ -176,7 +175,7 @@ int main(void) {
     steps_per_frame = 1;
     p_id = 1;
     grid g = {0};
-    if (!grid_from_file("./hopfion.bin", &g))
+    if (!grid_from_file("./hopfion.bin.bak", &g))
         logging_log(LOG_FATAL, "A");
 
     for (uint64_t i = 0; i < g.dimensions; ++i)
@@ -205,8 +204,8 @@ void test_func(grid *g, uint64_t k, uint64_t i, uint64_t j, void *dummy) {
 }
 
 //TODO: Add more rendering options
-//TODO: Include hopf index calculation?
 //TODO: redo utils script better
+//TODO: AMD Crash on render
 int main2(void) {
     grid g = grid_init(30, 30, 30);
     grid_uniform(&g, v3d_c(0, 0, 1));
