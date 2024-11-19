@@ -147,9 +147,10 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             for (uint64_t j = 0; j < cs[0].len; ++j) {
                 for (int di = -1; di <= 1; ++di) {
                     for (int dj = -1; dj <= 1; ++dj) {
-                        double dx = cs[1].items[i].x - cs[0].items[j].x - dj * sample_x;
-                        double dy = cs[1].items[i].y - cs[0].items[j].y - di * sample_y;
-                        double d2 = dx * dx + dy * dy;
+                        double dx = (cs[1].items[i].x - cs[0].items[j].x - dj * sample_x) / sample_x;
+                        double dy = (cs[1].items[i].y - cs[0].items[j].y - di * sample_y) / sample_y;
+                        double ds = (double)cs[1].items[i].size - (double)cs[0].items[j].size;
+                        double d2 = dx * dx + dy * dy + ds * ds;
                         min_idx = d2 < min_d2? j: min_idx;
                         min_d2 = d2 < min_d2? d2: min_d2;
                     }

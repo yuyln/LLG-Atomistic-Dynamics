@@ -44,7 +44,7 @@ int main(void) {
     grid g = grid_init(64, 64);
 
     double J = g.gp->exchange;
-    double dm = 0.5 * J;
+    double dm = 0.2 * J;
     double mu = g.gp->mu;
 
     grid_set_mu(&g, mu);
