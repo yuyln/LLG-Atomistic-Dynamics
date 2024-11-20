@@ -201,7 +201,7 @@ void integrate_step(integrate_context *ctx) {
         if (!read_grid_from_gpu)
             v3d_from_gpu(ctx->g->m, ctx->g->m_gpu, ctx->g->gi.rows, ctx->g->gi.cols, ctx->g->gi.depth, *ctx->gpu);
 
-        grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, NULL, NULL, NULL, NULL);
+        grid_cluster(ctx->g, ctx->params.cluster_eps, ctx->params.cluster_min_pts, ctx->params.cluster_metric, ctx->params.cluster_weight, ctx->params.cluster_metric_data, ctx->params.cluster_weight_data);
 
         fprintf(ctx->clusters, "%.15e,", ctx->time);
 	for (uint64_t i = 0; i < ctx->g->clusters.len; ++i) {

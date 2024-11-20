@@ -144,7 +144,6 @@ v3d effective_field(parameters param) {
     return v3d_scalar(ret, -1.0 / param.gs.mu);
 }
 
-//@TODO: Add Z finite
 static v3d v3d_dot_grad(v3d v, neighbors_set neigh, double dx, double dy, double dz) {
     v3d ret = {0};
     ret.x = v.x * (neigh.right.x - neigh.left.x) / (2.0 * dx) +

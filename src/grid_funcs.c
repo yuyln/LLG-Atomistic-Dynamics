@@ -887,7 +887,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
             it->z = it->z - floor(it->z / (depth * g->gi.lattice)) * depth * g->gi.lattice;
         }
 
-        if (it->count >= (0.6 * rows * cols * depth)) {
+        if (it->count >= (0.6 * rows * cols * depth) && false) {
             it->x = -1;
             it->y = -1;
             it->z = -1;
