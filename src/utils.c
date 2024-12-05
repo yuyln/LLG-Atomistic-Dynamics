@@ -23,7 +23,9 @@ bool organize_clusters_inplace(const char *in_path, double sample_x, double samp
 }
 
 bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double sample_z, double d2_threshold) {
-    FILE *f_in = mfopen(in_path, "rb");
+    FILE *f_in = fopen(in_path, "rb");
+    if (!f_in)
+    return false;
     char *buffer = NULL;
 
     uint64_t len = 0;

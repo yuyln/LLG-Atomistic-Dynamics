@@ -6,6 +6,7 @@ import utils
 from tvtk.api import tvtk
 from vispy import app, scene, geometry, visuals, io
 import matplotlib.pyplot as plt
+import skimage
 
 frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
 
@@ -31,13 +32,18 @@ def draw_stuff(i):
     rgb[:, :, :, 1] = g
     rgb[:, :, :, 2] = b
 
-    angle = np.arctan2(my, mx)
-    angle[angle < 0] += 2 * np.pi
-    angle = (angle - angle.min()) / (angle.max() - angle.min())
-    colors = mpl.colormaps["hsv"](angle)
 
-    for (m, l) in [(mx, 0.9), (mx, -0.9), (my, 0.9), (my, -0.9)]:
-        vertex, idx = geometry.isosurface.isosurface(m, level=l)
+    for (m, l) in [(mz, 0)]:
+        m[:, :, ::2] *= -1
+        my_ = my.copy()
+        mx_ = mx.copy()
+        my_[:, :, ::2] *= -1
+        mx_[:, :, ::2] *= -1
+        angle = np.arctan2(my_, mx_)
+        angle = (angle - angle.min()) / (angle.max() - angle.min())
+        colors = mpl.colormaps["hsv"](angle)
+        #vertex, _ = geometry.isosurface.isosurface(m, level=l)
+        vertex, faces, _, _ = skimage.measure.marching_cubes(m, l, allow_degenerate=False)
         
         vx_idx = vertex[:, 0].astype(int)
         vy_idx = vertex[:, 1].astype(int)
@@ -59,26 +65,29 @@ def draw_stuff(i):
         result0 = c0 * (1 - zd) + c1 * zd
         
         scalars = np.arange(result0.reshape((-1, 4)).shape[0])
+        idx = faces
         mesh = mlab.triangular_mesh(vertex[:, 0], vertex[:, 1], vertex[:, 2], idx, scalars=scalars) 
         mesh.module_manager.scalar_lut_manager.lut.table = (result0.reshape((-1, 4)) * 255).astype(np.uint8)
 
-    mlab.plot3d([0, gi.cols], [0, 0], [0, 0], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([0, gi.cols], [gi.rows, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([0, 0], [0, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([gi.cols, gi.cols], [0, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
-
-    mlab.plot3d([0, gi.cols], [0, 0], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([0, gi.cols], [gi.rows, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([0, 0], [0, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([gi.cols, gi.cols], [0, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
-
-
-    mlab.plot3d([0, 0], [0, 0], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([gi.cols, gi.cols], [0, 0], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([0, 0], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
-    mlab.plot3d([gi.cols, gi.cols], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
+    if False:
+        mlab.plot3d([0, gi.cols], [0, 0], [0, 0], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([0, gi.cols], [gi.rows, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([0, 0], [0, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([gi.cols, gi.cols], [0, gi.rows], [0, 0], color=(0, 0, 0), tube_radius=1.)
+    
+        mlab.plot3d([0, gi.cols], [0, 0], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([0, gi.cols], [gi.rows, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([0, 0], [0, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([gi.cols, gi.cols], [0, gi.rows], [gi.depth, gi.depth], color=(0, 0, 0), tube_radius=1.)
+    
+    
+        mlab.plot3d([0, 0], [0, 0], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([gi.cols, gi.cols], [0, 0], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([0, 0], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
+        mlab.plot3d([gi.cols, gi.cols], [gi.rows, gi.rows], [0, gi.depth], color=(0, 0, 0), tube_radius=1.)
     if len(pinnings_idx) > 0:
         mlab.points3d(pinnings_idx[:, 1], pinnings_idx[:, 0], pinnings_idx[:, 2], color=(0, 0, 0), scale_factor=1, mode="cube", opacity=0.1)
+    d = 20 * 2
         
 if mlab.options.offscreen:
     duration = 2

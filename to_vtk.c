@@ -19,7 +19,7 @@ typedef struct {
 int main(void) {
     const char *name = "test.vtk";
     grid g = {0};
-    if (!grid_from_file("./hopfion.bin.bak", &g))
+    if (!grid_from_file("/home/jose/initial_conditions/hopfion_3d.bin", &g))
         logging_log(LOG_FATAL, "Could not read integration file");
 
     p_id = 1;

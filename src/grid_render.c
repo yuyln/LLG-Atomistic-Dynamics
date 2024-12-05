@@ -181,6 +181,7 @@ void grid_renderer_integrate(grid *g, integrate_params params, unsigned int widt
             logging_log(LOG_INFO, "Integrate Steps per Second: %"PRIu64, (uint64_t)(frames / print_timer * steps_per_frame));
             logging_log(LOG_INFO, "Integrate <dt_real>: %es", print_timer / frames);
             logging_log(LOG_INFO, "Integrate time: %ens", ctx.time / NS);
+            logging_log(LOG_INFO, "k: %d", gr.k);
             print_timer = 0;
             frames = 0;
         }
