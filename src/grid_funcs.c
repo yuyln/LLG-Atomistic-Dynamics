@@ -1001,6 +1001,40 @@ void grid_do_in_cubish(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, void(*func)(grid
     grid_do_in_prism(g, p1, p2, p3, p5, func, user_data);
 }
 
+void grid_do_in_line(grid *g, v3d p0, v3d p1, double thickness, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
+    if (!func) {
+	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");
+	return;
+    }
+    
+    v3d v01 = v3d_sub(p1, p0);
+    
+    int mx = min_double(p0.x, p1.x);
+    int my = min_double(p0.y, p1.y);
+    int mz = min_double(p0.z, p1.z);
+    
+    int Mx = max_double(p0.x, p1.x);
+    int My = max_double(p0.y, p1.y);
+    int Mz = max_double(p0.z, p1.z);
+    
+    for (int z = mz - 2 * thickness; z <= Mz + 2 * thickness; ++z) {
+	for (int y = my - 2 * thickness; y <= My + 2 * thickness; ++y) {
+	    for (int x = mx - 2 * thickness; x <= Mx + 2 * thickness; ++x) {
+		v3d P = v3d_c(x, y, z);
+		double t = v3d_dot(v3d_sub(P, p0), v01) / v3d_dot(v01, v01);
+		
+		v3d line_p = v3d_sum(p0, v3d_scalar(v01, t));
+		v3d distance_v = v3d_sub(line_p, P);
+		double distance = sqrt(v3d_dot(distance_v, distance_v));
+		int i = y, j = x, k = z;
+		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, i, j, k);
+		if (distance <= thickness)
+		    func(g, k, i, j, user_data);
+	    }
+	}
+    }
+}
+
 void grid_do_in_8pts(grid *g, v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, void(*func)(grid*, uint64_t, uint64_t, uint64_t, void*), void *user_data) {
     if (!func) {
 	logging_log(LOG_WARNING, "Tried to perform action on grid with empty function. Nothing will be done");

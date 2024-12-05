@@ -133,7 +133,6 @@ void non_reci(void) {
 }
 
 void conical_background(void) {
-
     int rows = 64;
     int cols = 64;
     int depth = 64;
@@ -178,9 +177,39 @@ void conical_background(void) {
     grid_free(&g);
 }
 
+void apply_test(grid *g, uint64_t k, uint64_t y, uint64_t x, void *dummy) {
+    logging_log(LOG_INFO, "%u %u %u", x, y, k);
+    V_AT(g->gp, y, x, k, g->gi.rows, g->gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(1, 0, 0)};
+}
+void test_in_line(void) {
+    int rows = 32;
+    int cols = 32;
+    int depth = 32;
+    grid g = grid_init(rows, cols, depth);
+    double J = 1.0e-3 * QE;
+    double dm = 0.2 * J;
+    double K = 0.0 * J;
+    double mu = g.gp->mu;
+    
+    grid_set_alpha(&g, 0.3);
+    grid_set_anisotropy(&g, anisotropy_z_axis(K));
+    grid_set_dm(&g, dm_bulk(dm));
+    
+    grid_set_exchange(&g, isotropic_exchange(J));
+    grid_uniform(&g, v3d_c(0, 0, 1));
+
+    grid_do_in_line(&g, v3d_c(0, 0, 0), v3d_c(cols / 2, rows / 2, 0), 2, apply_test, NULL);
+    
+    integrate_params ip = integrate_params_init();
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    
+    grid_free(&g);
+}
+
 int main(void) {
     p_id = 1;
     steps_per_frame = 10;
+    test_in_line();
     //conical_background();
-    non_reci();
+    //non_reci();
 }

@@ -8,7 +8,7 @@ from vispy import app, scene, geometry, visuals, io
 import matplotlib.pyplot as plt
 import skimage
 
-frames, gi, gp, raw = utils.ReadAnimationBinary("integrate_evolution.dat")
+frames, gi, gp, raw = utils.ReadAnimationBinary("examples/integrate_evolution.dat")
 
 pinnings_idx = []
 for i in gp:
@@ -16,6 +16,8 @@ for i in gp:
         pinnings_idx.append(np.array((i.i, i.j, i.k)))
 
 pinnings_idx = np.array(pinnings_idx)
+print(pinnings_idx)
+print(pinnings_idx.shape)
 
 mlab.options.offscreen = False
 mlab.figure(fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2000, 2000))
@@ -33,7 +35,7 @@ def draw_stuff(i):
     rgb[:, :, :, 2] = b
 
 
-    for (m, l) in [(mz, 0)]:
+    for (m, l) in []:
         m[:, :, ::2] *= -1
         my_ = my.copy()
         mx_ = mx.copy()
