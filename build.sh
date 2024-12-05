@@ -34,12 +34,12 @@ if [ "$1" = "install" ]; then
     ar cr libatomistic3d.a $FILES_OBJ
 
     rm *.o
-    cp ./libatomistic3d.a $HOME/.local/lib/atomistic3d/
+    mv ./libatomistic3d.a $HOME/.local/lib/atomistic3d/
     cp -r ./include $HOME/.local/lib/atomistic3d/include
     cp ./run_atomistic $HOME/.local/bin/run_atomistic3d
 
     $CC -fPIC $CFLAGS -shared -o libatomistic3d.so $FILES $LIBS
-    cp ./libatomistic3d.so $HOME/.local/lib/atomistic3d/
+    mv ./libatomistic3d.so $HOME/.local/lib/atomistic3d/
 else
     CFLAGS="$COMMON_CFLAGS -Wall -Wextra -pedantic -ggdb -g3 -Wno-overlength-strings -Wno-override-init"
 
