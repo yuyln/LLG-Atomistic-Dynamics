@@ -169,7 +169,7 @@ v3d dm_dt(parameters param, double dt) {
     switch (cur.type) {
         case CUR_STT: {
             v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.lattice, param.lattice, param.lattice);
-            common = v3d_scalar(common, HBAR * param.gs.gamma cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE * param.gs.mu));
+            common = v3d_scalar(common, HBAR * param.gs.gamma * cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE * param.gs.mu));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(common, beta));
         }

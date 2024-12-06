@@ -225,8 +225,7 @@ int main(void) {
     ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, D, mu);
     ip.dt = 0.01 * HBAR / J;
     grid_renderer_integrate(&g, ip, 1000, 1000);
-    ip.current_func = create_current_she_dc(5e10, v3d_c(0, -1, 0), 0);
-    ip.current_func = create_current_stt_dc(5e10, 0, 0.6);
+    ip.current_func = "return (current){.type = CUR_STT, .stt.j = v3d_c(5e10, 0, 0), .stt.polarization = 1, .stt.beta = 0.6};";
     grid_renderer_integrate(&g, ip, 1000, 1000);
     grid_free(&g);
     return 0;
