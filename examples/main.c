@@ -209,9 +209,28 @@ void test_in_line(void) {
 
 int main(void) {
     p_id = 1;
-    steps_per_frame = 10;
-    alter_magnetic();
+    steps_per_frame = 100;
+    int rows = 32, cols = 32;
+    grid g = grid_init(32, 32, 1);
+    double J = g.gp->exchange.J_left;
+    double D = 0.5 * J;
+    double mu = g.gp->mu;
+    double K = 0.05 * J;
+    grid_set_anisotropy(&g, anisotropy_z_axis(K));
+    grid_set_dm(&g, dm_interfacial(D));
+    grid_uniform(&g, v3d_c(0, 0, 1));
+    grid_create_skyrmion_at(&g, 5, 2, cols / 2, rows / 2, -1, 1, M_PI / 2);
+
+    integrate_params ip = integrate_params_init();
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, D, mu);
+    ip.dt = 0.01 * HBAR / J;
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    ip.current_func = create_current_she_dc(5e10, v3d_c(0, -1, 0), 0);
+    ip.current_func = create_current_stt_dc(5e10, 0, 0.6);
+    grid_renderer_integrate(&g, ip, 1000, 1000);
+    grid_free(&g);
     return 0;
+    alter_magnetic();
     test_in_line();
     //conical_background();
     //non_reci();
