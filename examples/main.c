@@ -66,6 +66,7 @@ void alter_magnetic(void) {
     
     g.gi.pbc.pbc_z = 0;
     integrate_params ip = integrate_params_init();
+    ip.output_path = ".";
     ip.cluster_metric = metric;
     ip.dt = 0.01 * HBAR / J1;
     grid_renderer_integrate(&g, ip, 1000, 1000);
@@ -209,6 +210,8 @@ void test_in_line(void) {
 int main(void) {
     p_id = 1;
     steps_per_frame = 10;
+    alter_magnetic();
+    return 0;
     test_in_line();
     //conical_background();
     //non_reci();

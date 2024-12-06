@@ -637,7 +637,7 @@ static double default_metric(grid *g, uint64_t i0, uint64_t j0, uint64_t k0, uin
 
 static double default_weight(grid *g, uint64_t i, uint64_t j, uint64_t k, void *user_data) {
     UNUSED(user_data);
-    return V_AT(g->m, i, j, k, g->gi.rows, g->gi.cols).z;
+    return fabs(V_AT(g->m, i, j, k, g->gi.rows, g->gi.cols).z);
 }
 
 INCEPTION("DA -> [ CLUSTER ] -> 5.700138278e-03 sec")
@@ -810,7 +810,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                     rb_append(&g->queue, lidx);
                     g->points[lidx].x = qt->x - g->gi.lattice;
                     g->points[lidx].y = qt->y;
-                    g->points[ridx].z = qt->z;
+                    g->points[lidx].z = qt->z;
                 }
             }
 
@@ -823,7 +823,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                     rb_append(&g->queue, uidx);
                     g->points[uidx].y = qt->y + g->gi.lattice;
                     g->points[uidx].x = qt->x;
-                    g->points[ridx].z = qt->z;
+                    g->points[uidx].z = qt->z;
                 }
             }
 
@@ -835,7 +835,7 @@ void grid_cluster(grid *g, double eps, uint64_t min_pts, double(*metric)(grid*, 
                     rb_append(&g->queue, didx);
                     g->points[didx].y = qt->y - g->gi.lattice;
                     g->points[didx].x = qt->x;
-                    g->points[ridx].z = qt->z;
+                    g->points[didx].z = qt->z;
                 }
             }
 

@@ -50,5 +50,5 @@ else
 
     rm *.o
 
-    $CC -L./ $CFLAGS main.c -o main -l:libatomistic3d.a $LIBS
+    $CC -L./ $CFLAGS examples/main.c -o main -l:libatomistic3d.a $LIBS
 fi
