@@ -166,34 +166,29 @@ v3d dm_dt(parameters param, double dt) {
     H_eff = v3d_sum(H_eff, param.temperature_effect);
     v3d v = v3d_scalar(v3d_cross(param.m, H_eff), -param.gs.gamma);
     current cur = generate_current(param.gs, param.time);
-    switch (cur.type) {
-        case CUR_STT: {
+
+    //TODO: Switch case is faster
+    if (cur.type != CUR_NONE) {
+	if (cur.type & CUR_STT) {
             v3d common = v3d_dot_grad(cur.stt.j, param.neigh, param.lattice, param.lattice, param.lattice);
             common = v3d_scalar(common, cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE));
             v3d beta = v3d_scalar(v3d_cross(param.m, common), cur.stt.beta);
             v = v3d_sum(v, v3d_sub(common, beta));
-        }
-        break;
-        case CUR_SHE: {
+	}
+	
+	if (cur.type & CUR_SHE) {
             v3d common = v3d_scalar(v3d_cross(param.m, cur.she.p), HBAR * param.gs.gamma * cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * param.depth * param.lattice * QE * param.gs.mu));
             v3d beta = v3d_scalar(common, cur.stt.beta);
             v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
-        }
-        break;
-        case CUR_BOTH: {
-            v3d stt_common = v3d_dot_grad(cur.stt.j, param.neigh, param.lattice, param.lattice, param.lattice);
-            stt_common = v3d_scalar(stt_common, cur.stt.polarization * param.lattice * param.lattice * param.lattice / (2.0 * QE));
-            v3d stt_beta = v3d_scalar(v3d_cross(param.m, stt_common), cur.stt.beta);
-            v = v3d_sum(v, v3d_sub(stt_common, stt_beta));
-
-
-            v3d she_common = v3d_scalar(v3d_cross(param.m, cur.she.p), HBAR * param.gs.gamma * cur.she.theta_sh * param.lattice * param.lattice * param.lattice / (2.0 * param.depth * param.lattice * QE * param.gs.mu));
-            v3d she_beta = v3d_scalar(she_common, cur.stt.beta);
-            v = v3d_sum(v, v3d_sub(v3d_cross(she_common, param.m), she_beta));
-        }
-        break;
-        case CUR_NONE:
-        break;
+	}
+	
+	if(cur.type & CUR_ZHANG_STT) {
+            v3d common = v3d_dot_grad(cur.stt_zhang.j, param.neigh, param.lattice, param.lattice, param.lattice);
+            common = v3d_scalar(common, HBAR * param.gs.gamma * cur.stt_zhang.polarization * param.gs.lattice * param.gs.lattice * param.gs.lattice / (2.0 * QE * param.gs.mu));
+	    common = v3d_cross(param.m, common);
+            v3d beta = v3d_scalar(common, cur.stt_zhang.beta);
+            v = v3d_sum(v, v3d_sub(v3d_cross(common, param.m), beta));
+	}
     }
 
     return v3d_scalar(v3d_sum(v, v3d_scalar(v3d_cross(param.m, v), param.gs.alpha)), 1.0 / (1.0 + param.gs.alpha * param.gs.alpha) * dt);

@@ -4,10 +4,14 @@
 #include "v3d.h"
 
 typedef enum {
-    CUR_NONE = 0,
-    CUR_STT = 1,
-    CUR_SHE = 2,
-    CUR_BOTH = CUR_STT | CUR_SHE //=3
+    CUR_NONE = 0,	   //000
+    CUR_STT = 1,	   //001
+    CUR_SHE = 2,	   //010
+    CUR_ZHANG_STT = 4,	   //100
+    CUR_STT_SHE = 3,	   //011
+    CUR_STT_ZHANG_STT = 5, //101
+    CUR_SHE_ZHANG_STT = 6, //110
+    CUR_ALL = 7,	   //111
 } current_type;
 
 typedef struct {
@@ -30,6 +34,7 @@ typedef struct {
 typedef struct {
     stt_current stt;
     she_current she;
+    stt_current stt_zhang;
     current_type type;
 } current;
 

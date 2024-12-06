@@ -178,7 +178,6 @@ void conical_background(void) {
 }
 
 void apply_test(grid *g, uint64_t k, uint64_t y, uint64_t x, void *dummy) {
-    logging_log(LOG_INFO, "%u %u %u", x, y, k);
     V_AT(g->gp, y, x, k, g->gi.rows, g->gi.cols).pin = (pinning){.pinned = 1, .dir = v3d_c(1, 0, 0)};
 }
 void test_in_line(void) {
@@ -198,7 +197,7 @@ void test_in_line(void) {
     grid_set_exchange(&g, isotropic_exchange(J));
     grid_uniform(&g, v3d_c(0, 0, 1));
 
-    grid_do_in_line(&g, v3d_c(0, 0, 0), v3d_c(cols / 2, rows / 2, 0), 2, apply_test, NULL);
+    grid_do_in_line(&g, v3d_c(0, 0, 0), v3d_c(cols / 2, rows / 2, depth / 2), 2, apply_test, NULL);
     
     integrate_params ip = integrate_params_init();
     grid_renderer_integrate(&g, ip, 1000, 1000);
@@ -209,7 +208,7 @@ void test_in_line(void) {
 int main(void) {
     p_id = 1;
     steps_per_frame = 10;
-    test_in_line();
+    alter_magnetic();
     //conical_background();
     //non_reci();
 }

@@ -1028,7 +1028,7 @@ void grid_do_in_line(grid *g, v3d p0, v3d p1, double thickness, void(*func)(grid
 		double distance = sqrt(v3d_dot(distance_v, distance_v));
 		int i = y, j = x, k = z;
 		CHECK_BOUNDS(g->gi.rows, g->gi.cols, g->gi.depth, i, j, k);
-		if (distance <= thickness)
+		if (distance <= thickness / 2)
 		    func(g, k, i, j, user_data);
 	    }
 	}
