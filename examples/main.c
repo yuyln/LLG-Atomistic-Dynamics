@@ -72,8 +72,10 @@ void alter_magnetic(void) {
     grid_renderer_integrate(&g, ip, 1000, 1000);
     for (int i = 0; i < rows * cols * 2; ++i)
         g.gp[i].pin = (pinning){0};
-
-    ip.current_func = str_fmt_tmp("return (current){.type=CUR_STT, .stt.j = v3d_c(1e11, 0, 0), .stt.polarization = -1, .stt.beta = 1};");
+    
+    V_AT(g.gp, rows / 2, cols - 1, 0, rows, cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, -1)};
+//    V_AT(g.gp, rows / 2, cols - 1, 1, rows, cols).pin = (pinning){.pinned = 1, .dir = v3d_c(0, 0, 1)};
+    ip.current_func = str_fmt_tmp("return (current){.type=CUR_STT, .stt.j = v3d_c(1e10, 0, 0), .stt.polarization = -1, .stt.beta = 1};");
     grid_renderer_integrate(&g, ip, 1000, 1000);
 
     grid_free(&g);
@@ -163,16 +165,8 @@ void conical_background(void) {
     integrate_params ip = integrate_params_init();
     ip.dt = 0.01 * HBAR / J;
     ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.8), J, dm, mu);
-    ip.temperature_func = create_temperature(20);
+    ip.temperature_func = create_temperature(0);
 
-    grid_renderer_integrate(&g, ip, 1000, 1000);
-
-    
-    for (int i = 0; i < rows * cols * depth; ++i)
-        g.gp[i].pin = (pinning){0};
-
-	ip.current_func = str_fmt_tmp("return (current){.type=CUR_STT, .stt.j = v3d_c(0e11, 0, 0), .stt.polarization = -1, .stt.beta = 1};");
-	ip.temperature_func = NULL;//create_temperature(0);
     grid_renderer_integrate(&g, ip, 1000, 1000);
 
     grid_free(&g);
@@ -208,8 +202,11 @@ void test_in_line(void) {
 }
 
 int main(void) {
-    p_id = 1;
-    steps_per_frame = 100;
+    steps_per_frame = 50;
+    conical_background();
+    return 0;
+    alter_magnetic();
+    return 0;
     int rows = 32, cols = 32;
     grid g = grid_init(32, 32, 1);
     double J = g.gp->exchange.J_left;
@@ -218,18 +215,17 @@ int main(void) {
     double K = 0.05 * J;
     grid_set_anisotropy(&g, anisotropy_z_axis(K));
     grid_set_dm(&g, dm_interfacial(D));
-    grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_skyrmion_at(&g, 5, 2, cols / 2, rows / 2, -1, 1, M_PI / 2);
+    grid_uniform(&g, v3d_c(0, 0, -1));
+    grid_create_skyrmion_at(&g, 5, 2, cols / 2, rows / 2, 1, 1, M_PI / 2);
 
     integrate_params ip = integrate_params_init();
-    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, D, mu);
+    ip.field_func = create_field_D2_over_J(v3d_c(0, 0, -0.5), J, D, mu);
     ip.dt = 0.01 * HBAR / J;
     grid_renderer_integrate(&g, ip, 1000, 1000);
-    ip.current_func = "return (current){.type = CUR_STT, .stt.j = v3d_c(5e10, 0, 0), .stt.polarization = 1, .stt.beta = 0.6};";
+    ip.current_func = "return (current){.type = CUR_STT, .stt.j = v3d_c(5e11, 0, 0), .stt.polarization = 1, .stt.beta = 0.6};";
     grid_renderer_integrate(&g, ip, 1000, 1000);
     grid_free(&g);
     return 0;
-    alter_magnetic();
     test_in_line();
     //conical_background();
     //non_reci();
