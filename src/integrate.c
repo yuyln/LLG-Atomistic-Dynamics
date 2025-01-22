@@ -40,6 +40,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     sb_cat_cstr(&output_info_path, "/integrate_info.dat");
 
     ctx.integrate_info = mfopen(sb_as_cstr(&output_info_path), "w");
+    if (ctx.integrate_info == NULL)
+        logging_log(LOG_FATAL, "Can not write integrate_info to NULL file");
 
     sb_free(&output_info_path);
 
@@ -59,6 +61,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
         sb_cat_cstr(&output_cluster_path, "/clusters.dat");
 
         ctx.clusters = mfopen(sb_as_cstr(&output_cluster_path), "w");
+	if (ctx.clusters == NULL)
+	    logging_log(LOG_FATAL, "Can not write clusters to NULL file");
 
         sb_free(&output_cluster_path);
     }
@@ -68,6 +72,8 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     sb_cat_cstr(&output_grid_path, "/integrate_evolution.dat");
 
     ctx.integrate_evolution = mfopen(sb_as_cstr(&output_grid_path), "wb");
+    if (ctx.integrate_evolution == NULL)
+	logging_log(LOG_FATAL, "Can not write integrate_evolution to NULL file");
     sb_free(&output_grid_path);
 
     ctx.info_id = gpu_cl_append_kernel(gpu, "extract_info");

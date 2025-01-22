@@ -429,6 +429,9 @@ bool grid_dump(FILE *f, grid *g) {
 
 bool grid_dump_path(const char *path, grid *g) {
     FILE *f = mfopen(path, "wb");
+    if (f == NULL) {
+	logging_log(LOG_FATAL, "Cannot dump to NULL file");
+    }
     bool ret = grid_dump(f, g);
     mfclose(f);
     return ret;
@@ -436,12 +439,17 @@ bool grid_dump_path(const char *path, grid *g) {
 
 bool grid_from_file(const char *path, grid *g) {
     if (!g)
-        logging_log(LOG_FATAL, "NULL pointer to grid provided");
+    logging_log(LOG_FATAL, "NULL pointer to grid provided");
 
     if (g->m || g->gp || g->on_gpu || g->gi.cols || g->gi.rows || g->gi.depth)
-        logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
+    logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
 
     FILE *f = mfopen(path, "rb");
+
+    if (!f) {
+	return false;
+    }
+    
     char *data = NULL;
     bool ret = true;
 
@@ -497,6 +505,8 @@ bool grid_from_animation_bin(const char *path, grid *g, int64_t frame) {
         logging_log(LOG_FATAL, "Trying to initialize grid from file with grid already initialized");
 
     FILE *f = mfopen(path, "rb");
+    if (f == NULL)
+        return false;
     bool ret = true;
 
     uint64_t frames = 0;

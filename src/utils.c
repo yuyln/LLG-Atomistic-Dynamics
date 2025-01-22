@@ -68,6 +68,9 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
     char *ptr = buffer;
 
     FILE *fout = mfopen(out_path, "wb");
+    if (fout == NULL)
+	return false;
+    
     {
         char *line_end = ptr;
         while (*line_end != '\n')

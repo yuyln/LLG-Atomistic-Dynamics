@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <assert.h>
 
 char *shift_args(int *argc, const char ***argv) {
     if (*argc <= 0)
@@ -19,6 +20,7 @@ char *shift_args(int *argc, const char ***argv) {
 
 char *read_file(const char *path) {
     FILE *f = mfopen(path, "rb");
+    assert(f != NULL);
     fseek(f, 0, SEEK_END);
     uint64_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -55,6 +57,7 @@ int main(int argc, const char **argv) {
     }
 
     FILE *f = mfopen("./src/complete_kernel.c", "wb");
+    assert(f != NULL);
     fprintf(f, "#include \"complete_kernel.h\"\n\nconst char *complete_kernel = ");
     while(argc > 0) {
         char *data = read_file(shift_args(&argc, &argv));
