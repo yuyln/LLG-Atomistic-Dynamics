@@ -2,7 +2,7 @@
 
 set -xe
 
-LIBS="-l:libatomistic.a -lm `pkg-config --static --libs OpenCL x11`"
+LIBS="-l:libatomistic.a -lm `pkg-config --cflags --static --libs OpenCL x11`"
 CFLAGS="-DnPROFILING -O3 -I $HOME/.local/lib/atomistic/include -L $HOME/.local/lib/atomistic -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
 CC="gcc"
 NAME=$1
