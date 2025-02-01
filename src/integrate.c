@@ -183,7 +183,7 @@ void integrate(grid *g, integrate_params params) {
 }
 
 void integrate_step(integrate_context *ctx) {
-    gpu_cl_set_kernel_arg(ctx->gpu, ctx->step_id, 4, sizeof(double), &ctx->time);
+    gpu_cl_set_kernel_arg(ctx->gpu, ctx->step_id, 4, sizeof(ctx->time), &ctx->time);
     gpu_cl_enqueue_nd(ctx->gpu, ctx->step_id, 1, &ctx->local, &ctx->global, NULL);
     bool read_grid_from_gpu = false;
 

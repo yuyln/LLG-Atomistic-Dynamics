@@ -28,8 +28,9 @@ void apply_current(double cur, int n_defects) {
     for (int i = 0; i < n_defects; ++i) {
         int x = shit_random(0, 1) * g.gi.cols;
         int y = shit_random(0, 1) * g.gi.rows;
-        if ((x - g.gi.cols / 2) * (x - g.gi.cols / 2) + (y - g.gi.rows / 2) * (y - g.gi.rows / 2) <= (25 * 25))
+        if ((x - g.gi.cols / 2) * (x - g.gi.cols / 2) + (y - g.gi.rows / 2) * (y - g.gi.rows / 2) <= (25 * 25)) {
             continue;
+        }
         g.gp[y * g.gi.cols + x].ani.ani = 0.05 * J;
         count += 1;
     }
