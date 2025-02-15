@@ -117,6 +117,7 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
 
 void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
+    v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
     gpu_cl_release_memory(ctx->swap_gpu);
     
     mfclose(ctx->integrate_info);
@@ -174,8 +175,8 @@ void integrate(grid *g, integrate_params params) {
     }
     logging_log(LOG_INFO, "Steps: %d", ctx.integrate_step);
 
-    v3d_from_gpu(g->m, g->m_gpu, g->gi.rows, g->gi.cols, gpu);
-    v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols);
+//    v3d_from_gpu(g->m, g->m_gpu, g->gi.rows, g->gi.cols, gpu);
+//    v3d_dump(ctx.integrate_evolution, g->m, g->gi.rows, g->gi.cols);
 
     gpu_cl_enqueue_nd(ctx.gpu, ctx.render_id, 1, &ctx.local, &ctx.global, NULL);
     gpu_cl_read_gpu(ctx.gpu, ctx.g->gi.cols * ctx.g->gi.rows * sizeof(*ctx.rgb), 0, ctx.rgb, ctx.rgb_gpu);
