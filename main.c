@@ -42,10 +42,10 @@ void apply_current(double cur, int n_defects) {
 
 int main(void) {
     p_id = 1;
-    grid g = grid_init(64, 64);
+    grid g = grid_init(256, 256);
 
     double J = g.gp->exchange;
-    double dm = 0.2 * J;
+    double dm = 0.5 * J;
     double mu = g.gp->mu;
 
     grid_set_mu(&g, mu);
@@ -53,8 +53,8 @@ int main(void) {
     grid_set_dm(&g, dm_interfacial(dm));
     grid_set_anisotropy(&g, anisotropy_z_axis(0.01 * J));
 
-    grid_uniform(&g, v3d_c(0, 0, 1));
-    grid_create_skyrmion_at(&g, 12, 5, g.gi.cols / 2, g.gi.rows / 2, -1, 1, M_PI);
+//    grid_uniform(&g, v3d_c(0, 0, 1));
+//    grid_create_skyrmion_at(&g, 12, 5, g.gi.cols / 2, g.gi.rows / 2, -1, 1, M_PI);
 
     integrate_params ip = integrate_params_init();
     ip.field_func = create_field_D2_over_J(v3d_c(0, 0, 0.5), J, dm, mu);

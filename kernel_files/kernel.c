@@ -3,7 +3,7 @@
 #include "grid_types.h"
 #include "simulation_funcs.h"
 
-kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi) {
+kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d *out, double dt, double time, grid_info gi, int seed_for_random) {
     const size_t id = get_global_id(0);
 
     if (id >= (gi.rows * gi.cols))
@@ -23,7 +23,7 @@ kernel void gpu_step(GLOBAL grid_site_params *gs, GLOBAL v3d *input, GLOBAL v3d 
     param.neigh.down = apply_pbc(input, gi.pbc, row - 1, col, gi.rows, gi.cols);
     param.time = time;
     tyche_i_state state;
-    int seed = *((int*)(&time));
+    int seed = *((int*)(&time)) + seed_for_random;
     seed = seed << 16;
     tyche_i_seed(&state, seed + id);
     param.state = &state;
@@ -339,7 +339,7 @@ kernel void thermal_step_gsa(GLOBAL grid_site_params *gs, GLOBAL v3d *v0, GLOBAL
     v3d delta = v3d_c(get_random_gsa(&state, qV, T, gamma),
                       get_random_gsa(&state, qV, T, gamma),
                       get_random_gsa(&state, qV, T, gamma));
-    
+
     v1l = pin.pinned? pin.dir: v3d_normalize(v3d_sum(v0l, delta));
 
     v1[id] = v1l;
@@ -436,7 +436,7 @@ kernel void calculate_electric(GLOBAL grid_site_params *gs, GLOBAL v3d *m0, GLOB
 kernel void render_electric(GLOBAL v3d *field, unsigned int rows, unsigned int cols, double max_mod,
                             GLOBAL RGBA32 *rgba, unsigned int width, unsigned int height) {
     size_t id = get_global_id(0);
-    
+
     if (id >= (width * height))
         return;
 

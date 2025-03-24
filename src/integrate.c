@@ -10,7 +10,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
-
+#include <time.h>
 
 integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_params params) {
     integrate_context ctx = {0};
@@ -23,12 +23,13 @@ integrate_context integrate_context_init(grid *grid, gpu_cl *gpu, integrate_para
     ctx.step_id = gpu_cl_append_kernel(gpu, "gpu_step");
     ctx.exchange_id = gpu_cl_append_kernel(gpu, "exchange_grid");
 
-    gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 6, &grid->gp_gpu, sizeof(cl_mem),
+    gpu_cl_fill_kernel_args(gpu, ctx.step_id, 0, 7, &grid->gp_gpu, sizeof(cl_mem),
                             &grid->m_gpu, sizeof(cl_mem),
                             &ctx.swap_gpu, sizeof(cl_mem),
                             &params.dt, sizeof(double),
                             &ctx.time, sizeof(double),
-                            &grid->gi, sizeof(grid_info));
+                            &grid->gi, sizeof(grid_info),
+                            &params.seed_for_random, sizeof(params.seed_for_random));
 
     gpu_cl_fill_kernel_args(gpu, ctx.exchange_id, 0, 4, &grid->m_gpu, sizeof(cl_mem), &ctx.swap_gpu, sizeof(cl_mem), &ctx.g->gi.rows, sizeof(ctx.g->gi.rows), &ctx.g->gi.cols, sizeof(ctx.g->gi.cols));
     ctx.global = grid->gi.cols * grid->gi.rows;
@@ -119,7 +120,7 @@ void integrate_context_close(integrate_context *ctx) {
     grid_from_gpu(ctx->g, *ctx->gpu);
     v3d_dump(ctx->integrate_evolution, ctx->g->m, ctx->g->gi.rows, ctx->g->gi.cols);
     gpu_cl_release_memory(ctx->swap_gpu);
-    
+
     mfclose(ctx->integrate_info);
     mfclose(ctx->integrate_evolution);
 
@@ -149,6 +150,7 @@ integrate_params integrate_params_init(void) {
     ret.cluster_min_pts = 5;
     ret.cluster_background_size = 0.5;
     ret.do_cluster = true;
+    ret.seed_for_random = time(NULL);
 
     ret.current_func = "return (current){.type = CUR_NONE};";
     ret.field_func = "return v3d_s(0);";

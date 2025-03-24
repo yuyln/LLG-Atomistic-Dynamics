@@ -34,6 +34,8 @@ typedef struct {
     double cluster_eps;
     double cluster_background_size;
     uint64_t cluster_min_pts;
+
+    int seed_for_random;
 } integrate_params;
 
 typedef struct {
