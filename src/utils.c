@@ -2,6 +2,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <assert.h>
 
 typedef struct {
     double x;
@@ -9,6 +10,7 @@ typedef struct {
     double size;
     double vx; //TODO
     double vy; //TODO
+    double _min_distance;
 } center;
 
 typedef struct {
@@ -121,25 +123,33 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
         fprintf(fout, "%.15e,", time);
 
         char *data = first_comma + 1;
+        cs[1].len = 0;
+        cs[2].len = 0;
         for (uint64_t counter = 0; counter < max_n; ++counter) {
+            da_append(&cs[2], ((center){.x = -1, .y = -1, ._min_distance = FLT_MAX}));
             if (data < line_end) {
+                da_append(&cs[1], ((center){0}));
                 char *aux = NULL;
-                cs[1].items[counter].x = strtod(data, &aux);
+                center *it = &cs[1].items[cs[1].len - 1];
+                it->x = strtod(data, &aux);
                 data = aux + 1;
 
                 aux = NULL;
-                cs[1].items[counter].y = strtod(data, &aux);
+                it->y = strtod(data, &aux);
                 data = aux + 1;
-                
+
                 if (has_size) {
                     aux = NULL;
-                    cs[1].items[counter].size = strtod(data, &aux);
+                    it->size = strtod(data, &aux);
                     data = aux + 1;
                 }
+            } else {
+                da_append(&cs[1], ((center){.x = -1, .y = -1, ._min_distance = FLT_MAX}));
             }
-            cs[2].items[counter] = cs[1].items[counter];
         }
         ptr = line_end + 1;
+        assert(cs[1].len == max_n);
+        assert(cs[2].len == max_n);
 
         for (uint64_t i = 0; i < cs[1].len; ++i) {
             double min_d2 = FLT_MAX;
@@ -156,14 +166,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
                     }
                 }
             }
-            cs[2].items[min_idx] = cs[1].items[i];
+            if (min_d2 < cs[2].items[min_idx]._min_distance) {
+                cs[2].items[min_idx] = cs[1].items[i];
+                cs[2].items[min_idx]._min_distance = min_d2;
+            }
             cs[0].items[min_idx] = (center){.x = -1, .y = -1};
 
-            if (min_d2 >= d2_threshold) {
-                cs[2].items[min_idx].x = -1;
-                cs[2].items[min_idx].y = -1;
-                cs[2].items[min_idx].size = 0;
-            }
+            //if (min_d2 >= d2_threshold) {
+            //    cs[2].items[min_idx].x = -1;
+            //    cs[2].items[min_idx].y = -1;
+            //    cs[2].items[min_idx].size = 0;
+            //    cs[2].items[min_idx]._min_distance = FLT_MAX;
+            //}
         }
 
         {
