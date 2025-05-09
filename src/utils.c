@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <float.h>
 #include <math.h>
+#include <assert.h>
 
 typedef struct {
     double x;
@@ -10,6 +11,8 @@ typedef struct {
     double size;
     double vx; //TODO
     double vy; //TODO
+    double vz; //TODO
+    double _min_distance;
 } center;
 
 typedef struct {
@@ -23,9 +26,9 @@ bool organize_clusters_inplace(const char *in_path, double sample_x, double samp
 }
 
 bool organize_clusters(const char *in_path, const char *out_path, double sample_x, double sample_y, double sample_z, double d2_threshold) {
-    FILE *f_in = fopen(in_path, "rb");
+    FILE *f_in = mfopen(in_path, "rb");
     if (!f_in)
-    return false;
+        return false;
     char *buffer = NULL;
 
     uint64_t len = 0;
@@ -47,8 +50,7 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             n = 0;
         }
     }
-    bool has_size = max_n % 4 == 0;
-    uint64_t div_fac = has_size? 4: 3;
+    uint64_t div_fac = 4;
 
     if (max_n % div_fac) {
         logging_log(LOG_ERROR, "Number of commas is not a multiple of %llu. \"%s\" is probably corrupted", div_fac, in_path);
@@ -60,17 +62,16 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
     centers cs[3] = {0};
 
     for (uint64_t i = 0; i < max_n; ++i) {
-        da_append(&cs[0], ((center){.x = -1, .y = -1, .z = -1}));
-        da_append(&cs[1], ((center){.x = -1, .y = -1, .z = -1}));
-        da_append(&cs[2], ((center){.x = -1, .y = -1, .z = -1}));
+        da_append(&cs[0], ((center){.x = -1, .y = -1, .z = -1, ._min_distance = FLT_MAX}));
+        da_append(&cs[1], ((center){.x = -1, .y = -1, .z = -1, ._min_distance = FLT_MAX}));
+        da_append(&cs[2], ((center){.x = -1, .y = -1, .z = -1, ._min_distance = FLT_MAX}));
     }
 
     char *ptr = buffer;
 
     FILE *fout = mfopen(out_path, "wb");
-    if (fout == NULL)
-	return false;
-    
+    if (!fout)
+        return false;
     {
         char *line_end = ptr;
         while (*line_end != '\n')
@@ -93,28 +94,18 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             cs[0].items[counter].z = strtod(data, &aux);
             data = aux + 1;
 
-            if (has_size) {
-                aux = NULL;
-                cs[0].items[counter].size = strtod(data, &aux);
-                data = aux + 1;
-            }
+            aux = NULL;
+            cs[0].items[counter].size = strtod(data, &aux);
+            data = aux + 1;
         }
         ptr = line_end + 1;
 
         fprintf(fout, "%.15e,", time);
-        for (uint64_t i = 0; i < cs[0].len - 1; ++i) {
-            fprintf(fout, "%.15e,%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
-            if (has_size) {
-                fprintf(fout, "%.15e,", cs[0].items[i].size);
-            }
+        for (uint64_t i = 0; i < cs[0].len; ++i) {
+            fprintf(fout, "%.15e,%.15e,%.15e,%.15e", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
+            if (i + 1 == cs[0].len) fprintf(fout, "\n");
+            else fprintf(fout, ",");
         }
-        uint64_t i = cs[0].len - 1;
-        if (has_size) {
-            fprintf(fout, "%.15e,%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
-        } else {
-            fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
-        }
-
     }
 
     while (ptr < buffer + len) {
@@ -127,29 +118,35 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
         fprintf(fout, "%.15e,", time);
 
         char *data = first_comma + 1;
+        cs[1].len = 0;
+        cs[2].len = 0;
         for (uint64_t counter = 0; counter < max_n; ++counter) {
+            da_append(&cs[2], ((center){.x = -1, .y = -1, .z = -1, ._min_distance = FLT_MAX}));
             if (data < line_end) {
+                da_append(&cs[1], ((center){0}));
                 char *aux = NULL;
-                cs[1].items[counter].x = strtod(data, &aux);
+                center *it = &cs[1].items[cs[1].len - 1];
+                it->x = strtod(data, &aux);
                 data = aux + 1;
 
                 aux = NULL;
-                cs[1].items[counter].y = strtod(data, &aux);
+                it->y = strtod(data, &aux);
                 data = aux + 1;
 
                 aux = NULL;
-                cs[1].items[counter].z = strtod(data, &aux);
+                it->z = strtod(data, &aux);
                 data = aux + 1;
-                
-                if (has_size) {
-                    aux = NULL;
-                    cs[1].items[counter].size = strtod(data, &aux);
-                    data = aux + 1;
-                }
+
+                aux = NULL;
+                it->size = strtod(data, &aux);
+                data = aux + 1;
+            } else {
+                da_append(&cs[1], ((center){.x = -1, .y = -1, .z = -1, ._min_distance = FLT_MAX}));
             }
-            cs[2].items[counter] = cs[1].items[counter];
         }
         ptr = line_end + 1;
+        assert(cs[1].len == max_n);
+        assert(cs[2].len == max_n);
 
         for (uint64_t i = 0; i < cs[1].len; ++i) {
             double min_d2 = FLT_MAX;
@@ -157,45 +154,40 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             for (uint64_t j = 0; j < cs[0].len; ++j) {
                 for (int di = -1; di <= 1; ++di) {
                     for (int dj = -1; dj <= 1; ++dj) {
-                        for (int dk = -1; dk <= 1; ++dk) {
-                            double dx = (cs[1].items[i].x - cs[0].items[j].x - dj * sample_x) / sample_x;
-                            double dy = (cs[1].items[i].y - cs[0].items[j].y - di * sample_y) / sample_y;
-                            double dz = (cs[1].items[i].z - cs[0].items[j].z - dk * sample_z) / sample_z;
-                            double ds = cs[1].items[i].size - cs[0].items[j].size;
-                            double d2 = dx * dx + dy * dy + dz * dz;
-                            min_idx = d2 < min_d2? j: min_idx;
-                            min_d2 = d2 < min_d2? d2: min_d2;
-                        }
+                        double dx = (cs[1].items[i].x - cs[0].items[j].x - dj * sample_x) / sample_x;
+                        double dy = (cs[1].items[i].y - cs[0].items[j].y - di * sample_y) / sample_y;
+                        double dz = (cs[1].items[i].z - cs[0].items[j].z - di * sample_z) / sample_z;
+                        double ds = cs[1].items[i].size - cs[0].items[j].size;
+                        double d2 = dx * dx + dy * dy + dz * dz + ds * ds;
+                        min_idx = d2 < min_d2? j: min_idx;
+                        min_d2 = d2 < min_d2? d2: min_d2;
                     }
                 }
             }
-            cs[2].items[min_idx] = cs[1].items[i];
+            if (min_d2 < cs[2].items[min_idx]._min_distance) {
+                cs[2].items[min_idx] = cs[1].items[i];
+                cs[2].items[min_idx]._min_distance = min_d2;
+            }
             cs[0].items[min_idx] = (center){.x = -1, .y = -1, .z = -1};
 
-            if (min_d2 >= d2_threshold) {
-                cs[2].items[min_idx].x = -1;
-                cs[2].items[min_idx].y = -1;
-                cs[2].items[min_idx].z = -1;
-                cs[2].items[min_idx].size = 0;
-            }
+            //if (min_d2 >= d2_threshold) {
+            //    cs[2].items[min_idx].x = -1;
+            //    cs[2].items[min_idx].y = -1;
+            //    cs[2].items[min_idx].size = 0;
+            //    cs[2].items[min_idx]._min_distance = FLT_MAX;
+            //}
         }
 
         {
-            for (uint64_t i = 0; i < cs[2].len - 1; ++i) {
+            for (uint64_t i = 0; i < cs[2].len; ++i) {
                 cs[0].items[i] = cs[2].items[i];
                 cs[1].items[i] = cs[2].items[i];
-                fprintf(fout, "%.15e,%.15e,%.15e,", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
-                if (has_size) {
-                    fprintf(fout, "%.15e,", cs[0].items[i].size);
-                }
-            }
-            uint64_t i = cs[2].len - 1;
-            cs[0].items[i] = cs[2].items[i];
-            cs[1].items[i] = cs[2].items[i];
-            if (has_size) {
-                fprintf(fout, "%.15e,%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
-            } else {
-                fprintf(fout, "%.15e,%.15e,%.15e\n", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z);
+
+                fprintf(fout, "%.15e,%.15e,%.15e,%.15e", cs[0].items[i].x, cs[0].items[i].y, cs[0].items[i].z, cs[0].items[i].size);
+                if ((i + 1) == cs[2].len)
+                    fprintf(fout, "\n");
+                else
+                    fprintf(fout, ",");
             }
         }
     }
@@ -244,7 +236,7 @@ double max_double(double a, double b) {
 
 bool barycentric_4pts(v3d p0, v3d p1, v3d p2, v3d p3, double x, double y, double z, double *b0, double *b1, double *b2, double *b3) {
     double l0 = (-(p1.x*(p2.y*p3.z-p3.y*p2.z))+p2.x*(p1.y*p3.z-p3.y*p1.z)-p3.x*(p1.y*p2.z-p2.y*p1.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p1.x*(p2.z-p3.z))+p2.x*(p1.z-p3.z)-p3.x*(p1.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p1.x*(p2.y-p3.y)-p2.x*(p1.y-p3.y)+p3.x*(p1.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
-    
+
     double l1 = (p0.x*(p2.y*p3.z-p3.y*p2.z)-p2.x*(p0.y*p3.z-p3.y*p0.z)+p3.x*(p0.y*p2.z-p2.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(p0.x*(p2.z-p3.z)-p2.x*(p0.z-p3.z)+p3.x*(p0.z-p2.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((-(p0.x*(p2.y-p3.y))+p2.x*(p0.y-p3.y)-p3.x*(p0.y-p2.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
 
     double l2 = (-(p0.x*(p1.y*p3.z-p3.y*p1.z))+p1.x*(p0.y*p3.z-p3.y*p0.z)-p3.x*(p0.y*p1.z-p1.y*p0.z))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+(y*(-(p0.x*(p1.z-p3.z))+p1.x*(p0.z-p3.z)-p3.x*(p0.z-p1.z)))/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)))+((p0.x*(p1.y-p3.y)-p1.x*(p0.y-p3.y)+p3.x*(p0.y-p1.y))*z)/(p0.x*(p1.y*(p2.z-p3.z)-p2.y*(p1.z-p3.z)+p3.y*(p1.z-p2.z))+p1.x*(-(p0.y*(p2.z-p3.z))+p2.y*(p0.z-p3.z)-p3.y*(p0.z-p2.z))+p2.x*(p0.y*(p1.z-p3.z)-p1.y*(p0.z-p3.z)+p3.y*(p0.z-p1.z))+p3.x*(-(p0.y*(p1.z-p2.z))+p1.y*(p0.z-p2.z)-p2.y*(p0.z-p1.z)));
@@ -258,7 +250,7 @@ bool barycentric_4pts(v3d p0, v3d p1, v3d p2, v3d p3, double x, double y, double
 	*b2 = l2;
     if (b3 != NULL)
 	*b3 = l3;
-    return l0 >= 0 && l1 >= 0 && l2 >= 0 && l3 >= 0;	
+    return l0 >= 0 && l1 >= 0 && l2 >= 0 && l3 >= 0;
 }
 
 bool barycentric_8pts(v3d p0, v3d p1, v3d p2, v3d p3, v3d p4, v3d p5, v3d p6, v3d p7, double x, double y, double z, double *b0, double *b1, double *b2, double *b3, double *b4, double *b5, double *b6, double *b7) {

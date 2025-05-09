@@ -204,7 +204,7 @@ def ReadAnimationBinary(path: str) -> tuple[int, grid_info, list[grid_site_param
 
     raw_data = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)[skip:]
     frames = len(raw_data) / (gi.rows * gi.cols * gi.depth * VEC_SIZE)
-    
+
     file.close()
     return int(frames), gi, gps, raw_data
 
@@ -231,28 +231,27 @@ def ReadAnimationBinaryF(path: str) -> tuple[int, grid_info, list[grid_site_para
                 gps.append(gp)
     skip += ct.sizeof(gps[0]) * gi.rows * gi.cols * gi.depth
     file.close()
-    
+
     file_size = os.stat(path).st_size
     file = open(path, "rb")
-    file.seek(skip, 0)
-    
+
     grid_size = file_size - skip
     frames = grid_size / (gi.rows * gi.cols * gi.depth * VEC_SIZE)
-    
+
     return int(frames), gi, gps, file
 
 def GetFrameFromBinaryF(frames: int, gi: grid_info, raw_file, i: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    if i < 0: i = 0
-    elif i >= frames: i = frames - 1
+    i = ((i % frames) + frames) % frames
     lat_s = gi.rows * gi.cols * gi.depth * VEC_SIZE
     raw_file_skip = ct.sizeof(ct.uint64_t) + ct.sizeof(grid_info) + ct.sizeof(grid_site_params) * gi.rows * gi.cols * gi.depth + lat_s * i
+    raw_file.skip(raw_file_skip, 0)
     raw_data = raw_file.read(lat_s)
     raw_vecs = array.array("d")
     raw_vecs.frombytes(raw_data)
     M = np.array(raw_vecs)
     mx, my, mz = M[0::3], M[1::3], M[2::3]
     return mx, my, mz
-    
+
 def ReadLatticeBinary(path: str) -> tuple[grid_info, list[grid_site_params], np.ndarray, np.ndarray, np.ndarray]:
     file = open(path, "rb")
 
@@ -298,9 +297,9 @@ def _v(m1, m2, hue):
     ret[:] = hue[:]
     hueL = hue
     hueL = hueL % 1.0
- 
+
     ret[:] = m1[:]
- 
+
     cond = hueL < 2.0 / 3.0
     ret[cond] = m1[cond] + (m2[cond] - m1[cond]) * (2.0 / 3.0 - hueL[cond]) * 6.0
 
@@ -309,8 +308,8 @@ def _v(m1, m2, hue):
 
     cond = hueL < 1.0 / 6.0
     ret[cond] = m1[cond] + (m2[cond] - m1[cond]) * hueL[cond] * 6.0
- 
-    return ret 
+
+    return ret
 
 def FixCluster(input_dir, output_dir, dx, dy, dz, cut) -> bool:
     import ctypes
@@ -530,17 +529,16 @@ def ClusterDefects(gp: list[grid_site_params]) -> list[grid_site_params]:
 
     return [sites[i][0] for i in range(len(sites))]
 
-
 def GetClusterData(bdir: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     frames, gi, gp, raw = ReadAnimationBinary(f"{bdir}integrate_evolution.dat")
     lattice = gi.lattice
-    
+
     try:
         data = pd.read_csv(f"{bdir}clusters_org.dat", header=None)
     except FileNotFoundError:
         FixCluster(f"./{bdir}clusters.dat", f"./{bdir}clusters_org.dat", gi.cols * lattice, gi.rows * lattice, gi.depth * lattice, 1e8)
         data = pd.read_csv(f"{bdir}clusters_org.dat", header=None)
-    
+
     skip = 4 if (len(data.keys()) - 1) % 4 == 0 else 3
     start = 5 if (len(data.keys()) - 1) % 4 == 0 else 4
     xs = data.iloc[:, start::skip].to_numpy()
@@ -650,7 +648,7 @@ def FixPlot(lx: float, ly: float):
                      "ytick.major.pad": 5,
                      "ytick.minor.visible": True,
                      "lines.markersize": 10,
-                     "lines.markeredgewidth": 0.8, 
+                     "lines.markeredgewidth": 0.8,
                      "mathtext.fontset": "cm"})
 
 def FixPlot_(lx: float, ly: float):
@@ -696,6 +694,5 @@ def FixPlot_(lx: float, ly: float):
                      "ytick.major.pad": 5,
                      "ytick.minor.visible": True,
                      "lines.markersize": 10,
-                     "lines.markeredgewidth": 0.8, 
+                     "lines.markeredgewidth": 0.8,
                      "mathtext.fontset": "custom"}) #"cm"
-

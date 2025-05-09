@@ -2,10 +2,10 @@
 
 set -xe
 
-COMMON_CFLAGS="-DnPROFILING -O3 -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
+COMMON_CFLAGS="-DnPROFILING -O3 -g3 -ggdb -I ./include -DCL_TARGET_OPENCL_VERSION=300 -DCL_USE_DEPRECATED_OPENCL_1_2_APIS"
 FILES="`find ./src -maxdepth 1 -type f -name "*.c"` ./src/platform_specific/render_linux_x11.c"
 CC="gcc"
-LIBS="-lm `pkg-config --static --libs OpenCL x11`"
+LIBS="-lm `pkg-config --cflags --static --libs OpenCL x11`"
 
 if [ "`pkg-config --libs xext`" > /dev/null ]; then
     LIBS="$LIBS `pkg-config --static --libs xext`"
