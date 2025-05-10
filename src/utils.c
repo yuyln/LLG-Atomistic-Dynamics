@@ -152,15 +152,32 @@ bool organize_clusters(const char *in_path, const char *out_path, double sample_
             double min_d2 = FLT_MAX;
             uint64_t min_idx = 0;
             for (uint64_t j = 0; j < cs[0].len; ++j) {
-                for (int di = -1; di <= 1; ++di) {
-                    for (int dj = -1; dj <= 1; ++dj) {
-                        double dx = (cs[1].items[i].x - cs[0].items[j].x - dj * sample_x) / sample_x;
-                        double dy = (cs[1].items[i].y - cs[0].items[j].y - di * sample_y) / sample_y;
-                        double dz = (cs[1].items[i].z - cs[0].items[j].z - di * sample_z) / sample_z;
-                        double ds = cs[1].items[i].size - cs[0].items[j].size;
-                        double d2 = dx * dx + dy * dy + dz * dz + ds * ds;
-                        min_idx = d2 < min_d2? j: min_idx;
-                        min_d2 = d2 < min_d2? d2: min_d2;
+                for (int dk = -1; dk <= 1; ++dk) {
+                    for (int di = -1; di <= 1; ++di) {
+                        for (int dj = -1; dj <= 1; ++dj) {
+                            double dx = (cs[1].items[i].x - cs[0].items[j].x - dj * sample_x) / sample_x;
+                            double dy = (cs[1].items[i].y - cs[0].items[j].y - di * sample_y) / sample_y;
+                            double dz = (cs[1].items[i].z - cs[0].items[j].z - dk * sample_z) / sample_z;
+                            double ds = cs[1].items[i].size - cs[0].items[j].size;
+                            double d2 = dx * dx + dy * dy + dz * dz + ds * ds;
+                            min_idx = d2 < min_d2? j: min_idx;
+                            min_d2 = d2 < min_d2? d2: min_d2;
+                            #if 0
+                            printf("-----------------------------------\n");
+                            logging_log(LOG_INFO, "i = %lu | j = %lu", i, j);
+                            logging_log(LOG_INFO, "di = %d | dj = %d", di, dj);
+                            logging_log(LOG_INFO, "xi = %.3e | xj = %.3e", cs[1].items[i].x, cs[0].items[j].x - dj * sample_x);
+                            logging_log(LOG_INFO, "yi = %.3e | yj = %.3e", cs[1].items[i].y, cs[0].items[j].y - di * sample_y);
+                            logging_log(LOG_INFO, "zi = %.3e | zj = %.3e", cs[1].items[i].z, cs[0].items[j].z - dk * sample_z);
+                            logging_log(LOG_INFO, "si = %.3e | sj = %.3e", cs[1].items[i].size, cs[0].items[j].size);
+                            logging_log(LOG_INFO, "dx = %.3e", dx);
+                            logging_log(LOG_INFO, "dy = %.3e", dy);
+                            logging_log(LOG_INFO, "dz = %.3e", dz);
+                            logging_log(LOG_INFO, "ds = %.3e", ds);
+                            logging_log(LOG_INFO, "d2 = %.3e", d2);
+                            printf("-----------------------------------\n");
+                            #endif
+                        }
                     }
                 }
             }
