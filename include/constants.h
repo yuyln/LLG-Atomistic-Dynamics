@@ -28,9 +28,9 @@
 #define V_AT(v, i, j, k, rows, cols) (v[(k) * (rows) * (cols) + (i) * (cols) + (j)])
 
 #ifndef OPENCL_COMPILATION
-#define GLOBAL 
-#define LOCAL 
-#define PRIVATE 
+#define GLOBAL
+#define LOCAL
+#define PRIVATE
 #else
 #define GLOBAL global
 #define LOCAL local
